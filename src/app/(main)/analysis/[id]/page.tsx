@@ -11,6 +11,8 @@ import { ConfidenceBadge } from "@/components/ui/ConfidenceBadge";
 import { GroundedNote } from "@/components/ui/GroundedNote";
 import { FirstGapReveal } from "@/components/analysis/FirstGapReveal";
 import { CorrectedSolution } from "@/components/analysis/CorrectedSolution";
+import { SocraticPrompt } from "@/components/analysis/SocraticPrompt";
+import { MisconceptionCard } from "@/components/analysis/MisconceptionCard";
 import { useAppStore } from "@/store/useAppStore";
 import { ConceptVisual } from "@/components/visuals/ConceptVisual";
 import { selectConceptVisual } from "@/lib/ai/visuals/select-visual";
@@ -34,6 +36,16 @@ type Explanation = {
   groundedInChunkIds: string[];
 };
 
+type Misconception = {
+  code: string;
+  basis: "proved" | "matched";
+  evidence: string;
+  name: string;
+  studentRule: string;
+  whyItFails: string;
+  socraticPrompt: string;
+};
+
 type Gap = {
   id: string;
   classification: string;
@@ -42,10 +54,11 @@ type Gap = {
   confidence: "high" | "medium" | "low";
   explanation: Explanation | null;
   evidence: { stepOrder: number; note: string }[];
+  misconception: Misconception | null;
   concept: { id: string; name: string; slug: string };
 };
 
-const VIEWS = ["replay", "first-gap", "audit", "explanation", "concept"] as const;
+const VIEWS = ["replay", "first-gap", "audit", "socratic", "explanation", "concept"] as const;
 type View = (typeof VIEWS)[number];
 
 export default function AnalysisDetailPage() {
@@ -292,21 +305,41 @@ export default function AnalysisDetailPage() {
               divergenceExpression={firstGapStep.expression}
             />
 
-            <Button className="mt-5 w-full" onClick={() => setView("explanation")} disabled={!gap}>
+            <Button
+              className="mt-5 w-full"
+              onClick={() => setView(gap?.misconception ? "socratic" : "explanation")}
+              disabled={!gap}
+            >
               Why did this happen? <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
         </>
       )}
 
+      {view === "socratic" && gap?.misconception && (
+        <>
+          <TopBar title="Your turn" onBack={() => setView("audit")} />
+          <SocraticPrompt
+            question={gap.misconception.socraticPrompt}
+            hint={gap.misconception.whyItFails}
+            onReveal={() => setView("explanation")}
+          />
+        </>
+      )}
+
       {view === "explanation" && gap && (
         <>
-          <TopBar title="Gap Explanation" onBack={() => setView("audit")} />
+          <TopBar
+            title="Gap Explanation"
+            onBack={() => setView(gap.misconception ? "socratic" : "audit")}
+          />
           <div className="px-5">
             <Card className="border border-danger-50 bg-danger-50">
               <p className="text-xs font-semibold text-danger">Surface error</p>
               <p className="mt-1 text-sm leading-relaxed text-navy-900">{gap.surfaceError}</p>
             </Card>
+
+            {gap.misconception && <MisconceptionCard misconception={gap.misconception} className="mt-3" />}
 
             <Card className="mt-3 border border-lavender-200 bg-lavender-50">
               <div className="flex items-start justify-between gap-2">
