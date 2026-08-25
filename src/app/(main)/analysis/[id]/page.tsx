@@ -13,6 +13,10 @@ import { FirstGapReveal } from "@/components/analysis/FirstGapReveal";
 import { CorrectedSolution } from "@/components/analysis/CorrectedSolution";
 import { SocraticPrompt } from "@/components/analysis/SocraticPrompt";
 import { MisconceptionCard } from "@/components/analysis/MisconceptionCard";
+import { TeachMe } from "@/components/analysis/TeachMe";
+import { ResourcePanel } from "@/components/analysis/ResourcePanel";
+import { buildLesson } from "@/lib/teaching/build-lesson";
+import { getMisconception } from "@/lib/diagnosis/misconceptions";
 import { useAppStore } from "@/store/useAppStore";
 import { ConceptVisual } from "@/components/visuals/ConceptVisual";
 import { selectConceptVisual } from "@/lib/ai/visuals/select-visual";
@@ -421,6 +425,23 @@ export default function AnalysisDetailPage() {
               );
             })()}
 
+            {/* The same diagnosis, spoken and animated. Built from proved
+                values only — a voice carries more authority than text, so
+                nothing generated at render time goes into it. */}
+            {firstGapStep && (
+              <TeachMe
+                lines={buildLesson({
+                  studentExpression: firstGapStep.expression,
+                  previousExpression: previousStep?.expression ?? null,
+                  correctedExpression: firstGapStep.correctedExpression,
+                  conceptName: gap.concept.name,
+                  misconception: gap.misconception ? getMisconception(gap.misconception.code) : null,
+                  correctReasoning: gap.explanation?.correctReasoning ?? [],
+                  stepOrder: firstGapStep.order,
+                })}
+              />
+            )}
+
             {gap.explanation?.correctReasoning?.length ? (
               <Card className="mt-3 border border-success-50">
                 <p className="text-xs font-semibold text-success">Correct reasoning</p>
@@ -436,6 +457,8 @@ export default function AnalysisDetailPage() {
                 </div>
               </Card>
             ) : null}
+
+            <ResourcePanel gapId={gap.id} className="mt-3" />
 
             <Button
               className="mt-5 w-full"
