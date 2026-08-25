@@ -3,16 +3,32 @@ import { PracticeGenerationResult } from "@/lib/ai/schemas/pipeline";
 import type { Difficulty } from "./select-intervention";
 
 const REPAIR_SYSTEM = `Generate ONE practice problem that isolates the exact
-skill the student just got wrong, at the requested difficulty. Provide a
-canonical correctAnswer in a form that can be checked deterministically
-(e.g. "x = 4" for an equation). Keep the problem concise.`;
+skill the student just got wrong, at the requested difficulty.
 
-const TRANSFER_SYSTEM = `Generate ONE "transfer" problem that requires the SAME
-underlying concept applied in a visibly different surface form or context than
-the original problem (e.g. different variable names, a word problem instead of
-symbolic, or a rearranged structure), so success indicates real understanding
-rather than pattern-matching. Provide a canonical correctAnswer that can be
-checked deterministically.`;
+Requirements:
+- "prompt" must be a single solvable equation and nothing else — no framing
+  words, no "Solve for x:" prefix. Example: "3x + 8 = 26".
+- Use exactly one variable, and keep it linear.
+- "correctAnswer" must be that equation's exact solution written as
+  "<variable> = <value>", e.g. "x = 6". Solve it yourself and double-check.
+- Choose numbers whose solution is a whole number.
+- Do not repeat any problem listed in avoidPrompts.`;
+
+const TRANSFER_SYSTEM = `Generate ONE "transfer" problem: the SAME underlying
+concept in a visibly different surface form, so solving it means understanding
+rather than pattern-matching.
+
+Vary the surface — a different variable letter, the constant written before the
+variable term, or the sides swapped. Keep the underlying reasoning identical.
+
+Requirements:
+- "prompt" must be a single solvable equation and nothing else — no framing
+  words. Example: "9 + 4n = 33".
+- Use exactly one variable, and keep it linear.
+- "correctAnswer" must be that equation's exact solution written as
+  "<variable> = <value>", e.g. "n = 6". Solve it yourself and double-check.
+- Choose numbers whose solution is a whole number.
+- Do not repeat any problem listed in avoidPrompts.`;
 
 export async function generatePracticeProblem(params: {
   conceptName: string;
@@ -32,6 +48,8 @@ export async function generatePracticeProblem(params: {
       description: params.conceptDescription,
       difficulty: params.difficulty,
       avoidPrompts: params.avoidPrompts ?? [],
+      // Nudges variety across calls without spending a second request on it.
+      nonce: Math.random().toString(36).slice(2, 8),
     }),
     // Practice problems should vary across calls with the same concept, so we
     // skip the cache here — dedup/conservation instead comes from generating
