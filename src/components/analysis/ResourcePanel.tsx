@@ -16,13 +16,33 @@ import { cn } from "@/lib/cn";
  * specific misconception, without having checked, is how a tool loses a
  * student's trust permanently.
  */
-export function ResourcePanel({ gapId, className }: { gapId: string; className?: string }) {
+export function ResourcePanel({
+  gapId,
+  conceptSlug,
+  className,
+}: {
+  /** Resources for a diagnosed gap — the misconception sharpens the query. */
+  gapId?: string;
+  /** Resources for a concept being explained, where there is no gap yet. */
+  conceptSlug?: string;
+  className?: string;
+}) {
   const [bundle, setBundle] = useState<ResourceBundle | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const endpoint = gapId
+    ? `/api/gaps/${gapId}/resources`
+    : conceptSlug
+      ? `/api/concepts/${conceptSlug}/resources`
+      : null;
+
   useEffect(() => {
+    if (!endpoint) {
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
-    fetch(`/api/gaps/${gapId}/resources`)
+    fetch(endpoint)
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (!cancelled) setBundle(d);
@@ -34,7 +54,7 @@ export function ResourcePanel({ gapId, className }: { gapId: string; className?:
     return () => {
       cancelled = true;
     };
-  }, [gapId]);
+  }, [endpoint]);
 
   if (loading) {
     return (
