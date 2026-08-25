@@ -21,3 +21,4 @@ public/uploads/*
 *.pem
 npm-debug.log*
 .vercel
+*.tsbuildinfo
