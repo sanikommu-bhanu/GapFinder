@@ -106,6 +106,9 @@ export async function POST(req: NextRequest) {
     conceptSlug: example?.visualSlug ?? concept.slug,
     originalExpression: example?.expression ?? null,
     correctedExpression: example?.corrected ?? null,
+    // No student working exists here, so the curated worked examples are
+    // exactly what should be drawn.
+    allowCuratedExample: true,
   });
 
   return NextResponse.json({
