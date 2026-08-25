@@ -10,13 +10,23 @@ import { compressImageBase64 } from "@/lib/media/compress-image";
 /** 8 MB of base64 is roughly a 6 MB photo — beyond that we reject rather than OOM. */
 const MAX_IMAGE_BASE64_CHARS = 8_000_000;
 
-const Body = z.object({
+const PhotoBody = z.object({
   subject: z.string().min(1).max(40),
   imageBase64: z.string().min(1).max(MAX_IMAGE_BASE64_CHARS), // raw base64, no data: prefix
   imageMimeType: z.enum(["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]).default("image/jpeg"),
-  sourceType: z.enum(["camera", "gallery", "typed"]).default("camera"),
+  sourceType: z.enum(["camera", "gallery"]).default("camera"),
   textContext: z.string().max(2000).optional(),
 });
+
+const TypedBody = z.object({
+  subject: z.string().min(1).max(40),
+  sourceType: z.literal("typed"),
+  /** One equation per line, exactly as the student wrote it. */
+  steps: z.array(z.string().min(1).max(300)).min(2).max(40),
+  textContext: z.string().max(2000).optional(),
+});
+
+const Body = z.union([TypedBody, PhotoBody]);
 
 /**
  * Starts an analysis and returns immediately.
@@ -41,10 +51,51 @@ export async function POST(req: NextRequest) {
   const parsed = Body.safeParse(json);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "That image could not be accepted. Use a JPEG or PNG photo under about 6 MB." },
+      {
+        error:
+          "We couldn't accept that. Send a JPEG or PNG under about 6 MB, or type at least two lines of working.",
+      },
       { status: 400 }
     );
   }
+
+  // Typed working: no image to compress or store, and no vision call to make.
+  if (parsed.data.sourceType === "typed") {
+    const { subject, steps, textContext } = parsed.data;
+    const analysis = await prisma.analysis.create({
+      data: {
+        userId,
+        subject,
+        status: "pending",
+        uploadedWork: {
+          create: {
+            imageUrl: "",
+            sourceType: "typed",
+            rawText: steps.join("\n"),
+            textContext: textContext ?? null,
+          },
+        },
+      },
+    });
+
+    void runAnalysisPipeline({
+      analysisId: analysis.id,
+      subject,
+      typedSteps: steps,
+      textContext,
+    }).catch(async (err) => {
+      console.error("[analysis] pipeline crashed", analysis.id, err);
+      await prisma.analysis
+        .update({
+          where: { id: analysis.id },
+          data: { status: "failed", statusReason: "Something went wrong analyzing this. Please try again." },
+        })
+        .catch(() => {});
+    });
+
+    return NextResponse.json({ analysisId: analysis.id, status: "pending" }, { status: 202 });
+  }
+
   const { subject, imageBase64, imageMimeType, sourceType, textContext } = parsed.data;
 
   let compressed;
@@ -73,7 +124,7 @@ export async function POST(req: NextRequest) {
         create: {
           imageUrl,
           sourceType,
-          rawText: sourceType === "typed" ? textContext ?? null : null,
+          rawText: null,
           textContext: textContext ?? null,
           width: compressed.width,
           height: compressed.height,
