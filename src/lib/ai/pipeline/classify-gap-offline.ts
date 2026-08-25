@@ -9,9 +9,9 @@ import { parseLinearEquation } from "@/lib/math/linear-parse";
  * The verifier has already proved *where* the reasoning broke. This decides
  * *what kind* of break it was, by comparing the algebraic structure of the step
  * the student wrote against the step they should have written — no model in the
- * loop. It runs whenever Gemini is unavailable, and its confidence is always
- * reported as "low" because structural evidence is weaker than a reading of the
- * student's full working. The UI shows that level rather than hiding it.
+ * loop. It runs whenever Gemini is unavailable, and its confidence is reported
+ * honestly: "medium" when the error has an unambiguous algebraic signature,
+ * "low" when the shape only narrows it down.
  */
 export function classifyGapOffline(params: {
   divergence: VerifiedStep;
@@ -26,41 +26,53 @@ export function classifyGapOffline(params: {
 
   const written = toLinearForm(divergence.expression);
   const shouldBe = corrected ? toLinearForm(corrected) : null;
-  const prevPretty = parseLinearEquation(previousExpression);
+  const prev = parseLinearEquation(previousExpression);
 
   let classification = "invalid-transformation";
   let conceptSlug = pick("equations", "algebra");
-  let underlyingGap =
-    "This step changes the solution set, so it cannot follow from the step above it.";
+  let underlyingGap = "This step changes the solution set, so it cannot follow from the step above it.";
+  let confidence: "high" | "medium" | "low" = "low";
 
   if (written && shouldBe) {
-    const sameMagnitudeConstant = Math.abs(Math.abs(written.k) - Math.abs(shouldBe.k)) < 1e-9;
-    const flippedConstantSign = sameMagnitudeConstant && Math.sign(written.k) !== Math.sign(shouldBe.k);
+    const constantGap = written.k - shouldBe.k;
     const coefficientChanged = Math.abs(written.m - shouldBe.m) > 1e-9;
 
-    if (flippedConstantSign) {
-      // The right number, the wrong direction: the classic inverse-operation slip.
+    // The signature of a sign error: a term crossed the equals sign keeping the
+    // sign it already had. Moving b correctly lands at c - b; repeating the sign
+    // lands at c + b, so the two differ by exactly 2b. Nothing else produces
+    // that gap, which is why this can be named with real confidence.
+    const movedWithoutInverting =
+      prev !== null &&
+      prev.constant !== 0 &&
+      Math.abs(Math.abs(constantGap) - 2 * Math.abs(prev.constant)) < 1e-6 &&
+      !coefficientChanged;
+
+    if (movedWithoutInverting) {
       classification = "sign-error";
       conceptSlug = pick("sign-handling", "inverse-operations", "equations");
-      underlyingGap = prevPretty
-        ? `The constant was moved across the equals sign with the same sign it already had. Moving ${prevPretty.constantOp}${prevPretty.constant} to the other side requires applying its inverse, not repeating it.`
-        : "The constant kept its sign when it crossed the equals sign, instead of being inverted.";
+      underlyingGap = `Moving ${prev.constantOp}${prev.constant} across the equals sign means applying its inverse to both sides. It was carried over with the sign it already had, so the two sides no longer describe the same value.`;
+      confidence = "medium";
     } else if (coefficientChanged) {
-      classification = "coefficient-error";
+      const ratio = Math.abs(shouldBe.m) > 1e-9 ? written.m / shouldBe.m : NaN;
+      const dividedOneSideOnly = Number.isFinite(ratio) && Math.abs(ratio - Math.round(ratio)) < 1e-6;
+      classification = "inverse-operation-misapplied";
       conceptSlug = pick("inverse-operations", "equations");
-      underlyingGap =
-        "The coefficient on the variable changed in a way the operation does not justify — dividing or multiplying was applied to only part of the equation.";
-    } else {
+      underlyingGap = dividedOneSideOnly
+        ? "The coefficient was divided out on one side but not the other. An operation has to reach both sides or the equation stops balancing."
+        : "The coefficient on the variable changed in a way the operation doesn't justify.";
+      confidence = "medium";
+    } else if (Math.abs(constantGap) > 1e-9) {
       classification = "arithmetic-error";
       conceptSlug = pick("equations", "algebra");
       underlyingGap =
-        "The structure of the step is right, but the arithmetic that produced the new value does not check out.";
+        "The move itself is the right one, but the arithmetic that produced the new value doesn't come out.";
+      confidence = "medium";
     }
   }
 
   const surfaceError = corrected
     ? `Wrote "${divergence.expression}" where the step should read "${corrected}".`
-    : `Wrote "${divergence.expression}", which is not equivalent to "${previousExpression}".`;
+    : `Wrote "${divergence.expression}", which isn't equivalent to "${previousExpression}".`;
 
   return {
     conceptSlug,
@@ -68,12 +80,11 @@ export function classifyGapOffline(params: {
     surfaceError,
     underlyingGap,
     evidence: [
-      {
-        stepOrder: divergence.order,
-        note: divergence.verificationNote,
-      },
+      { stepOrder: divergence.order, note: divergence.verificationNote },
+      ...(corrected
+        ? [{ stepOrder: divergence.order, note: `Algebraically the step resolves to "${corrected}".` }]
+        : []),
     ],
-    // Structural evidence only — deliberately not claimed as high confidence.
-    confidence: "low",
+    confidence,
   };
 }
