@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { getSessionUserId } from "@/lib/auth/session";
-import { hasGeminiKey } from "@/lib/env";
+import { hasAnyProvider } from "@/lib/ai/ai-client";
 import { selectDifficulty } from "@/lib/ai/pipeline/select-intervention";
 import { generatePracticeProblem } from "@/lib/ai/pipeline/generate-practice";
 import {
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   let chosen: GeneratedProblem | null = null;
   let rejectedByValidator = false;
 
-  if (hasGeminiKey()) {
+  if (hasAnyProvider()) {
     try {
       const { result } = await generatePracticeProblem({
         conceptName: gap.concept.name,
