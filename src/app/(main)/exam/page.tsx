@@ -1,6 +1,7 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { GraduationCap, ArrowRight, Check, AlertTriangle, HelpCircle, Clock } from "lucide-react";
 import { TopBar } from "@/components/nav/TopBar";
 import { Card } from "@/components/ui/Card";
@@ -9,7 +10,15 @@ import { WorkInput } from "@/components/ui/WorkInput";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 import { cn } from "@/lib/cn";
 
-type Question = { id: string; order: number; prompt: string; conceptName: string };
+type Question = {
+  id: string;
+  order: number;
+  prompt: string;
+  conceptName: string;
+  /** "choice" questions are answered by picking an option, not by working. */
+  kind?: "working" | "choice";
+  options?: string[];
+};
 type ConceptUnderTest = { name: string; reason: string };
 type Result = {
   conceptId: string;
@@ -50,7 +59,12 @@ const VERDICT = {
  * Results arrive only at the end, per concept, and mastery is never claimed
  * from a single question.
  */
-export default function ExamPage() {
+function ExamView() {
+  const searchParams = useSearchParams();
+  // Set when the exam was launched from an explanation, to check that one
+  // concept rather than everything the student has repaired.
+  const conceptSlug = searchParams.get("concept");
+
   const [phase, setPhase] = useState<"intro" | "sitting" | "results">("intro");
   const [examId, setExamId] = useState<string | null>(null);
   const [concepts, setConcepts] = useState<ConceptUnderTest[]>([]);
@@ -77,7 +91,7 @@ export default function ExamPage() {
       const res = await fetch("/api/exam", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "start" }),
+        body: JSON.stringify({ action: "start", ...(conceptSlug ? { conceptSlug } : {}) }),
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(d.error ?? "Couldn't start the exam.");
@@ -93,7 +107,7 @@ export default function ExamPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [conceptSlug]);
 
   async function submit() {
     const question = questions[index];
@@ -135,10 +149,12 @@ export default function ExamPage() {
     }
   }
 
+  const isConceptCheck = Boolean(conceptSlug);
+
   if (phase === "intro") {
     return (
       <div className="pb-8">
-        <TopBar title="Exam Mode" />
+        <TopBar title={isConceptCheck ? "Concept Check" : "Exam Mode"} />
         <div className="px-5">
           <div className="flex flex-col items-center pt-2 text-center">
             <span className="flex h-16 w-16 items-center justify-center rounded-full bg-navy-900">
@@ -146,8 +162,9 @@ export default function ExamPage() {
             </span>
             <h2 className="mt-4 font-display text-lg font-bold text-navy-900">No hints. No feedback.</h2>
             <p className="mt-2 text-sm leading-relaxed text-ink-soft">
-              You&apos;ve repaired these in practice, where help was available. This checks whether the repair holds
-              without it — which is the only way to know it was learning rather than following along.
+              {isConceptCheck
+                ? "You just had this explained. Following an explanation feels like understanding it, and the two come apart often enough that it's worth checking — so here are the wrong answers students actually give."
+                : "You've repaired these in practice, where help was available. This checks whether the repair holds without it — which is the only way to know it was learning rather than following along."}
             </p>
           </div>
 
@@ -165,11 +182,18 @@ export default function ExamPage() {
           <Card className="mt-5 bg-surface-muted shadow-none">
             <p className="text-xs font-semibold text-ink-soft">How it&apos;s judged</p>
             <ul className="mt-2 flex flex-col gap-1.5">
-              {[
-                "Every line is checked, not just your final answer",
-                "One right answer is never enough to claim mastery",
-                "An old misconception coming back counts against it, whatever the score",
-              ].map((line) => (
+              {(isConceptCheck
+                ? [
+                    "Every wrong option is a real, documented misconception",
+                    "One right answer is never enough to claim mastery",
+                    "Choosing a wrong option records which rule you were applying",
+                  ]
+                : [
+                    "Every line is checked, not just your final answer",
+                    "One right answer is never enough to claim mastery",
+                    "An old misconception coming back counts against it, whatever the score",
+                  ]
+              ).map((line) => (
                 <li key={line} className="flex items-start gap-2 text-[12px] leading-relaxed text-navy-900">
                   <Check className="mt-0.5 h-3 w-3 shrink-0 text-success" />
                   {line}
@@ -179,7 +203,7 @@ export default function ExamPage() {
           </Card>
 
           <Button onClick={start} loading={loading} className="mt-5 w-full">
-            Start the exam <ArrowRight className="h-4 w-4" />
+            {isConceptCheck ? "Start the check" : "Start the exam"} <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -193,7 +217,7 @@ export default function ExamPage() {
 
     return (
       <div className="pb-8">
-        <TopBar title="Exam" back={false} />
+        <TopBar title={isConceptCheck ? "Concept Check" : "Exam"} back={false} />
         <div className="px-5">
           <div className="flex items-center justify-between">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-faint">
@@ -254,7 +278,7 @@ export default function ExamPage() {
 
   return (
     <div className="pb-8">
-      <TopBar title="Exam Results" back={false} />
+      <TopBar title={isConceptCheck ? "Check Results" : "Exam Results"} back={false} />
       <div className="flex flex-col items-center px-5">
         <ProgressRing value={score} size={124} />
         <p className="mt-2 text-xs font-semibold text-ink-soft">Right, with sound reasoning</p>
@@ -295,12 +319,22 @@ export default function ExamPage() {
         <Link href="/gaps" className="mt-5 w-full">
           <Button className="w-full">See my gaps</Button>
         </Link>
-        <Link href="/home" className="mt-2 w-full">
+        <Link href={isConceptCheck ? "/learn" : "/home"} className="mt-2 w-full">
           <Button variant="ghost" className="w-full">
-            Back to home
+            {isConceptCheck ? "Learn another concept" : "Back to home"}
           </Button>
         </Link>
       </div>
     </div>
+  );
+}
+
+export default function ExamPage() {
+  return (
+    <Suspense
+      fallback={<div className="flex h-64 items-center justify-center text-sm text-ink-soft">Loading…</div>}
+    >
+      <ExamView />
+    </Suspense>
   );
 }
