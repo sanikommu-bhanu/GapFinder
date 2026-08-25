@@ -165,7 +165,7 @@ async function finishFromSteps(params: {
   // The concept graph is needed by the next stage and depends on nothing here,
   // so it loads alongside the verification writes instead of after them.
   const conceptsPromise = prisma.concept.findMany({
-    select: { id: true, slug: true, name: true, description: true, commonErrors: true },
+    select: { id: true, slug: true, name: true, subject: true, description: true, commonErrors: true },
   });
 
   await prisma.reasoningStep.deleteMany({ where: { analysisId: params.analysisId } });
@@ -224,10 +224,20 @@ async function finishFromSteps(params: {
 
   await setStatus(params.analysisId, "classifying");
 
-  const concepts = await conceptsPromise;
-  if (concepts.length === 0) {
+  const allConcepts = await conceptsPromise;
+  if (allConcepts.length === 0) {
     return failWithReason(params.analysisId, "The concept graph has not been seeded yet. Run npm run db:seed.");
   }
+
+  // Narrow to the subject the student chose. Offering the model every concept
+  // across four subjects invites it to classify a chemistry gap as "Sign
+  // Handling" simply because the words overlap; keeping the shortlist honest is
+  // what makes the concept it lands on meaningful. Cross-subject concepts stay
+  // available when the subject has none of its own seeded.
+  const subjectConcepts = allConcepts.filter(
+    (c) => c.subject.toLowerCase() === params.subject.toLowerCase()
+  );
+  const concepts = subjectConcepts.length > 0 ? subjectConcepts : allConcepts;
 
   const prevStep = verified[verified.findIndex((v) => v.isFirstGap) - 1];
   const classification = await classifyWithFallback({
