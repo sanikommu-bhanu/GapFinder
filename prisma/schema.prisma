@@ -87,8 +87,10 @@ model Analysis {
   userId          String
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   subject         String
-  status          String   @default("pending") // pending|reading|reconstructing|verifying|complete|failed|needs_confirmation
+  status          String   @default("pending") // pending|reading|reconstructing|verifying|classifying|explaining|complete|failed|needs_confirmation
   confidence      String?  // high|medium|low
+  // Student-facing reason when status is failed/needs_confirmation.
+  statusReason    String?
   isDemo          Boolean  @default(false)
   createdAt       DateTime @default(now())
   completedAt     DateTime?
@@ -137,6 +139,9 @@ model ReasoningStep {
   isValid        Boolean  // deterministically verified
   isFirstGap     Boolean  @default(false)
   verificationNote String?
+  // What this step should have been, derived algebraically from the previous
+  // verified step (see lib/math/solve-step.ts). Never model-generated.
+  correctedExpression String?
   createdAt      DateTime @default(now())
 }
 
