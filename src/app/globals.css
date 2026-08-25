@@ -5,36 +5,80 @@
 :root {
   --font-display: "Sora", system-ui, sans-serif;
   --font-body: "Inter", system-ui, sans-serif;
+  /* Set from user settings; 1 = default. Scales every rem-based size at once. */
+  --font-scale: 1;
 }
 
-html, body {
+html {
+  font-size: calc(100% * var(--font-scale));
+  /* Prevents iOS from silently re-scaling text in landscape. */
+  -webkit-text-size-adjust: 100%;
+}
+
+html,
+body {
   height: 100%;
-  background: #F7F6FB;
+  background: #f7f6fb;
   color: #151833;
   -webkit-font-smoothing: antialiased;
+  /* The app owns its own scrolling regions; the document itself never scrolls
+     sideways, which is what produces the "premium native" feel on a phone. */
+  overflow-x: hidden;
+  overscroll-behavior-y: none;
 }
 
+/**
+ * The app column.
+ *
+ * GapFinder is a mobile product, so on a wide screen it does NOT stretch into a
+ * dashboard — it stays a centred 430px column at its natural proportions. Below
+ * that width it fills the viewport edge to edge.
+ */
 .app-shell {
-  max-width: 480px;
+  width: 100%;
+  max-width: 430px;
   margin: 0 auto;
   min-height: 100dvh;
-  background: #F7F6FB;
+  background: #f7f6fb;
   position: relative;
   display: flex;
   flex-direction: column;
+  isolation: isolate;
 }
 
 .status-bar-safe {
   padding-top: env(safe-area-inset-top, 0px);
 }
 
-.scrollbar-none::-webkit-scrollbar { display: none; }
-.scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Long expressions and tables scroll inside their own box rather than pushing
+   the page sideways. */
+.overflow-scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Inputs at 16px+ stop iOS Safari from zooming the viewport on focus. */
+input,
+textarea,
+select {
+  font-size: max(16px, 1rem);
+}
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
 }
