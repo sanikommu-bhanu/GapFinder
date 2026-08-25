@@ -28,7 +28,7 @@ export default function ScanPage() {
     reader.onload = () => {
       const result = reader.result as string;
       setPreview(result);
-      const [, base64] = result.split(",");
+      const base64 = result.split(",")[1] ?? "";
       setFileData({ base64, mime: f.type || "image/jpeg" });
     };
     reader.readAsDataURL(f);
