@@ -40,8 +40,8 @@ const ALIASES: Record<string, string[]> = {
   respiration: ["respiration", "respire", "aerobic", "anaerobic", "mitochondria", "mitochondrion", "atp", "cellular respiration", "breathing", "lactic acid"],
   "cell-structure": ["cell", "cells", "organelle", "organelles", "nucleus", "membrane", "cell wall", "ribosome", "cytoplasm", "plant cell", "animal cell"],
   "genetics-inheritance": ["genetics", "inheritance", "allele", "alleles", "gene", "genes", "punnett", "dominant", "recessive", "genotype", "phenotype", "heredity", "dna inheritance", "monohybrid"],
-  "chemical-equations": ["chemical equation", "reactants", "products", "reaction", "chemical reaction", "state symbols"],
-  "balancing-equations": ["balancing", "balance", "balanced equation", "coefficients", "conservation of mass", "atom count"],
+  "chemical-equations": ["chemical equation", "chemical equations", "reactants", "products", "reaction", "chemical reaction", "state symbols"],
+  "balancing-equations": ["balancing", "balance", "balanced equation", "balance equations", "balance an equation", "balance a chemical equation", "balancing equations", "balancing chemical equations", "coefficients", "conservation of mass", "atom count"],
   "moles-and-stoichiometry": ["mole", "moles", "stoichiometry", "molar mass", "avogadro", "concentration", "titration", "limiting reagent"],
   "atomic-structure": ["atom", "atomic structure", "proton", "neutron", "electron", "shells", "isotope", "isotopes", "periodic table"],
   "units-and-dimensions": ["units", "unit", "dimensional analysis", "si units", "converting units", "dimensions"],
@@ -58,6 +58,21 @@ const ALIASES: Record<string, string[]> = {
   quadratics: ["quadratic", "quadratics", "parabola", "roots", "quadratic formula", "completing the square", "x squared"],
   fractions: ["fraction", "fractions", "numerator", "denominator", "common denominator", "improper fraction", "mixed number"],
   "linear-graphing": ["graph", "graphing", "gradient", "slope", "y intercept", "straight line", "y = mx + c", "y = mx + b", "plotting"],
+};
+
+/**
+ * Words that name a subject without naming a concept.
+ *
+ * "Balance chemical equations" and "solve equations" share almost every token
+ * that matters, and the word doing the work is "chemical". A small nudge toward
+ * the right subject is enough to separate them, and it stays a nudge — never
+ * enough to override a concept the student actually named.
+ */
+const SUBJECT_CUES: Record<string, string[]> = {
+  Chemistry: ["chemical", "chemistry", "reaction", "reactant", "compound", "element", "atom", "molecule"],
+  Physics: ["physics", "force", "motion", "newton", "velocity", "joule"],
+  Biology: ["biology", "biological", "cell", "plant", "organism", "gene", "living"],
+  Math: ["math", "maths", "mathematics", "algebra", "algebraic", "arithmetic"],
 };
 
 /** Below this the match isn't good enough to build a lesson on. */
@@ -109,6 +124,11 @@ export function matchConcept(
     // A chosen subject is a hint, never a filter: a student browsing Biology
     // who asks about moles should still get moles.
     if (opts.subjectHint && concept.subject === opts.subjectHint) score += 1;
+
+    // The student naming a subject in the question itself is a stronger hint
+    // than the tab they happened to have open.
+    const cues = SUBJECT_CUES[concept.subject] ?? [];
+    if (cues.some((cue) => containsPhrase(query, cue))) score += 2;
 
     if (score > 0) scored.push({ concept, score, via });
   }
