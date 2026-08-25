@@ -70,7 +70,7 @@ export function CorrectedSolution({
               </span>
               <p
                 className={cn(
-                  "min-w-0 flex-1 truncate font-display text-base",
+                  "min-w-0 flex-1 break-words font-display text-base leading-snug",
                   isDivergencePoint ? "font-bold text-success" : "text-navy-900"
                 )}
               >
