@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db/prisma";
-import { AiUnavailableError } from "@/lib/ai/gemini-client";
-import { hasGeminiKey } from "@/lib/env";
+import { AiUnavailableError } from "@/lib/ai/ai-client";
+import { hasAnyProvider, hasVisionProvider } from "@/lib/ai/ai-client";
 import { retrieveKnowledge } from "@/lib/ai/rag/retrieve";
 import { explainGapOffline } from "@/lib/ai/fallback/offline-explain";
 import type { ExplanationResult } from "@/lib/ai/schemas/pipeline";
@@ -66,6 +66,15 @@ export async function runAnalysisPipeline(params: RunPipelineParams): Promise<Ru
     return failWithReason(params.analysisId, "No work was submitted to analyze.");
   }
 
+  // Reading handwriting needs a provider that accepts images. Typed working
+  // has no such requirement, which is why that path is checked separately.
+  if (!hasVisionProvider()) {
+    return failWithReason(
+      params.analysisId,
+      "No AI provider is configured that can read images right now. You can still type your working out instead."
+    );
+  }
+
   // One multimodal call reads, narrates and classifies. It used to be three,
   // which cost three round-trips and three charges against the free-tier quota
   // for a single photo. Combining them is safe because nothing the model says
@@ -101,7 +110,8 @@ export async function runAnalysisPipeline(params: RunPipelineParams): Promise<Ru
     return failWithReason(
       params.analysisId,
       read.isQuestionOnly
-        ? "This looks like a question with no working yet. GapFinder finds where your reasoning broke, so it needs to see your attempt — even a wrong one."
+        ? // Prefixed so the UI can offer guided solving instead of a dead end.
+          `QUESTION_ONLY: This is a question with no working yet — nothing to diagnose. We can solve it with you instead, one step at a time.`
         : "We could not read any working steps in that image. Try a straighter, better-lit photo with one problem per photo."
     );
   }
@@ -388,7 +398,7 @@ async function classifyWithFallback(params: {
   concepts: { id: string; slug: string; name: string; description: string; commonErrors: string }[];
   analysisId: string;
 }) {
-  if (hasGeminiKey()) {
+  if (hasAnyProvider()) {
     try {
       const { result } = await classifyGap({
         subject: params.subject,
@@ -430,7 +440,7 @@ async function explainWithFallback(params: {
 }): Promise<ExplanationResult> {
   const previousExpression = params.prevStep?.expression ?? params.divergence.expression;
 
-  if (hasGeminiKey() && params.prevStep) {
+  if (hasAnyProvider() && params.prevStep) {
     try {
       const { explanation } = await explainGap({
         conceptId: params.conceptId,
