@@ -7,10 +7,18 @@
  *
  * Run: npm run db:seed
  */
+import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
+
+/** Looks up a seeded concept id, failing loudly rather than writing `undefined`. */
+function cid(map: Record<string, string>, slug: string): string {
+  const id = map[slug];
+  if (!id) throw new Error(`Seed error: concept "${slug}" was not seeded before it was referenced.`);
+  return id;
+}
 
 // ---------------------------------------------------------------------------
 // 1. CONCEPT KNOWLEDGE GRAPH
@@ -398,16 +406,16 @@ async function main() {
     await prisma.conceptRelationship.upsert({
       where: {
         fromId_toId_relationType: {
-          fromId: conceptMap[from],
-          toId: conceptMap[to],
-          relationType: type,
+          fromId: cid(conceptMap, from!),
+          toId: cid(conceptMap, to!),
+          relationType: type!,
         },
       },
       update: {},
       create: {
-        fromId: conceptMap[from],
-        toId: conceptMap[to],
-        relationType: type,
+        fromId: cid(conceptMap, from!),
+        toId: cid(conceptMap, to!),
+        relationType: type!,
       },
     });
   }
@@ -420,7 +428,7 @@ async function main() {
   for (const ch of chunks) {
     await prisma.knowledgeChunk.create({
       data: {
-        conceptId: conceptMap[ch.concept],
+        conceptId: cid(conceptMap, ch.concept),
         kind: ch.kind,
         title: ch.title,
         content: ch.content,
@@ -476,8 +484,8 @@ async function seedDemoFixture(conceptMap: Record<string, string>) {
     },
   });
 
-  const inverseOpsId = conceptMap["inverse-operations"];
-  const signId = conceptMap["sign-handling"];
+  const inverseOpsId = cid(conceptMap, "inverse-operations");
+  const signId = cid(conceptMap, "sign-handling");
 
   // Mastery records matching the reference UI (Overall 78%, per-concept bars)
   const masteryData: [string, number][] = [
@@ -489,11 +497,11 @@ async function seedDemoFixture(conceptMap: Record<string, string>) {
   ];
   for (const [slug, score] of masteryData) {
     await prisma.masteryRecord.upsert({
-      where: { userId_conceptId: { userId: user.id, conceptId: conceptMap[slug] } },
+      where: { userId_conceptId: { userId: user.id, conceptId: cid(conceptMap, slug) } },
       update: { masteryScore: score, trend: "up" },
       create: {
         userId: user.id,
-        conceptId: conceptMap[slug],
+        conceptId: cid(conceptMap, slug),
         masteryScore: score,
         trend: "up",
         history: JSON.stringify([{ date: new Date().toISOString(), score }]),
@@ -708,25 +716,25 @@ async function seedDemoFixture(conceptMap: Record<string, string>) {
     where: { userId: user.id },
     update: {
       nodes: JSON.stringify([
-        { conceptId: conceptMap["algebra"], status: "mastered", masteryScore: 100 },
-        { conceptId: conceptMap["equations"], status: "mastered", masteryScore: 100 },
+        { conceptId: cid(conceptMap, "algebra"), status: "mastered", masteryScore: 100 },
+        { conceptId: cid(conceptMap, "equations"), status: "mastered", masteryScore: 100 },
         { conceptId: inverseOpsId, status: "mastered", masteryScore: 100 },
         { conceptId: signId, status: "active", masteryScore: 61 },
-        { conceptId: conceptMap["distribution"], status: "active", masteryScore: 88 },
-        { conceptId: conceptMap["factoring"], status: "locked", masteryScore: 0 },
-        { conceptId: conceptMap["quadratics"], status: "locked", masteryScore: 0 },
+        { conceptId: cid(conceptMap, "distribution"), status: "active", masteryScore: 88 },
+        { conceptId: cid(conceptMap, "factoring"), status: "locked", masteryScore: 0 },
+        { conceptId: cid(conceptMap, "quadratics"), status: "locked", masteryScore: 0 },
       ]),
     },
     create: {
       userId: user.id,
       nodes: JSON.stringify([
-        { conceptId: conceptMap["algebra"], status: "mastered", masteryScore: 100 },
-        { conceptId: conceptMap["equations"], status: "mastered", masteryScore: 100 },
+        { conceptId: cid(conceptMap, "algebra"), status: "mastered", masteryScore: 100 },
+        { conceptId: cid(conceptMap, "equations"), status: "mastered", masteryScore: 100 },
         { conceptId: inverseOpsId, status: "mastered", masteryScore: 100 },
         { conceptId: signId, status: "active", masteryScore: 61 },
-        { conceptId: conceptMap["distribution"], status: "active", masteryScore: 88 },
-        { conceptId: conceptMap["factoring"], status: "locked", masteryScore: 0 },
-        { conceptId: conceptMap["quadratics"], status: "locked", masteryScore: 0 },
+        { conceptId: cid(conceptMap, "distribution"), status: "active", masteryScore: 88 },
+        { conceptId: cid(conceptMap, "factoring"), status: "locked", masteryScore: 0 },
+        { conceptId: cid(conceptMap, "quadratics"), status: "locked", masteryScore: 0 },
       ]),
     },
   });
