@@ -1,0 +1,131 @@
+/**
+ * The GapFinder palette.
+ *
+ * Every colour the app uses is defined here as an RGB triplet and referenced
+ * through Tailwind, so switching themes is a matter of redefining these
+ * variables rather than touching a single component. The light values are the
+ * design reference exactly; the dark values keep the same relationships —
+ * lavender still leads, peach still accents, and contrast ratios hold.
+ */
+
+:root {
+  /* Brand — identical in both themes so the product keeps its identity. */
+  --c-lavender-50: 246 244 254;
+  --c-lavender-100: 237 233 253;
+  --c-lavender-200: 220 212 251;
+  --c-lavender-300: 195 180 247;
+  --c-lavender-400: 167 139 250;
+  --c-lavender-500: 139 92 246;
+  --c-lavender-600: 124 77 239;
+
+  --c-peach-50: 255 246 239;
+  --c-peach-100: 255 235 221;
+  --c-peach-200: 255 211 176;
+  --c-peach-300: 255 178 122;
+  --c-peach-400: 255 152 87;
+  --c-peach-500: 251 138 60;
+
+  --c-success: 47 191 113;
+  --c-success-50: 231 249 239;
+  --c-warning: 217 145 20;
+  --c-warning-50: 255 246 229;
+  --c-danger: 226 74 74;
+  --c-danger-50: 253 236 236;
+
+  /* Structure — these are what a theme change actually moves. */
+  --c-navy-50: 237 238 245;
+  --c-navy-100: 211 213 230;
+  --c-navy-400: 74 79 121;
+  --c-navy-700: 32 36 74;
+  --c-navy-900: 21 24 51;
+  --c-navy-950: 14 16 38;
+
+  --c-surface: 255 255 255;
+  --c-surface-muted: 247 246 251;
+  --c-surface-card: 255 255 255;
+
+  --c-ink: 21 24 51;
+  --c-ink-soft: 107 110 138;
+  --c-ink-faint: 160 163 189;
+
+  /* What sits on top of a navy-900 surface (buttons, the tab-bar action). */
+  --c-on-strong: 255 255 255;
+
+  --shadow-card: 0 4px 20px -6px rgba(21, 24, 51, 0.1);
+  --shadow-soft: 0 8px 24px -8px rgba(21, 24, 51, 0.12);
+  --shadow-floating: 0 12px 32px -8px rgba(21, 24, 51, 0.18);
+
+  --page-bg: 247 246 251;
+}
+
+:root[data-theme="dark"] {
+  /* The navy scale inverts: what was near-black text becomes near-white, and
+     what was a pale hairline becomes a dark one. */
+  --c-navy-50: 47 51 82;
+  --c-navy-100: 62 67 104;
+  --c-navy-400: 148 152 186;
+  --c-navy-700: 213 214 232;
+  --c-navy-900: 236 236 246;
+  --c-navy-950: 255 255 255;
+
+  --c-surface: 24 26 46;
+  --c-surface-muted: 32 35 60;
+  --c-surface-card: 28 31 53;
+
+  --c-ink: 236 236 246;
+  --c-ink-soft: 165 168 196;
+  --c-ink-faint: 126 130 163;
+
+  /* Primary buttons become light, so their label goes dark. */
+  --c-on-strong: 18 20 38;
+
+  /* Lifted slightly so brand colours stay legible on a dark ground. */
+  --c-lavender-50: 42 38 74;
+  --c-lavender-100: 52 46 92;
+  --c-lavender-200: 74 64 124;
+  --c-lavender-600: 178 156 253;
+
+  --c-peach-50: 58 42 33;
+  --c-peach-100: 74 52 39;
+  --c-peach-500: 255 165 96;
+
+  --c-success: 74 210 140;
+  --c-success-50: 27 60 45;
+  --c-warning: 240 178 68;
+  --c-warning-50: 62 49 24;
+  --c-danger: 255 122 122;
+  --c-danger-50: 68 34 39;
+
+  --shadow-card: 0 4px 20px -6px rgba(0, 0, 0, 0.45);
+  --shadow-soft: 0 8px 24px -8px rgba(0, 0, 0, 0.5);
+  --shadow-floating: 0 12px 32px -8px rgba(0, 0, 0, 0.6);
+
+  --page-bg: 18 20 38;
+}
+
+/* Accent choice re-points the lavender family, so one setting recolours the
+   rings, chips, links and highlights together rather than one control. */
+:root[data-accent="pink"] {
+  --c-lavender-400: 244 114 182;
+  --c-lavender-500: 236 72 153;
+  --c-lavender-600: 219 39 119;
+  --c-lavender-300: 249 168 212;
+}
+:root[data-accent="orange"] {
+  --c-lavender-400: 255 152 87;
+  --c-lavender-500: 251 138 60;
+  --c-lavender-600: 234 110 24;
+  --c-lavender-300: 255 190 148;
+}
+:root[data-accent="teal"] {
+  --c-lavender-400: 45 212 191;
+  --c-lavender-500: 20 184 166;
+  --c-lavender-600: 13 148 136;
+  --c-lavender-300: 128 231 219;
+}
+:root[data-accent="blue"] {
+  --c-lavender-400: 96 165 250;
+  --c-lavender-500: 59 130 246;
+  --c-lavender-600: 37 99 235;
+  --c-lavender-300: 147 197 253;
+}
