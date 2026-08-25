@@ -1,3 +1,4 @@
+import "dotenv/config";
 /**
  * Runs the fixtures in fixtures/reasoning-cases.json against the
  * deterministic math verifier ONLY (src/lib/verification/math-verifier.ts).
