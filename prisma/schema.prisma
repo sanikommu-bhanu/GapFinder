@@ -377,6 +377,11 @@ model ExamQuestion {
   correctAnswer String
   // How the question was produced — surfaced so the exam is auditable.
   source        String      @default("deterministic")
+  // "working" expects lines to verify; "choice" is answered by picking one of
+  // `options`. Concept checks after an explanation use the latter.
+  kind          String      @default("working")
+  // JSON string[] — present only for choice questions.
+  options       String?
 
   studentAnswer String?
   // Did they reach the right answer?
