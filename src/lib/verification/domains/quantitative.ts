@@ -1,4 +1,5 @@
 import { evaluate, unit, type Unit } from "mathjs";
+import { fmt } from "@/lib/math/solve-step";
 
 /**
  * Quantitative verification — the shape most physics and chemistry working
@@ -200,6 +201,48 @@ function extractUnit(expression: string): string | null {
   try {
     unit(`1 ${candidate}`);
     return candidate;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * What a miscomputed line should have said: the value its own right-hand side
+ * actually evaluates to, keeping whatever the student was naming on the left.
+ *
+ * Derived by evaluating their expression — never generated, and never an
+ * algebraic rearrangement, which would answer a question they weren't asking.
+ */
+/**
+ * Formats a computed result in the form its own inputs imply.
+ *
+ * An exact quotient of whole numbers is a fraction: two thirds is "2/3", and
+ * writing "0.666667" would quietly introduce an error into the one line the
+ * student is being asked to trust. A value computed from decimals is a
+ * measurement, and "147/5" is not how anyone writes 29.4 m/s.
+ */
+function formatResult(value: number, sourceExpression: string): string {
+  const sourceHasDecimals = /\d\.\d/.test(sourceExpression);
+  if (sourceHasDecimals) {
+    // Trim floating-point noise without inventing precision.
+    return String(Math.round(value * 1e6) / 1e6);
+  }
+  return fmt(value);
+}
+
+export function correctQuantitativeStep(prevLine: string, nextLine: string): string | null {
+  const prev = splitEquation(prevLine);
+  const next = splitEquation(nextLine);
+  if (!prev || !next) return null;
+
+  const stripUnit = (s: string) => s.replace(/\s*[a-zA-Z][a-zA-Z0-9^/*.\s-]*$/, "").trim() || s;
+
+  try {
+    const value = Number(evaluate(stripUnit(normalize(prev.rhs))));
+    if (!Number.isFinite(value)) return null;
+    // Keep any unit the student had written on this line.
+    const unitSuffix = next.rhs.match(/\s([a-zA-Z][a-zA-Z0-9^/*·\s-]*)$/)?.[1]?.trim();
+    return `${next.lhs.trim()} = ${formatResult(value, prev.rhs)}${unitSuffix ? ` ${unitSuffix}` : ""}`;
   } catch {
     return null;
   }
