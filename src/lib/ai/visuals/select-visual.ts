@@ -1,4 +1,5 @@
 import { parseLinearEquation } from "@/lib/math/linear-parse";
+import { checkChemicalBalance } from "@/lib/verification/domains/chemistry";
 
 export type VisualModule =
   | { kind: "balance"; steps: { leftLabel: string; rightLabel: string; opLabel?: string }[]; caption: string }
@@ -22,7 +23,66 @@ export type VisualModule =
       range?: number;
       caption: string;
     }
+  | {
+      kind: "atom-balance";
+      left: Record<string, number>;
+      right: Record<string, number>;
+      caption: string;
+    }
+  | {
+      kind: "punnett";
+      parentA: string[];
+      parentB: string[];
+      dominant: string;
+      caption: string;
+    }
+  | {
+      kind: "process-flow";
+      inputs: string[];
+      process: string;
+      location: string;
+      outputs: string[];
+      energy?: { direction: "stores" | "releases"; label: string };
+      caption: string;
+    }
   | { kind: "none" };
+
+/**
+ * Curated process facts for the biology concepts.
+ *
+ * These are written down rather than derived because a cell's biology isn't
+ * computable from the student's sentence — but they are still fixed, checkable
+ * statements from the same curated corpus the explanations are grounded in,
+ * not something a model produced at render time.
+ */
+const PROCESS_FLOWS: Record<
+  string,
+  {
+    inputs: string[];
+    process: string;
+    location: string;
+    outputs: string[];
+    energy: { direction: "stores" | "releases"; label: string };
+    caption: string;
+  }
+> = {
+  photosynthesis: {
+    inputs: ["Carbon dioxide", "Water", "Light"],
+    process: "Photosynthesis",
+    location: "chloroplast",
+    outputs: ["Glucose", "Oxygen"],
+    energy: { direction: "stores", label: "light energy becomes chemical energy in glucose" },
+    caption: "Oxygen is a by-product, not the purpose. The purpose is storing energy as glucose.",
+  },
+  respiration: {
+    inputs: ["Glucose", "Oxygen"],
+    process: "Aerobic respiration",
+    location: "mitochondrion",
+    outputs: ["Carbon dioxide", "Water"],
+    energy: { direction: "releases", label: "stored chemical energy becomes usable energy" },
+    caption: "The reverse direction of photosynthesis — and every living cell does it, plants included.",
+  },
+};
 
 /**
  * Chooses a visual module and computes its numeric parameters deterministically
@@ -89,6 +149,37 @@ export function selectConceptVisual(params: {
       };
     }
     return { kind: "none" };
+  }
+
+  // ---------------------------------------------------------------- Chemistry
+  if (conceptSlug === "balancing-equations" || conceptSlug === "chemical-equations") {
+    // Drawn from the same atom counts the verifier used to judge the step, so
+    // the picture and the verdict can never disagree.
+    const source = correctedExpression ?? originalExpression ?? "";
+    const balance = checkChemicalBalance(source);
+    if (!balance) return { kind: "none" };
+    return {
+      kind: "atom-balance",
+      left: balance.left,
+      right: balance.right,
+      caption: "Balancing changes the number in front of a substance — never the formula itself.",
+    };
+  }
+
+  // ----------------------------------------------------------------- Biology
+  if (conceptSlug === "genetics-inheritance") {
+    const cross = parseGeneticCross(originalExpression ?? correctedExpression ?? "");
+    if (!cross) return { kind: "none" };
+    return {
+      kind: "punnett",
+      ...cross,
+      caption: "Every cell is one allele from each parent. Count them for the ratio.",
+    };
+  }
+
+  const flow = PROCESS_FLOWS[conceptSlug];
+  if (flow) {
+    return { kind: "process-flow", ...flow };
   }
 
   if (conceptSlug === "factoring") {
@@ -158,6 +249,28 @@ export function selectConceptVisual(params: {
  * is the term worth putting on screen. Numbers come straight out of the
  * student's own verified expression — never from a model.
  */
+/**
+ * Reads a monohybrid cross like "Aa x Aa" out of the student's own line.
+ * Returns null for anything that isn't unambiguously a cross, rather than
+ * guessing at which letters were meant to be alleles.
+ */
+function parseGeneticCross(
+  text: string
+): { parentA: string[]; parentB: string[]; dominant: string } | null {
+  const match = text.replace(/\s+/g, "").match(/([A-Za-z]{2})[x×*]([A-Za-z]{2})/);
+  if (!match) return null;
+
+  const [, a, b] = match;
+  const letters = new Set([...a!, ...b!].map((c) => c.toLowerCase()));
+  // A monohybrid cross uses one gene, so exactly one letter, in two cases.
+  if (letters.size !== 1) return null;
+
+  const dominant = [...a!, ...b!].find((c) => c === c.toUpperCase());
+  if (!dominant) return null;
+
+  return { parentA: a!.split(""), parentB: b!.split(""), dominant };
+}
+
 function findDistributedTerm(
   expression: string
 ): { a: number; b: number; c: number; variable?: string } | null {
