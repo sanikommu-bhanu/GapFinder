@@ -10,6 +10,7 @@ import {
   Target,
   Route,
   Compass,
+  Sparkles,
   GraduationCap,
   MessageCircle,
   History,
@@ -26,6 +27,7 @@ const SECTIONS: { heading: string; items: { href: string; label: string; icon: t
     heading: "Learn",
     items: [
       { href: "/home", label: "Home", icon: Home },
+      { href: "/learn", label: "Ask a concept", icon: Sparkles },
       { href: "/solve", label: "Solve with me", icon: Compass },
       { href: "/scan", label: "Check my work", icon: ScanLine },
       { href: "/gaps", label: "My learning gaps", icon: Target },
