@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, History, ScanLine, Target, User } from "lucide-react";
+import { Home, Sparkles, ScanLine, Target, User } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 /**
@@ -11,7 +11,7 @@ import { cn } from "@/lib/cn";
  */
 const items = [
   { href: "/home", label: "Home", icon: Home },
-  { href: "/history", label: "History", icon: History },
+  { href: "/learn", label: "Learn", icon: Sparkles },
   { href: "/scan", label: "Scan", icon: ScanLine, isAction: true },
   { href: "/gaps", label: "Gaps", icon: Target },
   { href: "/profile", label: "Profile", icon: User },
