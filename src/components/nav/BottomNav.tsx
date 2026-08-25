@@ -36,7 +36,7 @@ export function BottomNav() {
               aria-label="Analyze new work"
               className="flex min-w-[56px] items-center justify-center"
             >
-              <span className="flex h-12 w-12 -translate-y-3 items-center justify-center rounded-full bg-navy-900 text-white shadow-floating transition-transform active:scale-95">
+              <span className="flex h-12 w-12 -translate-y-3 items-center justify-center rounded-full bg-navy-900 text-on-strong shadow-floating transition-transform active:scale-95">
                 <item.icon className="h-5 w-5" />
               </span>
             </Link>
