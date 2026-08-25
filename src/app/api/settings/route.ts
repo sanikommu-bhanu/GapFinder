@@ -5,21 +5,21 @@ import { getSessionUserId } from "@/lib/auth/session";
 
 const Body = z.object({
   theme: z.enum(["light", "dark", "system"]).optional(),
-  accentColor: z.string().optional(),
+  accentColor: z.enum(["purple", "pink", "orange", "teal", "blue"]).optional(),
   fontScale: z.number().min(0.8).max(1.4).optional(),
-  chatBackground: z.string().optional(),
+  chatBackground: z.enum(["default", "lavender", "peach", "mono"]).optional(),
   notificationsOn: z.boolean().optional(),
   voiceEnabled: z.boolean().optional(),
-  voiceName: z.string().optional(),
+  voiceName: z.string().max(60).optional(),
   voiceSpeed: z.number().min(0.5).max(2).optional(),
-  focusMusic: z.string().optional(),
-  focusAmbient: z.string().optional(),
+  focusMusic: z.enum(["none", "lofi", "piano", "ambient"]).optional(),
+  focusAmbient: z.enum(["none", "rain", "cafe", "waves"]).optional(),
   // Study preferences (separate table but exposed via same endpoint for UI simplicity)
-  defaultSubject: z.string().optional(),
+  defaultSubject: z.enum(["Math", "Physics", "Chemistry", "Biology"]).optional(),
   dailyGoalMinutes: z.number().int().min(5).max(180).optional(),
   difficultyBias: z.enum(["easier", "adaptive", "harder"]).optional(),
   preferredPace: z.enum(["relaxed", "standard", "intense"]).optional(),
-  reminderTime: z.string().nullable().optional(),
+  reminderTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).nullable().optional(),
 });
 
 export async function GET() {
@@ -38,8 +38,17 @@ export async function PATCH(req: NextRequest) {
   const userId = await getSessionUserId();
   if (!userId) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
 
-  const parsed = Body.safeParse(await req.json());
-  if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+  let json: unknown;
+  try {
+    json = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
+  }
+
+  const parsed = Body.safeParse(json);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "That setting value isn't one we recognise." }, { status: 400 });
+  }
 
   const {
     defaultSubject,
@@ -56,10 +65,18 @@ export async function PATCH(req: NextRequest) {
     update: settingsFields,
   });
 
+  // Only the keys actually sent are written — a PATCH of one appearance field
+  // must not blank out study preferences that weren't part of the request.
+  const studyFields = Object.fromEntries(
+    Object.entries({ defaultSubject, dailyGoalMinutes, difficultyBias, preferredPace, reminderTime }).filter(
+      ([, value]) => value !== undefined
+    )
+  );
+
   const studyPreference = await prisma.studyPreference.upsert({
     where: { userId },
-    create: { userId, defaultSubject, dailyGoalMinutes, difficultyBias, preferredPace, reminderTime },
-    update: { defaultSubject, dailyGoalMinutes, difficultyBias, preferredPace, reminderTime },
+    create: { userId, ...studyFields },
+    update: studyFields,
   });
 
   return NextResponse.json({ settings, studyPreference });
