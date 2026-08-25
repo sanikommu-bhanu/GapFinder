@@ -8,7 +8,7 @@ import { applyMasteryEvent } from "@/lib/services/mastery-service";
 const Body = z.object({
   gapId: z.string(),
   problemId: z.string(),
-  studentSteps: z.string(),
+  studentSteps: z.string().min(1).max(4000),
 });
 
 export async function POST(req: NextRequest) {
@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
   const validation = await validateAnswer({
     studentAnswer: parsed.data.studentSteps,
     canonicalAnswer: problem.correctAnswer,
+    problemPrompt: problem.prompt,
     analysisId: gap.analysisId,
   });
 
