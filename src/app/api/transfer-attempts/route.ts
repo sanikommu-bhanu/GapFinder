@@ -1,0 +1,56 @@
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { prisma } from "@/lib/db/prisma";
+import { getSessionUserId } from "@/lib/auth/session";
+import { validateAnswer } from "@/lib/ai/pipeline/validate-answer";
+import { applyMasteryEvent } from "@/lib/services/mastery-service";
+
+const Body = z.object({
+  gapId: z.string(),
+  problemId: z.string(),
+  studentSteps: z.string(),
+});
+
+export async function POST(req: NextRequest) {
+  const userId = await getSessionUserId();
+  if (!userId) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+
+  const parsed = Body.safeParse(await req.json());
+  if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+
+  const [gap, problem] = await Promise.all([
+    prisma.gap.findFirst({ where: { id: parsed.data.gapId, analysis: { userId } } }),
+    prisma.practiceProblem.findUnique({ where: { id: parsed.data.problemId } }),
+  ]);
+  if (!gap || !problem) return NextResponse.json({ error: "Not found." }, { status: 404 });
+
+  const validation = await validateAnswer({
+    studentAnswer: parsed.data.studentSteps,
+    canonicalAnswer: problem.correctAnswer,
+    analysisId: gap.analysisId,
+  });
+
+  const attempt = await prisma.transferAttempt.create({
+    data: {
+      gapId: gap.id,
+      problemId: problem.id,
+      studentSteps: parsed.data.studentSteps,
+      isCorrect: validation.isCorrect,
+      verifiedBy: validation.verifiedBy,
+      feedback: validation.feedback,
+    },
+  });
+
+  const masteryRecord = await applyMasteryEvent({
+    userId,
+    conceptId: gap.conceptId,
+    event: validation.isCorrect ? "transfer_correct" : "transfer_incorrect",
+    analysisId: gap.analysisId,
+  });
+
+  if (validation.isCorrect) {
+    await prisma.gap.update({ where: { id: gap.id }, data: { status: "closed" } });
+  }
+
+  return NextResponse.json({ attempt, validation, masteryScore: masteryRecord.masteryScore });
+}
