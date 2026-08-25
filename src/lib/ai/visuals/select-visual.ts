@@ -3,7 +3,17 @@ import { parseLinearEquation } from "@/lib/math/linear-parse";
 export type VisualModule =
   | { kind: "balance"; steps: { leftLabel: string; rightLabel: string; opLabel?: string }[]; caption: string }
   | { kind: "number-line"; from: number; to: number; caption: string }
-  | { kind: "distributive-area"; a: number; b: number; c: number; caption: string }
+  | {
+      kind: "distributive-area";
+      a: number;
+      /** Coefficient of the variable term inside the bracket (1 when implicit). */
+      b: number;
+      /** Constant term inside the bracket. */
+      c: number;
+      /** Variable letter, when the bracket contains one. */
+      variable?: string;
+      caption: string;
+    }
   | { kind: "factor-tree"; levels: { parent: string; left: string; right: string }[]; caption: string }
   | { kind: "fraction"; numerator: number; denominator: number; label?: string; caption: string }
   | {
@@ -67,27 +77,15 @@ export function selectConceptVisual(params: {
   }
 
   if (conceptSlug === "distribution") {
-    const before = originalExpression ? parseLinearEquation(originalExpression) : null;
-    // Distribution problems are usually written as a(b + c) rather than a linear
-    // equation, so try a dedicated pattern first.
-    const dist = originalExpression?.match(/(-?\d+)\s*\(\s*(-?\d+)\s*\+\s*(-?\d+)\s*\)/);
-    if (dist) {
-      const [, a, b, c] = dist;
+    const bracket = findDistributedTerm(originalExpression ?? "");
+    if (bracket) {
       return {
         kind: "distributive-area",
-        a: parseFloat(a!),
-        b: parseFloat(b!),
-        c: parseFloat(c!),
-        caption: "The multiplier outside the parentheses applies to every term inside it.",
-      };
-    }
-    if (before) {
-      return {
-        kind: "distributive-area",
-        a: before.coefficient,
-        b: before.constant,
-        c: 0,
-        caption: "The multiplier outside the parentheses applies to every term inside it.",
+        ...bracket,
+        caption:
+          bracket.a < 0
+            ? "A negative multiplier reaches both terms — including the sign of the second one."
+            : "The multiplier outside the parentheses applies to every term inside it.",
       };
     }
     return { kind: "none" };
@@ -150,4 +148,35 @@ export function selectConceptVisual(params: {
   }
 
   return { kind: "none" };
+}
+
+/**
+ * Finds a bracketed term to draw, e.g. "-4(x+2)" or "2(3x-5)".
+ *
+ * Prefers a negative multiplier when the expression has one: distributing a
+ * negative across a bracket is where students most often lose a sign, so that
+ * is the term worth putting on screen. Numbers come straight out of the
+ * student's own verified expression — never from a model.
+ */
+function findDistributedTerm(
+  expression: string
+): { a: number; b: number; c: number; variable?: string } | null {
+  // The leading sign can be separated from its coefficient by a space, as in
+  // "2(3x-5) - 4(x+2)" — that term's multiplier is -4, not 4, and getting it
+  // wrong would put the wrong diagram in front of the student.
+  const pattern = /([+-]?)\s*(\d*)\s*\(\s*(-?\d*)([a-zA-Z]?)\s*([+-])\s*(\d+)\s*\)/g;
+  const matches: { a: number; b: number; c: number; variable?: string }[] = [];
+
+  for (const m of expression.matchAll(pattern)) {
+    const [, sign, rawA, rawB, variable, innerSign, rawC] = m;
+    const magnitude = rawA === "" || rawA === undefined ? 1 : parseFloat(rawA);
+    const a = (sign === "-" ? -1 : 1) * magnitude;
+    const b = rawB === "" || rawB === undefined ? 1 : rawB === "-" ? -1 : parseFloat(rawB);
+    const c = (innerSign === "-" ? -1 : 1) * parseFloat(rawC!);
+    if (!Number.isFinite(a) || !Number.isFinite(b) || !Number.isFinite(c)) continue;
+    matches.push({ a, b, c, variable: variable || undefined });
+  }
+
+  if (matches.length === 0) return null;
+  return matches.find((m) => m.a < 0) ?? matches[0]!;
 }
