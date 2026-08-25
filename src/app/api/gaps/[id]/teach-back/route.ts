@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { getSessionUserId } from "@/lib/auth/session";
-import { hasGeminiKey } from "@/lib/env";
+import { hasAnyProvider } from "@/lib/ai/ai-client";
 import { evaluateTeachBack } from "@/lib/ai/pipeline/evaluate-teachback";
 import { scoreTeachBackOffline } from "@/lib/ai/fallback/offline-rubric";
 import { applyMasteryEvent } from "@/lib/services/mastery-service";
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     source: "gemini" | "deterministic";
   };
 
-  if (hasGeminiKey()) {
+  if (hasAnyProvider()) {
     try {
       const { result } = await evaluateTeachBack({
         conceptName: gap.concept.name,
