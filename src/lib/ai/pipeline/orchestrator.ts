@@ -481,14 +481,42 @@ async function failWithReason(analysisId: string, reason: string): Promise<RunPi
   return { status: "failed", reason };
 }
 
+/**
+ * Reading a photo is the one stage with no local substitute — everything after
+ * it has a deterministic fallback, but nothing here can turn pixels into
+ * equations without a vision model.
+ *
+ * So when that call fails, the useful response is not an apology: it's the path
+ * that still works. Typing the working out runs the identical pipeline —
+ * verification, divergence, misconception, teaching — with no AI required at
+ * all. The TYPE_INSTEAD prefix lets the UI offer that directly.
+ */
 async function failGracefully(analysisId: string, err: unknown): Promise<RunPipelineResult> {
-  const reason =
-    err instanceof AiUnavailableError && err.reason === "quota"
-      ? "Gemini's rate limit was reached. We finished what we could verify ourselves — try again in a minute for the full explanation."
-      : err instanceof AiUnavailableError && err.reason === "no_key"
-        ? "Live AI isn't configured on this server, so we could only run the parts we verify locally."
-        : err instanceof AiUnavailableError && err.reason === "invalid_response"
-          ? "The AI returned something we could not verify, so we stopped rather than show you a guess. Please try again."
-          : "Something went wrong analyzing this. Please try again.";
-  return failWithReason(analysisId, reason);
+  const reason = err instanceof AiUnavailableError ? err.reason : "network";
+
+  if (reason === "quota") {
+    return failWithReason(
+      analysisId,
+      "TYPE_INSTEAD: The image reader has hit its rate limit for now. Typing your working out gets you the same full diagnosis — that path doesn't use the image reader at all."
+    );
+  }
+
+  if (reason === "no_key" || reason === "unsupported") {
+    return failWithReason(
+      analysisId,
+      "TYPE_INSTEAD: No image reader is available on this server right now. Typing your working out gets you the same full diagnosis."
+    );
+  }
+
+  if (reason === "invalid_response") {
+    return failWithReason(
+      analysisId,
+      "We couldn't read that photo clearly enough to trust the result, so we stopped rather than show you a guess. Try a straighter, better-lit photo — or type your working instead."
+    );
+  }
+
+  return failWithReason(
+    analysisId,
+    "TYPE_INSTEAD: Something went wrong reading that photo. Typing your working out gets you the same full diagnosis."
+  );
 }
