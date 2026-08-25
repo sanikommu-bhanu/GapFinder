@@ -41,6 +41,15 @@ export async function GET() {
       }),
     ]);
 
+  // Concepts the student's own work has already surfaced. These are never
+  // locked: telling someone that the concept their homework just broke on is
+  // "not available yet" is both wrong and discouraging.
+  const engagedConceptIds = new Set(
+    (await prisma.gap.findMany({ where: { analysis: { userId } }, select: { conceptId: true } })).map(
+      (g) => g.conceptId
+    )
+  );
+
   const masteryByConceptId = new Map(masteryRecords.map((m) => [m.conceptId, m]));
   const conceptById = new Map(concepts.map((c) => [c.id, c]));
 
@@ -49,7 +58,9 @@ export async function GET() {
     const score = mastery?.masteryScore ?? 0;
     const prereqIds = relationships.filter((r) => r.toId === c.id).map((r) => r.fromId);
     const prereqsMet = prereqIds.every((pid) => (masteryByConceptId.get(pid)?.masteryScore ?? 0) >= PREREQ_THRESHOLD);
-    const status = score >= MASTERED_THRESHOLD ? "mastered" : prereqsMet ? "active" : "locked";
+    const engaged = engagedConceptIds.has(c.id);
+    const status =
+      score >= MASTERED_THRESHOLD ? "mastered" : engaged || prereqsMet ? "active" : "locked";
     return {
       conceptId: c.id,
       slug: c.slug,
@@ -71,7 +82,11 @@ export async function GET() {
 
   const recurringGapIds = safeJson<{ conceptId: string }[]>(memory?.recurringGaps, []).map((g) => g.conceptId);
 
+  // Only concepts the roadmap shows as startable can be recommended as next.
+  const unlockedConceptIds = nodes.filter((n) => n.status !== "locked").map((n) => n.conceptId);
+
   const recommendation = await generateRecommendation({
+    unlockedConceptIds,
     masteryRecords: masteryRecords.map((m) => ({
       conceptId: m.conceptId,
       conceptSlug: conceptById.get(m.conceptId)?.slug ?? "",
