@@ -1,14 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
 import { prisma } from "@/lib/db/prisma";
 import { getSessionUserId } from "@/lib/auth/session";
 import { runAnalysisPipeline } from "@/lib/ai/pipeline/orchestrator";
 import { compressImageBase64 } from "@/lib/media/compress-image";
+import { runInBackground } from "@/lib/background";
 
 /** 8 MB of base64 is roughly a 6 MB photo — beyond that we reject rather than OOM. */
 const MAX_IMAGE_BASE64_CHARS = 8_000_000;
+
+/**
+ * The pipeline makes several sequential model calls. The default serverless
+ * ceiling is well under that, which would kill the run mid-analysis.
+ */
+export const maxDuration = 60;
 
 const PhotoBody = z.object({
   subject: z.string().min(1).max(40),
@@ -31,10 +36,9 @@ const Body = z.union([TypedBody, PhotoBody]);
 /**
  * Starts an analysis and returns immediately.
  *
- * The pipeline makes several sequential model calls and can run for tens of
- * seconds. Holding the request open for that long means a spinner with no
- * information, a hard timeout on most hosts, and nothing to show if the user
- * backgrounds the app. Instead the row is created, the pipeline is kicked off,
+ * The pipeline can run for tens of seconds. Holding the request open for that
+ * long means a spinner with no information and a hard timeout on most hosts.
+ * Instead the row is created, the pipeline is handed to the background runner,
  * and the Analyzing screen polls the real stage from the database.
  */
 export async function POST(req: NextRequest) {
@@ -59,7 +63,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Typed working: no image to compress or store, and no vision call to make.
+  // Typed working: no image to store and no vision call to make.
   if (parsed.data.sourceType === "typed") {
     const { subject, steps, textContext } = parsed.data;
     const analysis = await prisma.analysis.create({
@@ -78,20 +82,14 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    void runAnalysisPipeline({
-      analysisId: analysis.id,
-      subject,
-      typedSteps: steps,
-      textContext,
-    }).catch(async (err) => {
-      console.error("[analysis] pipeline crashed", analysis.id, err);
-      await prisma.analysis
-        .update({
-          where: { id: analysis.id },
-          data: { status: "failed", statusReason: "Something went wrong analyzing this. Please try again." },
-        })
-        .catch(() => {});
-    });
+    runInBackground(
+      runAnalysisPipeline({ analysisId: analysis.id, subject, typedSteps: steps, textContext }).catch(
+        async (err) => {
+          await markFailed(analysis.id, err);
+        }
+      ),
+      `analysis ${analysis.id}`
+    );
 
     return NextResponse.json({ analysisId: analysis.id, status: "pending" }, { status: 202 });
   }
@@ -109,12 +107,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const uploadsDir = path.join(process.cwd(), "public", "uploads");
-  await mkdir(uploadsDir, { recursive: true });
-  const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
-  await writeFile(path.join(uploadsDir, fileName), Buffer.from(compressed.base64, "base64"));
-  const imageUrl = `/uploads/${fileName}`;
-
   const analysis = await prisma.analysis.create({
     data: {
       userId,
@@ -122,7 +114,10 @@ export async function POST(req: NextRequest) {
       status: "pending",
       uploadedWork: {
         create: {
-          imageUrl,
+          // Served by /api/uploads/[id] rather than from disk: a serverless
+          // host has no writable filesystem to put the file on.
+          imageUrl: "",
+          imageData: compressed.base64,
           sourceType,
           rawText: null,
           textContext: textContext ?? null,
@@ -133,29 +128,35 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  // Fire-and-forget: the client follows progress via GET /api/analyses/[id]/status.
-  // Any escape from the pipeline is recorded on the row so the UI can explain it
-  // rather than spinning forever.
-  void runAnalysisPipeline({
-    analysisId: analysis.id,
-    imageBase64: compressed.base64,
-    imageMimeType: "image/jpeg",
-    subject,
-    textContext,
-  }).catch(async (err) => {
-    console.error("[analysis] pipeline crashed", analysis.id, err);
-    await prisma.analysis
-      .update({
-        where: { id: analysis.id },
-        data: {
-          status: "failed",
-          statusReason: "Something went wrong analyzing this. Please try again.",
-        },
-      })
-      .catch(() => {});
+  await prisma.uploadedWork.update({
+    where: { analysisId: analysis.id },
+    data: { imageUrl: `/api/uploads/${analysis.id}` },
   });
 
+  runInBackground(
+    runAnalysisPipeline({
+      analysisId: analysis.id,
+      imageBase64: compressed.base64,
+      imageMimeType: "image/jpeg",
+      subject,
+      textContext,
+    }).catch(async (err) => {
+      await markFailed(analysis.id, err);
+    }),
+    `analysis ${analysis.id}`
+  );
+
   return NextResponse.json({ analysisId: analysis.id, status: "pending" }, { status: 202 });
+}
+
+async function markFailed(analysisId: string, err: unknown) {
+  console.error("[analysis] pipeline crashed", analysisId, err);
+  await prisma.analysis
+    .update({
+      where: { id: analysisId },
+      data: { status: "failed", statusReason: "Something went wrong analyzing this. Please try again." },
+    })
+    .catch(() => {});
 }
 
 export async function GET(req: NextRequest) {
@@ -169,7 +170,12 @@ export async function GET(req: NextRequest) {
     where: { userId },
     orderBy: { createdAt: "desc" },
     take: limit,
-    include: { gaps: { include: { concept: true } }, uploadedWork: true },
+    include: {
+      gaps: { include: { concept: true } },
+      // imageData is deliberately excluded — it would put a base64 blob into
+      // every list response.
+      uploadedWork: { select: { imageUrl: true, sourceType: true, rawText: true } },
+    },
   });
 
   return NextResponse.json({ analyses });
