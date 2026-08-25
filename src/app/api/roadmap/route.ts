@@ -3,33 +3,63 @@ import { prisma } from "@/lib/db/prisma";
 import { getSessionUserId } from "@/lib/auth/session";
 import { generateRecommendation } from "@/lib/ai/pipeline/generate-recommendation";
 
+/** Mastery at or above this counts a prerequisite as met. */
+const PREREQ_THRESHOLD = 60;
+/** Mastery at or above this marks a concept mastered. */
+const MASTERED_THRESHOLD = 90;
+
+function safeJson<T>(raw: string | null | undefined, fallback: T): T {
+  if (!raw) return fallback;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+/**
+ * Builds the student's roadmap from the concept graph and their own mastery
+ * record: a concept unlocks when its prerequisites are met, and is marked
+ * mastered on evidence rather than on completion. The next-best step is then
+ * recommended against that same evidence.
+ */
 export async function GET() {
   const userId = await getSessionUserId();
   if (!userId) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
 
-  const [concepts, relationships, confusedEdges, masteryRecords, memory, latestAnalysis] = await Promise.all([
-    prisma.concept.findMany(),
-    prisma.conceptRelationship.findMany({ where: { relationType: "prerequisite" } }),
-    prisma.conceptRelationship.findMany({ where: { relationType: "commonly-confused-with" } }),
-    prisma.masteryRecord.findMany({ where: { userId } }),
-    prisma.learningMemory.findUnique({ where: { userId } }),
-    prisma.analysis.findFirst({ where: { userId }, orderBy: { createdAt: "desc" }, select: { id: true } }),
-  ]);
+  const [concepts, relationships, confusedEdges, masteryRecords, memory, latestAnalysis, activeRec] =
+    await Promise.all([
+      prisma.concept.findMany(),
+      prisma.conceptRelationship.findMany({ where: { relationType: "prerequisite" } }),
+      prisma.conceptRelationship.findMany({ where: { relationType: "commonly-confused-with" } }),
+      prisma.masteryRecord.findMany({ where: { userId } }),
+      prisma.learningMemory.findUnique({ where: { userId } }),
+      prisma.analysis.findFirst({ where: { userId }, orderBy: { createdAt: "desc" }, select: { id: true } }),
+      prisma.recommendation.findFirst({
+        where: { userId, isActive: true },
+        orderBy: { createdAt: "desc" },
+      }),
+    ]);
 
   const masteryByConceptId = new Map(masteryRecords.map((m) => [m.conceptId, m]));
   const conceptById = new Map(concepts.map((c) => [c.id, c]));
 
   const nodes = concepts.map((c) => {
     const mastery = masteryByConceptId.get(c.id);
+    const score = mastery?.masteryScore ?? 0;
     const prereqIds = relationships.filter((r) => r.toId === c.id).map((r) => r.fromId);
-    const prereqsMet = prereqIds.every((pid) => (masteryByConceptId.get(pid)?.masteryScore ?? 0) >= 60);
-    const status = mastery && mastery.masteryScore >= 90 ? "mastered" : prereqsMet ? "active" : "locked";
+    const prereqsMet = prereqIds.every((pid) => (masteryByConceptId.get(pid)?.masteryScore ?? 0) >= PREREQ_THRESHOLD);
+    const status = score >= MASTERED_THRESHOLD ? "mastered" : prereqsMet ? "active" : "locked";
     return {
       conceptId: c.id,
       slug: c.slug,
       name: c.name,
-      masteryScore: mastery?.masteryScore ?? 0,
+      masteryScore: score,
+      trend: mastery?.trend ?? "stable",
       status,
+      prerequisites: prereqIds
+        .map((pid) => conceptById.get(pid)?.name)
+        .filter((n): n is string => Boolean(n)),
     };
   });
 
@@ -39,9 +69,7 @@ export async function GET() {
     update: { nodes: JSON.stringify(nodes) },
   });
 
-  const recurringGapIds = memory
-    ? (JSON.parse(memory.recurringGaps) as { conceptId: string }[]).map((g) => g.conceptId)
-    : [];
+  const recurringGapIds = safeJson<{ conceptId: string }[]>(memory?.recurringGaps, []).map((g) => g.conceptId);
 
   const recommendation = await generateRecommendation({
     masteryRecords: masteryRecords.map((m) => ({
@@ -62,16 +90,29 @@ export async function GET() {
     latestAnalysisId: latestAnalysis?.id,
   });
 
-  if (recommendation) {
-    await prisma.recommendation.create({
-      data: {
-        userId,
-        conceptId: recommendation.conceptId,
-        reason: recommendation.reason,
-        priority: recommendation.priority,
-      },
-    });
+  // Only record a recommendation when it actually changes. Writing one per page
+  // view would fill the table with duplicates and destroy the history it exists
+  // to keep.
+  if (recommendation && (activeRec?.conceptId !== recommendation.conceptId || activeRec?.reason !== recommendation.reason)) {
+    await prisma.$transaction([
+      prisma.recommendation.updateMany({ where: { userId, isActive: true }, data: { isActive: false } }),
+      prisma.recommendation.create({
+        data: {
+          userId,
+          conceptId: recommendation.conceptId,
+          reason: recommendation.reason,
+          priority: recommendation.priority,
+        },
+      }),
+    ]);
   }
 
-  return NextResponse.json({ nodes, recommendation });
+  const recommendedConcept = recommendation ? conceptById.get(recommendation.conceptId) : null;
+
+  return NextResponse.json({
+    nodes,
+    recommendation: recommendation
+      ? { ...recommendation, conceptName: recommendedConcept?.name ?? null, conceptSlug: recommendedConcept?.slug ?? null }
+      : null,
+  });
 }
