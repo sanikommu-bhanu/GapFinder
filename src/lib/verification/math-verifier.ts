@@ -29,6 +29,14 @@ export function verifyEquationStep(prevExpr: string, nextExpr: string): StepVeri
       return { isValid: false, note: "Could not parse one of the steps as an equation." };
     }
 
+    // This verifier reasons about ONE unknown. A line like "v = u + a*t" has
+    // three free symbols and cannot be evaluated here — reporting that as an
+    // invalid step would accuse a student of a mistake they did not make, so it
+    // is declared unverifiable and passed to a verifier that can judge it.
+    if (countFreeVariables(prevExpr, nextExpr) > 1) {
+      return { isValid: false, note: "Could not verify: more than one unknown in this step." };
+    }
+
     const prevDiff = simplify(`(${prevSides.lhs}) - (${prevSides.rhs})`);
     const nextDiff = simplify(`(${nextSides.lhs}) - (${nextSides.rhs})`);
 
@@ -86,6 +94,20 @@ function splitEquation(expr: string): { lhs: string; rhs: string } | null {
 function extractVariable(expr: string): string | null {
   const match = expr.match(/[a-zA-Z]+/);
   return match ? match[0] : null;
+}
+
+/** Distinct symbol names across both expressions, ignoring known constants. */
+const KNOWN_CONSTANTS = new Set(["e", "pi", "PI", "sqrt", "abs"]);
+
+function countFreeVariables(...expressions: string[]): number {
+  const names = new Set<string>();
+  for (const expression of expressions) {
+    for (const match of expression.matchAll(/[a-zA-Z][a-zA-Z0-9_]*/g)) {
+      const name = match[0]!;
+      if (!KNOWN_CONSTANTS.has(name)) names.add(name);
+    }
+  }
+  return names.size;
 }
 
 /** Checks a final numeric/symbolic answer against a canonical answer string. */
