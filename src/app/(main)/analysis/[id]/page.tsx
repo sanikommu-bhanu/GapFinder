@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle2, ArrowRight, ListChecks } from "lucide-react";
+import { CheckCircle2, ArrowRight, ListChecks, Sparkles } from "lucide-react";
 import { TopBar } from "@/components/nav/TopBar";
 import { StepCard, type StepVerdict } from "@/components/ui/StepCard";
 import { Button } from "@/components/ui/Button";
@@ -448,12 +448,18 @@ export default function AnalysisDetailPage() {
                 correctedExpression: firstGapStep.correctedExpression ?? undefined,
               });
               if (visual.kind === "none") {
+                // No diagram can be derived from this working. Say what the
+                // rule is instead, taken from the diagnosis — a stock sentence
+                // about algebra would be wrong on a chemistry paper.
+                const rule = gap.misconception
+                  ? getMisconception(gap.misconception.code).whyItFails
+                  : gap.underlyingGap;
                 return (
                   <Card className="mt-3">
                     <p className="text-xs font-semibold text-ink-soft">The rule behind this step</p>
-                    <p className="mt-1.5 text-sm leading-relaxed text-navy-900">
-                      An equation is a balance. Whatever you do to one side you must do to the other, or the two sides
-                      stop describing the same value — which is what happened at step {firstGapStep.order}.
+                    <p className="mt-1.5 text-sm leading-relaxed text-navy-900">{rule}</p>
+                    <p className="mt-1.5 text-[11px] text-ink-faint">
+                      This is what broke at step {firstGapStep.order}.
                     </p>
                   </Card>
                 );
@@ -498,6 +504,14 @@ export default function AnalysisDetailPage() {
             <GroundedNote chunkIds={gap.explanation?.groundedInChunkIds ?? []} className="mt-3" />
 
             <ResourcePanel gapId={gap.id} className="mt-3" />
+
+            {/* The concept in full, for a student who wants it taught from the
+                beginning rather than repaired from where they stopped. */}
+            <Link href={`/learn?q=${encodeURIComponent(gap.concept.name)}`}>
+              <Button variant="outline" className="mt-3 w-full">
+                <Sparkles className="h-4 w-4" /> Teach me this concept from scratch
+              </Button>
+            </Link>
 
             <Button
               className="mt-5 w-full"
