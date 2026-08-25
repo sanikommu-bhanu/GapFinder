@@ -5,6 +5,9 @@ import { getSessionUserId } from "@/lib/auth/session";
 import { validateAnswer } from "@/lib/ai/pipeline/validate-answer";
 import { applyMasteryEvent } from "@/lib/services/mastery-service";
 
+/** This route calls Gemini; the default serverless ceiling is too low. */
+export const maxDuration = 60;
+
 const Body = z.object({
   gapId: z.string(),
   problemId: z.string(),
