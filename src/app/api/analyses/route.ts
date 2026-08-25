@@ -6,8 +6,12 @@ import { runAnalysisPipeline } from "@/lib/ai/pipeline/orchestrator";
 import { compressImageBase64 } from "@/lib/media/compress-image";
 import { runInBackground } from "@/lib/background";
 
-/** 8 MB of base64 is roughly a 6 MB photo — beyond that we reject rather than OOM. */
-const MAX_IMAGE_BASE64_CHARS = 8_000_000;
+/**
+ * The browser downscales to a bounded JPEG before uploading, so anything
+ * arriving here is normally well under a megabyte. This ceiling only guards
+ * against a client that skipped that step.
+ */
+const MAX_IMAGE_BASE64_CHARS = 20_000_000;
 
 /**
  * The pipeline makes several sequential model calls. The default serverless
@@ -18,7 +22,9 @@ export const maxDuration = 60;
 const PhotoBody = z.object({
   subject: z.string().min(1).max(40),
   imageBase64: z.string().min(1).max(MAX_IMAGE_BASE64_CHARS), // raw base64, no data: prefix
-  imageMimeType: z.enum(["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]).default("image/jpeg"),
+  // The browser normalises to JPEG before upload; this stays permissive so an
+  // undecodable-in-browser format can still reach the server's own decoder.
+  imageMimeType: z.string().max(60).default("image/jpeg"),
   sourceType: z.enum(["camera", "gallery"]).default("camera"),
   textContext: z.string().max(2000).optional(),
 });
@@ -57,7 +63,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         error:
-          "We couldn't accept that. Send a JPEG or PNG under about 6 MB, or type at least two lines of working.",
+          "We couldn't accept that. Send a photo of your work, or type at least two lines of working.",
       },
       { status: 400 }
     );
