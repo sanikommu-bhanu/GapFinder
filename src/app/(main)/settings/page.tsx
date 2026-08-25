@@ -34,8 +34,8 @@ export default function SettingsPage() {
   }
 
   const grouped = rows.reduce<Record<string, typeof rows>>((acc, r) => {
-    acc[r.section] = acc[r.section] ?? [];
-    acc[r.section].push(r);
+    const bucket = (acc[r.section] ??= []);
+    bucket.push(r);
     return acc;
   }, {});
 
