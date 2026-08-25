@@ -21,6 +21,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   return NextResponse.json({
     analysis: {
       ...analysis,
+      correctedSolution: safeJson<string[]>(analysis.correctedSolution, []),
       gaps: analysis.gaps.map((g) => ({
         ...g,
         evidence: safeJson(g.evidence, []),
