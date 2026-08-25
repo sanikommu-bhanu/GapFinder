@@ -128,7 +128,176 @@ const concepts = [
       "Miscounting rise/run when applying the slope",
     ],
   },
+
+  // -------------------------------------------------------------------------
+  // PHYSICS
+  // -------------------------------------------------------------------------
+  {
+    slug: "units-and-dimensions",
+    name: "Units and Dimensions",
+    subject: "Physics",
+    description:
+      "Every physical quantity carries a unit, and units must stay consistent through a calculation. A result whose units are wrong is wrong, however tidy the arithmetic looks.",
+    commonErrors: [
+      "Dropping units partway through and losing track of what the number means",
+      "Adding quantities that measure different things",
+      "Mixing scales without converting (cm with m, minutes with seconds)",
+    ],
+  },
+  {
+    slug: "formula-substitution",
+    name: "Formula Substitution",
+    subject: "Physics",
+    description:
+      "Putting known values into a formula in place of their symbols, keeping each value with the symbol it belongs to before any arithmetic is done.",
+    commonErrors: [
+      "Substituting a value for the wrong symbol",
+      "Computing before substituting, losing track of which quantity is which",
+      "Skipping a symbol that is zero instead of substituting it",
+    ],
+  },
+  {
+    slug: "kinematics",
+    name: "Kinematics",
+    subject: "Physics",
+    description:
+      "Describing motion with displacement, velocity, acceleration and time, related by the equations of motion for constant acceleration.",
+    commonErrors: [
+      "Using a constant-acceleration equation when acceleration is not constant",
+      "Sign errors on direction, treating deceleration as positive",
+      "Confusing average velocity with instantaneous velocity",
+    ],
+  },
+  {
+    slug: "energy-and-work",
+    name: "Energy and Work",
+    subject: "Physics",
+    description:
+      "Work transfers energy. Kinetic energy depends on the square of speed and potential energy on height, and total energy is conserved in a closed system.",
+    commonErrors: [
+      "Forgetting to square the velocity in kinetic energy",
+      "Omitting the factor of one half",
+      "Treating energy as a vector and giving it a direction",
+    ],
+  },
+  {
+    slug: "newtons-laws",
+    name: "Newtons Laws",
+    subject: "Physics",
+    description:
+      "Force equals mass times acceleration. Forces come in equal and opposite pairs, and a body with no net force keeps doing whatever it was already doing.",
+    commonErrors: [
+      "Using a single force where the NET force is required",
+      "Treating an action-reaction pair as acting on the same body",
+      "Assuming continued motion requires a continued force",
+    ],
+  },
+
+  // -------------------------------------------------------------------------
+  // CHEMISTRY
+  // -------------------------------------------------------------------------
+  {
+    slug: "chemical-equations",
+    name: "Chemical Equations",
+    subject: "Chemistry",
+    description:
+      "A chemical equation states which substances react and which are produced. Atoms are neither created nor destroyed, so every element must appear in equal numbers on both sides.",
+    commonErrors: [
+      "Changing a subscript instead of a coefficient to balance",
+      "Balancing one element and unbalancing another without rechecking",
+      "Forgetting that a coefficient multiplies every atom in the formula",
+    ],
+  },
+  {
+    slug: "balancing-equations",
+    name: "Balancing Equations",
+    subject: "Chemistry",
+    description:
+      "Choosing coefficients so each element appears the same number of times on both sides, without altering any chemical formula.",
+    commonErrors: [
+      "Altering a formula, turning H2O into H2O2, to make the count work",
+      "Stopping as soon as one element balances",
+      "Leaving fractional coefficients in a final answer",
+    ],
+  },
+  {
+    slug: "moles-and-stoichiometry",
+    name: "Moles and Stoichiometry",
+    subject: "Chemistry",
+    description:
+      "The mole links mass to number of particles. Coefficients in a balanced equation give the ratio in which substances react, which is what lets one quantity predict another.",
+    commonErrors: [
+      "Using mass ratios where mole ratios are required",
+      "Taking ratios from an equation that is not balanced",
+      "Confusing molar mass with molecular mass",
+    ],
+  },
+  {
+    slug: "atomic-structure",
+    name: "Atomic Structure",
+    subject: "Chemistry",
+    description:
+      "Protons decide the element, electrons decide bonding behaviour, and neutrons decide the isotope. Charge comes from an imbalance between protons and electrons.",
+    commonErrors: [
+      "Confusing atomic number with mass number",
+      "Letting a neutral atom have a different electron and proton count",
+      "Treating isotopes as different elements",
+    ],
+  },
+
+  // -------------------------------------------------------------------------
+  // BIOLOGY
+  // -------------------------------------------------------------------------
+  {
+    slug: "cell-structure",
+    name: "Cell Structure",
+    subject: "Biology",
+    description:
+      "Cells are organised into structures whose shape follows their job: membranes control what enters, mitochondria release energy, chloroplasts capture light.",
+    commonErrors: [
+      "Giving a function to the wrong organelle",
+      "Assuming plant cells have no mitochondria because they have chloroplasts",
+      "Confusing the cell wall with the cell membrane",
+    ],
+  },
+  {
+    slug: "photosynthesis",
+    name: "Photosynthesis",
+    subject: "Biology",
+    description:
+      "Plants convert light energy into chemical energy stored in glucose, taking in carbon dioxide and water and releasing oxygen as a by-product.",
+    commonErrors: [
+      "Describing photosynthesis as how a plant breathes",
+      "Swapping the reactants and the products",
+      "Believing plants do not also respire",
+    ],
+  },
+  {
+    slug: "respiration",
+    name: "Respiration",
+    subject: "Biology",
+    description:
+      "Cells release energy from glucose. Aerobic respiration uses oxygen and yields far more energy than the anaerobic route.",
+    commonErrors: [
+      "Treating respiration and breathing as the same thing",
+      "Thinking only animals respire",
+      "Swapping the products of aerobic and anaerobic respiration",
+    ],
+  },
+  {
+    slug: "genetics-inheritance",
+    name: "Genetics and Inheritance",
+    subject: "Biology",
+    description:
+      "Alleles are inherited one from each parent. A dominant allele shows in the phenotype whenever it is present; a recessive one only when both copies are recessive.",
+    commonErrors: [
+      "Confusing genotype with phenotype",
+      "Assuming dominant means more common in a population",
+      "Reading a Punnett square as a guarantee rather than a probability",
+    ],
+  },
 ];
+
 
 const relationships: [string, string, string][] = [
   ["algebra", "equations", "prerequisite"],
@@ -145,6 +314,32 @@ const relationships: [string, string, string][] = [
   // Reverse operations of each other — students frequently apply one
   // procedure when the other was called for.
   ["distribution", "factoring", "commonly-confused-with"],
+
+  // Physics
+  ["units-and-dimensions", "formula-substitution", "prerequisite"],
+  ["formula-substitution", "kinematics", "prerequisite"],
+  ["kinematics", "newtons-laws", "prerequisite"],
+  ["newtons-laws", "energy-and-work", "prerequisite"],
+  ["equations", "formula-substitution", "prerequisite"],
+  ["sign-handling", "kinematics", "related"],
+  // Both get reached for on "how much push does this need" questions.
+  ["energy-and-work", "newtons-laws", "commonly-confused-with"],
+
+  // Chemistry
+  ["atomic-structure", "chemical-equations", "prerequisite"],
+  ["chemical-equations", "balancing-equations", "prerequisite"],
+  ["balancing-equations", "moles-and-stoichiometry", "prerequisite"],
+  ["fractions", "moles-and-stoichiometry", "related"],
+  // Changing a subscript "balances" the count while silently changing the substance.
+  ["balancing-equations", "chemical-equations", "commonly-confused-with"],
+
+  // Biology
+  ["cell-structure", "photosynthesis", "prerequisite"],
+  ["cell-structure", "respiration", "prerequisite"],
+  ["cell-structure", "genetics-inheritance", "prerequisite"],
+  ["photosynthesis", "respiration", "related"],
+  // The classic pair students describe as exact opposites of one another.
+  ["photosynthesis", "respiration", "commonly-confused-with"],
 ];
 
 // ---------------------------------------------------------------------------
@@ -159,6 +354,234 @@ type ChunkSeed = {
 };
 
 const chunks: ChunkSeed[] = [
+  // ---------------------------------------------------------------------------
+  // PHYSICS
+  // ---------------------------------------------------------------------------
+  {
+    concept: "units-and-dimensions",
+    kind: "explanation",
+    title: "Units are part of the answer, not decoration",
+    content:
+      "A physical quantity is a number AND a unit; neither means anything alone. Carrying units through every line is also a free error check: if the units of your result are not the units the question asked for, something went wrong earlier, no matter how neat the arithmetic looks.",
+    keywords: ["units", "dimensions", "metres", "seconds", "check", "consistent"],
+  },
+  {
+    concept: "units-and-dimensions",
+    kind: "misconception",
+    title: "Adding quantities that measure different things",
+    content:
+      "Only quantities of the same kind can be added. Ten metres plus five seconds is not fifteen of anything. When an addition looks impossible dimensionally, the mistake is usually one line earlier, in which formula was chosen.",
+    keywords: ["add", "different", "dimension", "mismatch", "metres", "seconds"],
+  },
+  {
+    concept: "units-and-dimensions",
+    kind: "teaching_strategy",
+    title: "Convert first, compute second",
+    content:
+      "Put every quantity into base units before any arithmetic starts. Converting mid-calculation is where mixed scales creep in, because by then the numbers no longer visibly carry what they measure.",
+    keywords: ["convert", "base units", "before", "scale", "kilometres"],
+  },
+  {
+    concept: "formula-substitution",
+    kind: "explanation",
+    title: "Substitute before you simplify",
+    content:
+      "Write the formula, then replace each symbol with its value while the symbols are still visible. Doing arithmetic first means deciding what to multiply before establishing what each number represents, which is when values end up attached to the wrong symbol.",
+    keywords: ["substitute", "formula", "values", "symbols", "replace"],
+  },
+  {
+    concept: "formula-substitution",
+    kind: "misconception",
+    title: "Skipping a value that happens to be zero",
+    content:
+      "A quantity of zero still belongs in the substitution. Leaving it out makes the line unreadable to anyone checking it, including you, and it hides whether the zero was a genuine starting condition or something forgotten.",
+    keywords: ["zero", "initial", "skip", "omit", "rest"],
+  },
+  {
+    concept: "kinematics",
+    kind: "worked_example",
+    title: "Dropping an object from rest",
+    content:
+      "An object falls from rest for 3 seconds with acceleration 9.8 m/s^2. Using v = u + at with u = 0: v = 0 + 9.8 x 3, so v = 29.4 m/s. Writing the substitution line before the arithmetic line makes the check obvious.",
+    keywords: ["kinematics", "falling", "rest", "velocity", "acceleration", "suvat"],
+  },
+  {
+    concept: "kinematics",
+    kind: "misconception",
+    title: "Sign errors on direction",
+    content:
+      "Decide which direction is positive before starting, and keep it for the whole problem. Deceleration is not a separate idea; it is acceleration whose sign is opposite to the velocity. Switching convention halfway is the usual cause of an answer with the right size and the wrong sign.",
+    keywords: ["sign", "direction", "negative", "deceleration", "convention"],
+  },
+  {
+    concept: "energy-and-work",
+    kind: "explanation",
+    title: "Why kinetic energy squares the speed",
+    content:
+      "Kinetic energy is one half m v squared. The square is why stopping distance grows so sharply with speed: doubling speed quadruples the energy that has to go somewhere. Dropping either the square or the half changes the answer by a factor of two or four.",
+    keywords: ["kinetic", "energy", "squared", "half", "speed", "mass"],
+  },
+  {
+    concept: "energy-and-work",
+    kind: "worked_example",
+    title: "Kinetic energy of a moving mass",
+    content:
+      "A 4 kg mass moves at 3 m/s. KE = 0.5 x m x v^2, so KE = 0.5 x 4 x 3^2 = 0.5 x 4 x 9 = 18 J. Squaring before multiplying keeps the order of operations visible.",
+    keywords: ["kinetic", "worked", "joules", "example", "mass", "velocity"],
+  },
+  {
+    concept: "newtons-laws",
+    kind: "explanation",
+    title: "F = ma uses the NET force",
+    content:
+      "The F in F = ma is the resultant of every force acting on the body. Substituting a single applied force while friction or weight also acts is the most common way this equation is misused, and it produces an acceleration that is too large.",
+    keywords: ["newton", "net force", "resultant", "friction", "acceleration"],
+  },
+  {
+    concept: "newtons-laws",
+    kind: "misconception",
+    title: "Action-reaction pairs act on different bodies",
+    content:
+      "The third law pairs act on two different objects, which is why they never cancel each other out. If two forces you are calling a pair act on the same body, they are not an action-reaction pair.",
+    keywords: ["third law", "action", "reaction", "pair", "cancel", "bodies"],
+  },
+
+  // ---------------------------------------------------------------------------
+  // CHEMISTRY
+  // ---------------------------------------------------------------------------
+  {
+    concept: "balancing-equations",
+    kind: "explanation",
+    title: "Coefficients balance, subscripts identify",
+    content:
+      "A subscript is part of a substance name: H2O and H2O2 are different chemicals. A coefficient says how many units of that substance take part. Balancing changes coefficients only, because changing a subscript answers a different question than the one asked.",
+    keywords: ["coefficient", "subscript", "balance", "formula", "substance"],
+  },
+  {
+    concept: "balancing-equations",
+    kind: "misconception",
+    title: "Changing a subscript to make the numbers work",
+    content:
+      "Turning H2O into H2O2 does make the oxygen count match, and it also turns water into hydrogen peroxide. The count is now right for a reaction that was not the one being asked about, which is why this is the single most damaging habit in balancing.",
+    keywords: ["subscript", "change", "peroxide", "water", "wrong substance"],
+  },
+  {
+    concept: "balancing-equations",
+    kind: "worked_example",
+    title: "Balancing methane combustion",
+    content:
+      "CH4 + O2 gives CO2 + H2O. Carbon balances at one each. Hydrogen: four on the left needs 2H2O on the right. That makes oxygen four on the right, so 2O2 on the left. Final: CH4 + 2O2 gives CO2 + 2H2O. Recheck every element after each change.",
+    keywords: ["methane", "combustion", "balance", "worked", "oxygen", "carbon"],
+  },
+  {
+    concept: "balancing-equations",
+    kind: "teaching_strategy",
+    title: "Leave oxygen and hydrogen until last",
+    content:
+      "Balance the elements that appear in only one substance on each side first, and leave oxygen and hydrogen for the end. They usually appear in several compounds, so fixing them early tends to unbalance them again.",
+    keywords: ["strategy", "order", "oxygen", "hydrogen", "last", "method"],
+  },
+  {
+    concept: "chemical-equations",
+    kind: "explanation",
+    title: "Conservation of mass is the whole rule",
+    content:
+      "Atoms are rearranged in a reaction, never created or destroyed. That single fact is why an equation must balance, and it is also the check: if an element appears on one side and not the other, something has been mis-copied.",
+    keywords: ["conservation", "mass", "atoms", "rearranged", "destroyed"],
+  },
+  {
+    concept: "moles-and-stoichiometry",
+    kind: "explanation",
+    title: "Ratios come from moles, not from mass",
+    content:
+      "Coefficients in a balanced equation are ratios of moles, not grams. Converting mass to moles first, using the ratio, then converting back is the order that works; applying the ratio directly to masses does not, because different substances weigh different amounts per mole.",
+    keywords: ["mole", "ratio", "mass", "stoichiometry", "grams", "convert"],
+  },
+  {
+    concept: "moles-and-stoichiometry",
+    kind: "misconception",
+    title: "Taking a ratio from an unbalanced equation",
+    content:
+      "Every stoichiometric ratio depends on the equation being balanced first. Reading coefficients off an unbalanced equation gives a ratio for a reaction that does not conserve atoms, so every number computed after it is wrong.",
+    keywords: ["unbalanced", "ratio", "first", "stoichiometry", "coefficients"],
+  },
+  {
+    concept: "atomic-structure",
+    kind: "explanation",
+    title: "Protons name the element, electrons do the chemistry",
+    content:
+      "The proton count is the atomic number and fixes which element it is. Electrons, particularly the outermost ones, determine how the atom bonds. Neutrons change the mass and give isotopes, without changing chemical behaviour.",
+    keywords: ["proton", "electron", "neutron", "atomic number", "isotope"],
+  },
+
+  // ---------------------------------------------------------------------------
+  // BIOLOGY
+  // ---------------------------------------------------------------------------
+  {
+    concept: "photosynthesis",
+    kind: "explanation",
+    title: "What photosynthesis actually converts",
+    content:
+      "Photosynthesis converts light energy into chemical energy stored in glucose. Carbon dioxide and water go in, glucose and oxygen come out, and it happens in the chloroplast. The oxygen released is a by-product, not the purpose.",
+    keywords: ["photosynthesis", "light", "glucose", "chloroplast", "oxygen", "carbon dioxide"],
+  },
+  {
+    concept: "photosynthesis",
+    kind: "misconception",
+    title: "Photosynthesis is not the plant breathing",
+    content:
+      "Photosynthesis and respiration are different processes and plants do both. Photosynthesis stores energy; respiration releases it. A plant respires day and night, and photosynthesises only in light, which is why the gas exchange balance changes after dark.",
+    keywords: ["breathing", "respiration", "opposite", "plants", "night", "confuse"],
+  },
+  {
+    concept: "respiration",
+    kind: "explanation",
+    title: "Respiration releases energy, breathing moves air",
+    content:
+      "Respiration is a chemical process inside every living cell that releases energy from glucose. Breathing is the movement of air in and out of lungs. Using the words interchangeably hides that plants, bacteria and every one of your cells respire without breathing.",
+    keywords: ["respiration", "breathing", "cells", "glucose", "energy", "difference"],
+  },
+  {
+    concept: "respiration",
+    kind: "misconception",
+    title: "Mixing up the anaerobic products",
+    content:
+      "Aerobic respiration gives carbon dioxide and water and a large energy yield. Anaerobic respiration in muscle gives lactic acid, and in yeast gives ethanol and carbon dioxide, both with a much smaller yield. Which organism is involved decides which set applies.",
+    keywords: ["anaerobic", "aerobic", "lactic", "ethanol", "yeast", "products"],
+  },
+  {
+    concept: "cell-structure",
+    kind: "explanation",
+    title: "Structure follows function",
+    content:
+      "Each organelle looks the way it does because of what it does. Mitochondria are folded to maximise the surface where energy release happens; the cell membrane is a partial barrier because the cell needs selective control, not a wall.",
+    keywords: ["organelle", "mitochondria", "membrane", "function", "structure"],
+  },
+  {
+    concept: "cell-structure",
+    kind: "misconception",
+    title: "Plant cells have mitochondria too",
+    content:
+      "Chloroplasts capture light energy; mitochondria release stored energy. A plant needs both, because it has to use the glucose it makes. Having chloroplasts does not replace the need to respire.",
+    keywords: ["plant", "mitochondria", "chloroplast", "both", "respire"],
+  },
+  {
+    concept: "genetics-inheritance",
+    kind: "explanation",
+    title: "Genotype is the alleles, phenotype is what shows",
+    content:
+      "Genotype is the pair of alleles carried; phenotype is the characteristic that appears. Two different genotypes can give the same phenotype, which is why a trait can skip a generation and reappear.",
+    keywords: ["genotype", "phenotype", "allele", "dominant", "recessive"],
+  },
+  {
+    concept: "genetics-inheritance",
+    kind: "misconception",
+    title: "Dominant does not mean common",
+    content:
+      "A dominant allele masks a recessive one when both are present. It says nothing about how frequent the allele is in a population; plenty of dominant traits are rare, and plenty of recessive ones are widespread.",
+    keywords: ["dominant", "common", "frequency", "population", "recessive", "mask"],
+  },
+
   {
     concept: "inverse-operations",
     kind: "explanation",
