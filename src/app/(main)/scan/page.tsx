@@ -1,30 +1,41 @@
 "use client";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Camera as CameraIcon, Image as ImageIcon, Lightbulb, X } from "lucide-react";
+import { Camera as CameraIcon, Image as ImageIcon, Lightbulb, X, Keyboard, ScanLine } from "lucide-react";
 import { TopBar } from "@/components/nav/TopBar";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { Button } from "@/components/ui/Button";
 import { useAppStore } from "@/store/useAppStore";
+import { cn } from "@/lib/cn";
 
 const SUBJECTS = ["Math", "Physics", "Chemistry"];
 const MAX_FILE_BYTES = 6 * 1024 * 1024;
+
+type Mode = "photo" | "typed";
 
 export default function ScanPage() {
   const router = useRouter();
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
+
+  const [mode, setMode] = useState<Mode>("photo");
   const [preview, setPreview] = useState<string | null>(null);
   const [fileData, setFileData] = useState<{ base64: string; mime: string } | null>(null);
+  const [typed, setTyped] = useState("");
   const [subject, setSubject] = useState("Math");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const setActiveAnalysis = useAppStore((s) => s.setActiveAnalysis);
 
+  const typedLines = typed
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
-    // Reset the input so choosing the same file twice still fires a change.
+    // Reset so choosing the same file twice still fires a change.
     e.target.value = "";
     if (!f) return;
     setError(null);
@@ -47,6 +58,7 @@ export default function ScanPage() {
         setError("We couldn't read that file. Try choosing it again.");
         return;
       }
+      // The preview appears the instant the file is read — no waiting on the server.
       setPreview(result);
       setFileData({ base64, mime: f.type });
     };
@@ -60,22 +72,34 @@ export default function ScanPage() {
   }
 
   async function analyze() {
-    if (!fileData) {
+    const body =
+      mode === "typed"
+        ? { subject, sourceType: "typed" as const, steps: typedLines }
+        : fileData
+          ? {
+              subject,
+              imageBase64: fileData.base64,
+              imageMimeType: fileData.mime,
+              sourceType: "gallery" as const,
+            }
+          : null;
+
+    if (mode === "typed" && typedLines.length < 2) {
+      setError("Write at least two lines — we compare each line against the one above it.");
+      return;
+    }
+    if (!body) {
       setError("Take a photo or choose an image first.");
       return;
     }
+
     setLoading(true);
     setError(null);
     try {
       const res = await fetch("/api/analyses", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          subject,
-          imageBase64: fileData.base64,
-          imageMimeType: fileData.mime,
-          sourceType: "gallery",
-        }),
+        body: JSON.stringify(body),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "Couldn't start the analysis. Please try again.");
@@ -87,73 +111,126 @@ export default function ScanPage() {
     }
   }
 
+  const canSubmit = mode === "typed" ? typedLines.length >= 2 : Boolean(fileData);
+
   return (
     <div className="pb-8">
       <TopBar title="Upload Your Work" />
 
       <div className="px-5">
         <p className="text-center text-[13px] leading-relaxed text-ink-soft">
-          Take a clear photo of your handwritten work, or upload one from your gallery.
+          Photograph your handwritten working, or type it out — we check every line either way.
         </p>
 
-        <div className="relative mt-4">
-          <Card className="flex aspect-[4/3] items-center justify-center overflow-hidden bg-surface-muted p-0">
-            {preview ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={preview} alt="Your uploaded work" className="h-full w-full object-contain" />
-            ) : (
-              <div className="flex flex-col items-center gap-2 px-8 text-center">
-                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-card">
-                  <CameraIcon className="h-5 w-5 text-lavender-500" />
-                </span>
-                <p className="text-sm font-medium text-ink-soft">No photo yet</p>
-                <p className="text-xs text-ink-faint">
-                  Include every line you wrote — we need the whole chain to find where it broke.
-                </p>
-              </div>
-            )}
-          </Card>
-          {preview && (
+        <div className="mt-4 flex gap-1 rounded-pill bg-surface-muted p-1">
+          {(
+            [
+              { value: "photo", label: "Photo", icon: ScanLine },
+              { value: "typed", label: "Type it", icon: Keyboard },
+            ] as const
+          ).map((t) => (
             <button
-              onClick={clearImage}
-              aria-label="Remove photo"
-              className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-navy-900/80 text-on-strong backdrop-blur"
+              key={t.value}
+              onClick={() => {
+                setMode(t.value);
+                setError(null);
+              }}
+              aria-pressed={mode === t.value}
+              className={cn(
+                "flex min-h-[40px] flex-1 items-center justify-center gap-1.5 rounded-pill text-sm font-medium transition-colors",
+                mode === t.value ? "bg-white text-navy-900 shadow-card" : "text-ink-soft"
+              )}
             >
-              <X className="h-4 w-4" />
+              <t.icon className="h-4 w-4" />
+              {t.label}
             </button>
-          )}
-        </div>
-
-        <div className="mt-4 flex gap-2 overflow-x-auto scrollbar-none">
-          {SUBJECTS.map((s) => (
-            <Chip key={s} active={subject === s} onClick={() => setSubject(s)}>
-              {s}
-            </Chip>
           ))}
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <button
-            onClick={() => cameraRef.current?.click()}
-            className="flex h-14 items-center justify-center gap-2 rounded-2xl bg-surface-muted text-sm font-medium text-navy-900 active:scale-[0.98]"
-          >
-            <CameraIcon className="h-4 w-4" /> Camera
-          </button>
-          <button
-            onClick={() => galleryRef.current?.click()}
-            className="flex h-14 items-center justify-center gap-2 rounded-2xl bg-surface-muted text-sm font-medium text-navy-900 active:scale-[0.98]"
-          >
-            <ImageIcon className="h-4 w-4" /> Gallery
-          </button>
-          <input
-            ref={cameraRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={onFile}
-          />
-          <input ref={galleryRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
+        {mode === "photo" ? (
+          <>
+            <div className="relative mt-4">
+              <Card className="flex aspect-[4/3] items-center justify-center overflow-hidden bg-surface-muted p-0">
+                {preview ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={preview} alt="Your uploaded work" className="h-full w-full object-contain" />
+                ) : (
+                  <div className="flex flex-col items-center gap-2 px-8 text-center">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-surface shadow-card">
+                      <CameraIcon className="h-5 w-5 text-lavender-500" />
+                    </span>
+                    <p className="text-sm font-medium text-ink-soft">No photo yet</p>
+                    <p className="text-xs leading-relaxed text-ink-faint">
+                      Include every line you wrote — we need the whole chain to find where it broke.
+                    </p>
+                  </div>
+                )}
+              </Card>
+              {preview && (
+                <button
+                  onClick={clearImage}
+                  aria-label="Remove photo"
+                  className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-navy-900/80 text-on-strong backdrop-blur"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <button
+                onClick={() => cameraRef.current?.click()}
+                className="flex h-14 items-center justify-center gap-2 rounded-2xl bg-surface-muted text-sm font-medium text-navy-900 active:scale-[0.98]"
+              >
+                <CameraIcon className="h-4 w-4" /> Camera
+              </button>
+              <button
+                onClick={() => galleryRef.current?.click()}
+                className="flex h-14 items-center justify-center gap-2 rounded-2xl bg-surface-muted text-sm font-medium text-navy-900 active:scale-[0.98]"
+              >
+                <ImageIcon className="h-4 w-4" /> Gallery
+              </button>
+              <input
+                ref={cameraRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={onFile}
+              />
+              <input ref={galleryRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
+            </div>
+          </>
+        ) : (
+          <div className="mt-4">
+            <label htmlFor="typed-work" className="mb-1.5 block text-xs font-semibold text-ink-soft">
+              Your working, one line per step
+            </label>
+            <textarea
+              id="typed-work"
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+              rows={8}
+              spellCheck={false}
+              autoCapitalize="off"
+              autoCorrect="off"
+              placeholder={"2x + 7 = 15\n2x = 15 + 7\n2x = 22\nx = 11"}
+              className="w-full resize-none rounded-2xl border border-navy-50 bg-surface-muted p-4 font-display text-base leading-relaxed text-navy-900 outline-none transition-colors placeholder:font-body placeholder:text-sm placeholder:text-ink-faint focus:border-lavender-400 focus:bg-surface"
+            />
+            <p className="mt-1.5 px-1 text-[11px] text-ink-faint">
+              {typedLines.length === 0
+                ? "Start with the problem, then each step you took."
+                : `${typedLines.length} line${typedLines.length === 1 ? "" : "s"} — we'll check each against the one above it.`}
+            </p>
+          </div>
+        )}
+
+        <div className="mt-4 flex gap-2 overflow-x-auto scrollbar-none">
+          {SUBJECTS.map((s) => (
+            <Chip key={s} active={subject === s} onClick={() => setSubject(s)} className="shrink-0">
+              {s}
+            </Chip>
+          ))}
         </div>
 
         {error && (
@@ -162,15 +239,16 @@ export default function ScanPage() {
           </p>
         )}
 
-        <Button onClick={analyze} loading={loading} disabled={!fileData} className="mt-5 w-full">
-          Analyze Work
+        <Button onClick={analyze} loading={loading} disabled={!canSubmit} className="mt-5 w-full">
+          Analyze my work
         </Button>
 
         <div className="mt-4 flex items-start gap-2 rounded-2xl bg-surface-muted p-3">
           <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-peach-500" />
           <p className="text-xs leading-relaxed text-ink-soft">
-            One problem per photo, written left to right. Clear steps let us reconstruct your reasoning instead of
-            guessing at it.
+            {mode === "photo"
+              ? "One problem per photo, written left to right. Clear steps let us reconstruct your reasoning instead of guessing at it."
+              : "Include the original problem as your first line. We compare each step to the one above it, so the more you show, the more precisely we can locate the break."}
           </p>
         </div>
       </div>
