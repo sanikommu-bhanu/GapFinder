@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db/prisma";
-import { hasGeminiKey } from "@/lib/env";
+import { hasAnyProvider } from "@/lib/ai/ai-client";
 import { selectDifficulty } from "@/lib/ai/pipeline/select-intervention";
 import { generatePracticeProblem } from "@/lib/ai/pipeline/generate-practice";
 import {
@@ -143,7 +143,7 @@ async function generateOne(params: {
 }): Promise<ExamQuestionDraft | null> {
   const { conceptId, conceptSlug, conceptName, difficulty, avoid, seed } = params;
 
-  if (hasGeminiKey()) {
+  if (hasAnyProvider()) {
     try {
       const concept = await prisma.concept.findUnique({ where: { id: conceptId } });
       const { result } = await generatePracticeProblem({
