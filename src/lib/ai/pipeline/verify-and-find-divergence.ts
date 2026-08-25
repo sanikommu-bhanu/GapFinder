@@ -1,4 +1,5 @@
 import { verifyEquationStep } from "@/lib/verification/math-verifier";
+import { correctNextStep } from "@/lib/math/solve-step";
 
 export interface VerifiedStep {
   order: number;
@@ -7,6 +8,12 @@ export interface VerifiedStep {
   isValid: boolean;
   isFirstGap: boolean;
   verificationNote: string;
+  /**
+   * What this step should have read, derived algebraically from the previous
+   * step. Null when the shape isn't recognised — in which case the UI shows
+   * nothing rather than an unverified correction.
+   */
+  correctedExpression: string | null;
 }
 
 /**
@@ -14,6 +21,10 @@ export interface VerifiedStep {
  * verifies each transition against the previous one. The FIRST invalid
  * transition is marked isFirstGap — this is the "first divergence" the whole
  * product is built around, and it is computed with math, not an LLM guess.
+ *
+ * Once the first gap is found, later steps are still verified against their own
+ * predecessor, so a student can see that everything after the divergence is a
+ * *consequence* rather than a separate mistake.
  */
 export function verifyAndFindDivergence(
   steps: { order: number; statement: string; expression: string }[]
@@ -30,6 +41,7 @@ export function verifyAndFindDivergence(
         isValid: true,
         isFirstGap: false,
         verificationNote: "Starting point.",
+        correctedExpression: null,
       });
       continue;
     }
@@ -43,6 +55,7 @@ export function verifyAndFindDivergence(
       isValid: verification.isValid,
       isFirstGap,
       verificationNote: verification.note,
+      correctedExpression: verification.isValid ? null : correctNextStep(prev.expression, current.expression),
     });
   }
 

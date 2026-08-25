@@ -1,10 +1,15 @@
 import { prisma } from "@/lib/db/prisma";
 import { AiUnavailableError } from "@/lib/ai/gemini-client";
+import { hasGeminiKey } from "@/lib/env";
+import { retrieveKnowledge } from "@/lib/ai/rag/retrieve";
+import { explainGapOffline } from "@/lib/ai/fallback/offline-explain";
+import type { ExplanationResult } from "@/lib/ai/schemas/pipeline";
 import { readAndExtractSteps } from "./read-and-extract";
 import { reconstructReasoning } from "./reconstruct-reasoning";
-import { verifyAndFindDivergence } from "./verify-and-find-divergence";
+import { verifyAndFindDivergence, type VerifiedStep } from "./verify-and-find-divergence";
 import { classifyGap } from "./classify-gap";
 import { explainGap } from "./explain-gap";
+import { classifyGapOffline } from "./classify-gap-offline";
 
 export interface RunPipelineParams {
   analysisId: string;
@@ -23,9 +28,13 @@ export interface RunPipelineResult {
  * Runs the real (non-demo) analysis pipeline end to end and persists every
  * intermediate structured artifact, so the system can always answer "what did
  * the AI actually do at each step" (ExtractedStep, ReasoningStep, Gap rows).
+ *
+ * Stage boundaries are written to `analysis.status` as they are entered — the
+ * Analyzing screen polls that, so the progress a student watches is the real
+ * pipeline position rather than a timer.
  */
 export async function runAnalysisPipeline(params: RunPipelineParams): Promise<RunPipelineResult> {
-  await prisma.analysis.update({ where: { id: params.analysisId }, data: { status: "reading" } });
+  await setStatus(params.analysisId, "reading");
 
   let extraction;
   try {
@@ -38,6 +47,13 @@ export async function runAnalysisPipeline(params: RunPipelineParams): Promise<Ru
     });
   } catch (err) {
     return failGracefully(params.analysisId, err);
+  }
+
+  if (extraction.result.steps.length === 0) {
+    return failWithReason(
+      params.analysisId,
+      "We could not read any working steps in that image. Try a straighter, better-lit photo with one problem per photo."
+    );
   }
 
   await prisma.extractedStep.createMany({
@@ -54,120 +70,23 @@ export async function runAnalysisPipeline(params: RunPipelineParams): Promise<Ru
   if (extraction.result.needsConfirmation) {
     await prisma.analysis.update({
       where: { id: params.analysisId },
-      data: { status: "needs_confirmation", confidence: extraction.result.overallConfidence },
+      data: {
+        status: "needs_confirmation",
+        confidence: extraction.result.overallConfidence,
+        statusReason:
+          extraction.result.confirmationQuestion ??
+          "Some of your handwriting was hard to read. Check what we got before we analyze it.",
+      },
     });
     return { status: "needs_confirmation", reason: extraction.result.confirmationQuestion ?? undefined };
   }
 
-  await prisma.analysis.update({ where: { id: params.analysisId }, data: { status: "reconstructing" } });
-
-  let reconstruction;
-  try {
-    reconstruction = await reconstructReasoning({
-      subject: params.subject,
-      steps: extraction.result.steps.map((s) => ({ order: s.order, interpreted: s.interpreted })),
-      analysisId: params.analysisId,
-    });
-  } catch (err) {
-    return failGracefully(params.analysisId, err);
-  }
-
-  await prisma.analysis.update({ where: { id: params.analysisId }, data: { status: "verifying" } });
-
-  const verified = verifyAndFindDivergence(reconstruction.result.reasoningSteps);
-
-  await prisma.reasoningStep.createMany({
-    data: verified.map((v) => ({
-      analysisId: params.analysisId,
-      order: v.order,
-      statement: v.statement,
-      expression: v.expression,
-      isValid: v.isValid,
-      isFirstGap: v.isFirstGap,
-      verificationNote: v.verificationNote,
-    })),
+  return finishFromSteps({
+    analysisId: params.analysisId,
+    subject: params.subject,
+    steps: extraction.result.steps.map((s) => ({ order: s.order, interpreted: s.interpreted })),
+    confidence: extraction.result.overallConfidence,
   });
-
-  const divergence = verified.find((v) => v.isFirstGap);
-
-  if (!divergence) {
-    // No error found — everything verified. Still a complete, honest result.
-    await prisma.analysis.update({
-      where: { id: params.analysisId },
-      data: { status: "complete", confidence: extraction.result.overallConfidence, completedAt: new Date() },
-    });
-    return { status: "complete" };
-  }
-
-  const concepts = await prisma.concept.findMany({ select: { id: true, slug: true } });
-  const prevStep = verified[verified.findIndex((v) => v.isFirstGap) - 1];
-
-  let classification;
-  try {
-    classification = await classifyGap({
-      subject: params.subject,
-      steps: verified.map((v) => ({ order: v.order, statement: v.statement, expression: v.expression, isValid: v.isValid })),
-      divergenceStepOrder: divergence.order,
-      availableConceptSlugs: concepts.map((c) => c.slug),
-      analysisId: params.analysisId,
-    });
-  } catch (err) {
-    return failGracefully(params.analysisId, err);
-  }
-
-  const concept = concepts.find((c) => c.slug === classification.result.conceptSlug) ?? concepts[0];
-  if (!concept) {
-    await prisma.analysis.update({ where: { id: params.analysisId }, data: { status: "failed" } });
-    return { status: "failed", reason: "No concept graph seeded." };
-  }
-
-  let explanationData: Awaited<ReturnType<typeof explainGap>> | null = null;
-  if (prevStep) {
-    try {
-      explanationData = await explainGap({
-        conceptId: concept.id,
-        surfaceError: classification.result.surfaceError,
-        underlyingGap: classification.result.underlyingGap,
-        divergingStep: { statement: divergence.statement, expression: divergence.expression },
-        previousStep: { statement: prevStep.statement, expression: prevStep.expression },
-        analysisId: params.analysisId,
-      });
-    } catch {
-      explanationData = null; // explanation is best-effort; gap is still recorded
-    }
-  }
-
-  await prisma.gap.create({
-    data: {
-      analysisId: params.analysisId,
-      conceptId: concept.id,
-      classification: classification.result.classification,
-      surfaceError: classification.result.surfaceError,
-      underlyingGap: classification.result.underlyingGap,
-      evidence: JSON.stringify(classification.result.evidence),
-      confidence: classification.result.confidence,
-      explanationText: explanationData
-        ? JSON.stringify(explanationData.explanation)
-        : null,
-      status: "open",
-    },
-  });
-
-  await prisma.learningEvent.create({
-    data: {
-      userId: (await prisma.analysis.findUniqueOrThrow({ where: { id: params.analysisId } })).userId,
-      analysisId: params.analysisId,
-      type: "gap_found",
-      payload: JSON.stringify({ conceptSlug: concept.slug }),
-    },
-  });
-
-  await prisma.analysis.update({
-    where: { id: params.analysisId },
-    data: { status: "complete", confidence: extraction.result.overallConfidence, completedAt: new Date() },
-  });
-
-  return { status: "complete" };
 }
 
 /**
@@ -181,18 +100,39 @@ export async function continuePipelineFromSteps(params: {
   subject: string;
   steps: { order: number; interpreted: string }[];
 }): Promise<RunPipelineResult> {
-  await prisma.analysis.update({ where: { id: params.analysisId }, data: { status: "reconstructing" } });
+  return finishFromSteps({ ...params, confidence: "high" });
+}
 
-  let reconstruction;
+/**
+ * The shared tail of the pipeline: reconstruct -> deterministically verify ->
+ * classify -> explain -> persist. Both the fresh run and the post-confirmation
+ * resume land here, so there is exactly one implementation of the part that
+ * decides what a gap actually is.
+ */
+async function finishFromSteps(params: {
+  analysisId: string;
+  subject: string;
+  steps: { order: number; interpreted: string }[];
+  confidence: string;
+}): Promise<RunPipelineResult> {
+  await setStatus(params.analysisId, "reconstructing");
+
+  let reasoningSteps: { order: number; statement: string; expression: string }[];
   try {
-    reconstruction = await reconstructReasoning({ subject: params.subject, steps: params.steps, analysisId: params.analysisId });
+    const reconstruction = await reconstructReasoning({
+      subject: params.subject,
+      steps: params.steps,
+      analysisId: params.analysisId,
+    });
+    reasoningSteps = reconstruction.result.reasoningSteps;
   } catch (err) {
     return failGracefully(params.analysisId, err);
   }
 
-  await prisma.analysis.update({ where: { id: params.analysisId }, data: { status: "verifying" } });
-  const verified = verifyAndFindDivergence(reconstruction.result.reasoningSteps);
+  await setStatus(params.analysisId, "verifying");
+  const verified = verifyAndFindDivergence(reasoningSteps);
 
+  await prisma.reasoningStep.deleteMany({ where: { analysisId: params.analysisId } });
   await prisma.reasoningStep.createMany({
     data: verified.map((v) => ({
       analysisId: params.analysisId,
@@ -202,98 +142,188 @@ export async function continuePipelineFromSteps(params: {
       isValid: v.isValid,
       isFirstGap: v.isFirstGap,
       verificationNote: v.verificationNote,
+      correctedExpression: v.correctedExpression,
     })),
   });
 
   const divergence = verified.find((v) => v.isFirstGap);
+  const analysis = await prisma.analysis.findUniqueOrThrow({ where: { id: params.analysisId } });
+
   if (!divergence) {
+    // No error found — everything verified. Still a complete, honest result.
     await prisma.analysis.update({
       where: { id: params.analysisId },
-      data: { status: "complete", completedAt: new Date() },
+      data: { status: "complete", confidence: params.confidence, completedAt: new Date(), statusReason: null },
     });
     return { status: "complete" };
   }
 
-  const concepts = await prisma.concept.findMany({ select: { id: true, slug: true } });
+  await setStatus(params.analysisId, "classifying");
+
+  const concepts = await prisma.concept.findMany({
+    select: { id: true, slug: true, name: true, description: true, commonErrors: true },
+  });
+  if (concepts.length === 0) {
+    return failWithReason(params.analysisId, "The concept graph has not been seeded yet. Run npm run db:seed.");
+  }
+
   const prevStep = verified[verified.findIndex((v) => v.isFirstGap) - 1];
+  const classification = await classifyWithFallback({
+    subject: params.subject,
+    verified,
+    divergence,
+    concepts,
+    analysisId: params.analysisId,
+  });
 
-  let classification;
-  try {
-    classification = await classifyGap({
-      subject: params.subject,
-      steps: verified.map((v) => ({ order: v.order, statement: v.statement, expression: v.expression, isValid: v.isValid })),
-      divergenceStepOrder: divergence.order,
-      availableConceptSlugs: concepts.map((c) => c.slug),
-      analysisId: params.analysisId,
-    });
-  } catch (err) {
-    return failGracefully(params.analysisId, err);
-  }
+  const concept = concepts.find((c) => c.slug === classification.conceptSlug) ?? concepts[0]!;
 
-  const concept = concepts.find((c) => c.slug === classification.result.conceptSlug) ?? concepts[0];
-  if (!concept) {
-    await prisma.analysis.update({ where: { id: params.analysisId }, data: { status: "failed" } });
-    return { status: "failed", reason: "No concept graph seeded." };
-  }
+  await setStatus(params.analysisId, "explaining");
 
-  let explanationData: Awaited<ReturnType<typeof explainGap>> | null = null;
-  if (prevStep) {
-    try {
-      explanationData = await explainGap({
-        conceptId: concept.id,
-        surfaceError: classification.result.surfaceError,
-        underlyingGap: classification.result.underlyingGap,
-        divergingStep: { statement: divergence.statement, expression: divergence.expression },
-        previousStep: { statement: prevStep.statement, expression: prevStep.expression },
-        analysisId: params.analysisId,
-      });
-    } catch {
-      explanationData = null;
-    }
-  }
+  const explanation = await explainWithFallback({
+    conceptId: concept.id,
+    conceptName: concept.name,
+    classification,
+    divergence,
+    prevStep,
+    analysisId: params.analysisId,
+  });
 
   await prisma.gap.create({
     data: {
       analysisId: params.analysisId,
       conceptId: concept.id,
-      classification: classification.result.classification,
-      surfaceError: classification.result.surfaceError,
-      underlyingGap: classification.result.underlyingGap,
-      evidence: JSON.stringify(classification.result.evidence),
-      confidence: classification.result.confidence,
-      explanationText: explanationData ? JSON.stringify(explanationData.explanation) : null,
+      classification: classification.classification,
+      surfaceError: classification.surfaceError,
+      underlyingGap: classification.underlyingGap,
+      evidence: JSON.stringify(classification.evidence),
+      confidence: classification.confidence,
+      explanationText: JSON.stringify(explanation),
       status: "open",
     },
   });
 
-  const owningAnalysis = await prisma.analysis.findUniqueOrThrow({ where: { id: params.analysisId } });
   await prisma.learningEvent.create({
     data: {
-      userId: owningAnalysis.userId,
+      userId: analysis.userId,
       analysisId: params.analysisId,
       type: "gap_found",
-      payload: JSON.stringify({ conceptSlug: concept.slug }),
+      payload: JSON.stringify({ conceptSlug: concept.slug, classification: classification.classification }),
     },
   });
 
   await prisma.analysis.update({
     where: { id: params.analysisId },
-    data: { status: "complete", completedAt: new Date() },
+    data: { status: "complete", confidence: params.confidence, completedAt: new Date(), statusReason: null },
   });
 
   return { status: "complete" };
 }
 
+/**
+ * Classification asks Gemini which concept broke and why. If the model is
+ * unavailable the pipeline does NOT stop: the deterministic classifier reads
+ * the same verified algebra and picks the concept from the shape of the error.
+ * Its confidence is reported as low, so the UI can say so out loud.
+ */
+async function classifyWithFallback(params: {
+  subject: string;
+  verified: VerifiedStep[];
+  divergence: VerifiedStep;
+  concepts: { id: string; slug: string; name: string; description: string; commonErrors: string }[];
+  analysisId: string;
+}) {
+  if (hasGeminiKey()) {
+    try {
+      const { result } = await classifyGap({
+        subject: params.subject,
+        steps: params.verified.map((v) => ({
+          order: v.order,
+          statement: v.statement,
+          expression: v.expression,
+          isValid: v.isValid,
+        })),
+        divergenceStepOrder: params.divergence.order,
+        availableConceptSlugs: params.concepts.map((c) => c.slug),
+        analysisId: params.analysisId,
+      });
+      if (params.concepts.some((c) => c.slug === result.conceptSlug)) return result;
+    } catch {
+      // fall through to the deterministic classifier
+    }
+  }
+  const previous = params.verified[params.verified.findIndex((v) => v.isFirstGap) - 1];
+  return classifyGapOffline({
+    divergence: params.divergence,
+    previousExpression: previous?.expression ?? "",
+    availableConcepts: params.concepts.map((c) => ({ slug: c.slug, name: c.name })),
+  });
+}
+
+/**
+ * Explanation is RAG-grounded either way. With Gemini, the model must ground
+ * its wording in the retrieved chunks; without it, the chunks are surfaced
+ * directly alongside the verifier's algebraic account of what changed.
+ */
+async function explainWithFallback(params: {
+  conceptId: string;
+  conceptName: string;
+  classification: { surfaceError: string; underlyingGap: string };
+  divergence: VerifiedStep;
+  prevStep: VerifiedStep | undefined;
+  analysisId: string;
+}): Promise<ExplanationResult> {
+  const previousExpression = params.prevStep?.expression ?? params.divergence.expression;
+
+  if (hasGeminiKey() && params.prevStep) {
+    try {
+      const { explanation } = await explainGap({
+        conceptId: params.conceptId,
+        surfaceError: params.classification.surfaceError,
+        underlyingGap: params.classification.underlyingGap,
+        divergingStep: { statement: params.divergence.statement, expression: params.divergence.expression },
+        previousStep: { statement: params.prevStep.statement, expression: params.prevStep.expression },
+        analysisId: params.analysisId,
+      });
+      return explanation;
+    } catch {
+      // fall through to the grounded offline explanation
+    }
+  }
+
+  const chunks = await retrieveKnowledge(
+    params.conceptId,
+    `${params.classification.underlyingGap} ${params.classification.surfaceError}`,
+    { kinds: ["explanation", "misconception", "teaching_strategy"], limit: 4 }
+  );
+  return explainGapOffline({
+    conceptName: params.conceptName,
+    surfaceError: params.classification.surfaceError,
+    underlyingGap: params.classification.underlyingGap,
+    previousExpression,
+    divergingExpression: params.divergence.expression,
+    correctedExpression: params.divergence.correctedExpression,
+    chunks,
+  });
+}
+
+async function setStatus(analysisId: string, status: string) {
+  await prisma.analysis.update({ where: { id: analysisId }, data: { status } });
+}
+
+async function failWithReason(analysisId: string, reason: string): Promise<RunPipelineResult> {
+  await prisma.analysis.update({ where: { id: analysisId }, data: { status: "failed", statusReason: reason } });
+  return { status: "failed", reason };
+}
+
 async function failGracefully(analysisId: string, err: unknown): Promise<RunPipelineResult> {
-  const isQuota = err instanceof AiUnavailableError && err.reason === "quota";
-  const isNoKey = err instanceof AiUnavailableError && err.reason === "no_key";
-  await prisma.analysis.update({ where: { id: analysisId }, data: { status: "failed" } });
-  return {
-    status: "failed",
-    reason: isQuota
-      ? "Gemini's free-tier limit was reached. Try again shortly, or explore Demo Mode."
-      : isNoKey
-        ? "AI is not configured yet. Try Demo Mode to see the full experience."
-        : "Something went wrong analyzing this. Please try again.",
-  };
+  const reason =
+    err instanceof AiUnavailableError && err.reason === "quota"
+      ? "Gemini's free-tier limit was reached. Try again shortly, or explore Demo Mode — it runs the same journey with no API calls."
+      : err instanceof AiUnavailableError && err.reason === "no_key"
+        ? "Live AI is not configured on this server. Demo Mode runs the full journey without it."
+        : err instanceof AiUnavailableError && err.reason === "invalid_response"
+          ? "The AI returned something we could not verify, so we stopped rather than show you a guess. Please try again."
+          : "Something went wrong analyzing this. Please try again.";
+  return failWithReason(analysisId, reason);
 }
