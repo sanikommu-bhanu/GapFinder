@@ -77,8 +77,9 @@ export async function generateStructured<T extends z.ZodTypeAny>(
     systemInstruction: opts.systemInstruction,
     generationConfig: {
       responseMimeType: "application/json",
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      responseSchema: jsonSchema as any,
+      // The SDK types responseSchema against its own Schema interface; ours is
+      // built to Gemini's documented wire format (see to-gemini-schema.ts).
+      responseSchema: jsonSchema as never,
       temperature: 0.2,
     },
   });
