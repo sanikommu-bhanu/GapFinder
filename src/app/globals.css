@@ -1,3 +1,5 @@
+@import "./theme.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -18,8 +20,8 @@ html {
 html,
 body {
   height: 100%;
-  background: #f7f6fb;
-  color: #151833;
+  background: rgb(var(--page-bg));
+  color: rgb(var(--c-ink));
   -webkit-font-smoothing: antialiased;
   /* The app owns its own scrolling regions; the document itself never scrolls
      sideways, which is what produces the "premium native" feel on a phone. */
@@ -39,7 +41,7 @@ body {
   max-width: 430px;
   margin: 0 auto;
   min-height: 100dvh;
-  background: #f7f6fb;
+  background: rgb(var(--page-bg));
   position: relative;
   display: flex;
   flex-direction: column;
