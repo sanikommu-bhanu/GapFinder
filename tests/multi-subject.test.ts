@@ -3,6 +3,8 @@ import { countAtoms, checkChemicalBalance, verifyChemicalStep } from "@/lib/veri
 import { verifyQuantitativeStep, compareUnits } from "@/lib/verification/domains/quantitative";
 import { verifyStep, detectDomain } from "@/lib/verification/verify-step";
 import { auditSolution } from "@/lib/verification/solution-audit";
+import { detectMisconception } from "@/lib/diagnosis/detect-misconception";
+import { MISCONCEPTIONS } from "@/lib/diagnosis/misconceptions";
 
 const audit = (...expressions: string[]) =>
   auditSolution(expressions.map((expression, i) => ({ order: i + 1, expression })));
@@ -52,14 +54,30 @@ describe("chemistry — balancing", () => {
     expect(checkChemicalBalance("2Na(s) + Cl2(g) -> 2NaCl(s)")?.isBalanced).toBe(true);
   });
 
-  it("catches an element appearing from nowhere between steps", () => {
+  it("catches a substance appearing from nowhere between steps", () => {
     const result = verifyChemicalStep("H2 + O2 -> H2O", "H2 + O2 -> H2O + NaCl");
     expect(result.isValid).toBe(false);
-    expect(result.note).toMatch(/created or destroyed/);
+    expect(result.note).toMatch(/NaCl/);
+  });
+
+  it("catches the classic subscript change that fakes a balance", () => {
+    // H2O -> H2O2 makes the oxygen count work and silently swaps water for
+    // hydrogen peroxide. This is the error that matters most in balancing.
+    const result = verifyChemicalStep("H2 + O2 -> H2O", "H2 + O2 -> H2O2");
+    expect(result.isValid).toBe(false);
+    expect(result.note).toMatch(/H2O became H2O2/);
+    expect(result.note).toMatch(/never the formula itself/);
   });
 
   it("accepts progress toward balance", () => {
     expect(verifyChemicalStep("H2 + O2 -> H2O", "2H2 + O2 -> 2H2O").isValid).toBe(true);
+  });
+
+  it("allows an intermediate line to still be unbalanced", () => {
+    // Balancing carbon before hydrogen passes through unbalanced lines.
+    const result = verifyChemicalStep("CH4 + O2 -> CO2 + H2O", "CH4 + O2 -> CO2 + 2H2O");
+    expect(result.isValid).toBe(true);
+    expect(result.note).toMatch(/Keep going/);
   });
 });
 
@@ -125,12 +143,33 @@ describe("audit across subjects", () => {
     const result = audit("v = u + a*t", "v = 0 + 9.8 * 3", "v = 27.4", "v = 27.4 m/s");
     expect(result.firstDivergenceOrder).toBe(3);
     expect(result.steps[2]!.domain).toBe("quantitative");
+    // A measured value keeps its decimal form; "147/5" is not how anyone
+    // writes 29.4 m/s.
+    expect(result.steps[2]!.correctedExpression).toBe("v = 29.4");
   });
 
-  it("finds the first divergence in a balancing problem", () => {
+  it("keeps an exact quotient exact rather than rounding it", () => {
+    // All-integer inputs mean the answer is a fraction, not a decimal
+    // approximation the student would then be marked against.
+    const result = audit("t = 5 / 6", "t = 0.8");
+    expect(result.steps[1]!.correctedExpression).toBe("t = 5/6");
+  });
+
+  it("accepts correct balancing working, including unbalanced middle steps", () => {
     const result = audit("CH4 + O2 -> CO2 + H2O", "CH4 + O2 -> CO2 + 2H2O", "CH4 + 2O2 -> CO2 + 2H2O");
-    // Step 2 still isn't balanced; step 3 is.
-    expect(result.steps[1]!.verdict).toBe("first_divergence");
+    expect(result.firstDivergenceOrder).toBeNull();
+    expect(result.isFullyCorrect).toBe(true);
+  });
+
+  it("flags a final line that is still unbalanced", () => {
+    const result = audit("CH4 + O2 -> CO2 + H2O", "CH4 + O2 -> CO2 + 2H2O");
+    expect(result.firstDivergenceOrder).toBe(2);
+    expect(result.steps[1]!.note).toMatch(/final line/);
+  });
+
+  it("flags a subscript change as the divergence", () => {
+    const result = audit("H2 + O2 -> H2O", "H2 + O2 -> H2O2");
+    expect(result.firstDivergenceOrder).toBe(2);
     expect(result.steps[1]!.domain).toBe("chemical");
   });
 
@@ -155,5 +194,75 @@ describe("audit across subjects", () => {
     expect(result.firstDivergenceOrder).toBe(2);
     expect(result.steps[1]!.correctedExpression).toBe("2x = 15 - 7");
     expect(result.steps[2]!.verdict).toBe("downstream_consequence");
+  });
+});
+
+describe("misconception catalogue", () => {
+  it("proves the transpose-sign misconception from its algebraic signature", () => {
+    const result = audit("2x + 7 = 15", "2x = 15 + 7");
+    const divergence = result.steps[1]!;
+    const match = detectMisconception({
+      divergence: {
+        ...divergence,
+        statement: divergence.expression,
+        isValid: false,
+        verificationNote: divergence.note,
+      },
+      previousExpression: "2x + 7 = 15",
+      subject: "Math",
+    });
+    expect(match?.misconception.code).toBe("M-TRANSPOSE-SIGN");
+    // Proved by arithmetic, not chosen by a model.
+    expect(match?.basis).toBe("proved");
+    expect(match?.evidence).toMatch(/2 x 7/);
+  });
+
+  it("proves the subscript-change misconception in chemistry", () => {
+    const result = audit("H2 + O2 -> H2O", "H2 + O2 -> H2O2");
+    const divergence = result.steps[1]!;
+    const match = detectMisconception({
+      divergence: {
+        ...divergence,
+        statement: divergence.expression,
+        isValid: false,
+        verificationNote: divergence.note,
+      },
+      previousExpression: "H2 + O2 -> H2O",
+      subject: "Chemistry",
+    });
+    expect(match?.misconception.code).toBe("C-SUBSCRIPT-CHANGED");
+    expect(match?.basis).toBe("proved");
+  });
+
+  it("proves a unit mismatch in physics", () => {
+    const match = detectMisconception({
+      divergence: {
+        order: 2,
+        expression: "d = 20 s",
+        statement: "d = 20 s",
+        isValid: false,
+        isFirstGap: true,
+        verificationNote: "The units don't match: m became s, which measures a different quantity.",
+        correctedExpression: null,
+        verdict: "first_divergence",
+        domain: "quantitative",
+      },
+      previousExpression: "d = 20 m",
+      subject: "Physics",
+    });
+    expect(match?.misconception.code).toBe("P-UNIT-MISMATCH");
+  });
+
+  it("gives every catalogue entry a question that asks rather than tells", () => {
+    for (const m of MISCONCEPTIONS) {
+      expect(m.socraticPrompt.length).toBeGreaterThan(15);
+      expect(m.socraticPrompt).toMatch(/\?/);
+      expect(m.code).toMatch(/^[MPCB]-[A-Z-]+$/);
+    }
+  });
+
+  it("keeps codes unique so they can be counted across students", () => {
+    const codes = MISCONCEPTIONS.map((m) => m.code);
+    expect(new Set(codes).size).toBe(codes.length);
   });
 });
