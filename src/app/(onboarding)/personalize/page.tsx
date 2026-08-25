@@ -12,7 +12,6 @@ const LEVELS = ["Middle School", "High School", "College"];
 export default function PersonalizePage() {
   const router = useRouter();
   const setOnboarding = useAppStore((s) => s.setOnboarding);
-  const setDemoMode = useAppStore((s) => s.setDemoMode);
   const [subject, setSubject] = useState("Math");
   const [level, setLevel] = useState("High School");
   const [loading, setLoading] = useState(false);
@@ -99,18 +98,6 @@ export default function PersonalizePage() {
           </button>
         ))}
       </div>
-
-      <label className="mt-6 flex items-center justify-between rounded-2xl bg-surface-muted px-4 py-3.5">
-        <span>
-          <p className="text-sm font-semibold text-navy-900">Demo Mode</p>
-          <p className="text-xs text-ink-soft">Explore GapFinder with a pre-built example — no AI calls used.</p>
-        </span>
-        <input
-          type="checkbox"
-          className="h-5 w-5 accent-navy-900"
-          onChange={(e) => setDemoMode(e.target.checked)}
-        />
-      </label>
 
       {error && <p className="mt-4 text-sm text-danger">{error}</p>}
 
