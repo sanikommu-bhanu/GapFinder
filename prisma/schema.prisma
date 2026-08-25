@@ -91,6 +91,8 @@ model Analysis {
   confidence      String?  // high|medium|low
   // Student-facing reason when status is failed/needs_confirmation.
   statusReason    String?
+  // The full correct path derived from the student's opening line (JSON string[]).
+  correctedSolution String?
   isDemo          Boolean  @default(false)
   createdAt       DateTime @default(now())
   completedAt     DateTime?
@@ -142,6 +144,9 @@ model ReasoningStep {
   // What this step should have been, derived algebraically from the previous
   // verified step (see lib/math/solve-step.ts). Never model-generated.
   correctedExpression String?
+  // Complete-audit verdict: correct | first_divergence | downstream_consequence
+  // | independent_error | uncertain. See lib/verification/solution-audit.ts.
+  verdict          String   @default("correct")
   createdAt      DateTime @default(now())
 }
 
