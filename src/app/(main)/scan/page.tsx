@@ -1,6 +1,6 @@
 "use client";
-import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Camera as CameraIcon, Image as ImageIcon, Lightbulb, X, Keyboard, ScanLine } from "lucide-react";
 import { TopBar } from "@/components/nav/TopBar";
 import { Card } from "@/components/ui/Card";
@@ -11,6 +11,7 @@ import { cn } from "@/lib/cn";
 import { SUBJECTS } from "@/lib/subjects";
 import { SubjectCapability } from "@/components/ui/SubjectCapability";
 import { prepareImageForUpload, base64ToDataUrl } from "@/lib/media/prepare-upload";
+import { detectAskIntent } from "@/lib/concepts/ask-intent";
 
 /**
  * A generous ceiling, because the browser downscales before uploading — this
@@ -38,12 +39,15 @@ const EXAMPLE_WORK = [
 
 type Mode = "photo" | "typed";
 
-export default function ScanPage() {
+function ScanView() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
 
-  const [mode, setMode] = useState<Mode>("photo");
+  // Deep-linked as ?mode=typed when the photo reader is unavailable, so the
+  // student lands on the path that works rather than the one that just failed.
+  const [mode, setMode] = useState<Mode>(searchParams.get("mode") === "typed" ? "typed" : "photo");
   const [preview, setPreview] = useState<string | null>(null);
   const [fileData, setFileData] = useState<{ base64: string; mime: string } | null>(null);
   const [typed, setTyped] = useState("");
@@ -57,6 +61,12 @@ export default function ScanPage() {
     .split("\n")
     .map((l) => l.trim())
     .filter(Boolean);
+
+  // "Explain photosynthesis" isn't working to check — it's a question, and the
+  // explainer answers it properly. Detecting that here means a student never
+  // has to know which screen they were supposed to be on.
+  const askIntent = mode === "typed" ? detectAskIntent(typed) : { kind: "working" as const };
+  const isQuestion = askIntent.kind === "concept";
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
@@ -95,6 +105,11 @@ export default function ScanPage() {
   }
 
   async function analyze() {
+    if (isQuestion && askIntent.kind === "concept") {
+      router.push(`/learn?q=${encodeURIComponent(askIntent.topic)}&subject=${encodeURIComponent(subject)}`);
+      return;
+    }
+
     const body =
       mode === "typed"
         ? { subject, sourceType: "typed" as const, steps: typedLines }
@@ -134,7 +149,10 @@ export default function ScanPage() {
     }
   }
 
-  const canSubmit = mode === "typed" ? typedLines.length >= 2 : Boolean(fileData) && !preparing;
+  const canSubmit =
+    mode === "typed"
+      ? isQuestion || typedLines.length >= 2
+      : Boolean(fileData) && !preparing;
 
   return (
     <div className="pb-8">
@@ -247,9 +265,11 @@ export default function ScanPage() {
             />
             <div className="mt-1.5 flex items-start justify-between gap-3 px-1">
               <p className="text-[11px] text-ink-faint">
-                {typedLines.length === 0
-                  ? "Start with the problem, then each step you took."
-                  : `${typedLines.length} line${typedLines.length === 1 ? "" : "s"} — we'll check each against the one above it.`}
+                {isQuestion
+                  ? "That reads as a question — we'll explain it instead of checking it."
+                  : typedLines.length === 0
+                    ? "Working to check, or a question like “explain photosynthesis”."
+                    : `${typedLines.length} line${typedLines.length === 1 ? "" : "s"} — we'll check each against the one above it.`}
               </p>
               {typed.trim().length === 0 && (
                 <button
@@ -287,7 +307,7 @@ export default function ScanPage() {
         )}
 
         <Button onClick={analyze} loading={loading} disabled={!canSubmit} className="mt-5 w-full">
-          Analyze my work
+          {isQuestion ? "Explain this to me" : "Analyze my work"}
         </Button>
 
         <div className="mt-4 flex items-start gap-2 rounded-2xl bg-surface-muted p-3">
@@ -300,5 +320,15 @@ export default function ScanPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ScanPage() {
+  return (
+    <Suspense
+      fallback={<div className="flex h-64 items-center justify-center text-sm text-ink-soft">Loading…</div>}
+    >
+      <ScanView />
+    </Suspense>
   );
 }
