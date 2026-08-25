@@ -8,11 +8,19 @@ import { checkStudentWork } from "@/lib/verification/check-student-work";
 import { detectMisconception } from "@/lib/diagnosis/detect-misconception";
 import { verifyAndFindDivergence } from "@/lib/ai/pipeline/verify-and-find-divergence";
 import { applyMasteryEvent } from "@/lib/services/mastery-service";
+import { buildConceptQuiz, misconceptionForAnswer } from "@/lib/quiz/build-concept-quiz";
 
 /** Question generation may call a model per question. */
 export const maxDuration = 60;
 
-const StartBody = z.object({ action: z.literal("start") });
+const StartBody = z.object({
+  action: z.literal("start"),
+  /**
+   * Scopes the exam to one concept, for the check that follows an explanation.
+   * Without it the exam is built from what the student has actually repaired.
+   */
+  conceptSlug: z.string().max(80).optional(),
+});
 
 const AnswerBody = z.object({
   action: z.literal("answer"),
@@ -40,9 +48,92 @@ export async function POST(req: NextRequest) {
   const parsed = Body.safeParse(json);
   if (!parsed.success) return NextResponse.json({ error: "Unrecognised request." }, { status: 400 });
 
-  if (parsed.data.action === "start") return startExam(userId);
+  if (parsed.data.action === "start") {
+    return parsed.data.conceptSlug
+      ? startConceptCheck(userId, parsed.data.conceptSlug)
+      : startExam(userId);
+  }
   if (parsed.data.action === "answer") return recordAnswer(userId, parsed.data);
   return finishExam(userId, parsed.data.examId);
+}
+
+/**
+ * The check that follows an explanation.
+ *
+ * A student who has just been taught a concept has no working to verify, so
+ * these questions are answered by choosing between the documented
+ * misconceptions rather than by showing lines. A wrong choice still names a
+ * catalogue code, which is what keeps it in the same learning history as
+ * everything else — a relapse here and a relapse in homework are the same
+ * event, counted the same way.
+ */
+async function startConceptCheck(userId: string, conceptSlug: string) {
+  const concept = await prisma.concept.findUnique({ where: { slug: conceptSlug } });
+  if (!concept) return NextResponse.json({ error: "We don't have that concept." }, { status: 404 });
+
+  const questions = buildConceptQuiz(
+    {
+      conceptSlug: concept.slug,
+      conceptName: concept.name,
+      subject: concept.subject,
+      description: concept.description,
+      commonErrors: safeList(concept.commonErrors),
+    },
+    `${userId}:${concept.slug}`
+  );
+
+  if (questions.length === 0) {
+    return NextResponse.json(
+      { error: "We don't have enough verified material to build a fair check on this concept yet." },
+      { status: 409 }
+    );
+  }
+
+  const exam = await prisma.examSession.create({
+    data: {
+      userId,
+      status: "in_progress",
+      questions: {
+        create: questions.map((q, i) => ({
+          conceptId: concept.id,
+          order: i + 1,
+          prompt: q.prompt,
+          correctAnswer: q.correctAnswer,
+          kind: "choice",
+          options: JSON.stringify(q.options),
+          source: "deterministic",
+        })),
+      },
+    },
+    include: { questions: { include: { concept: true }, orderBy: { order: "asc" } } },
+  });
+
+  return NextResponse.json({
+    examId: exam.id,
+    conceptsUnderTest: [
+      {
+        name: concept.name,
+        reason: "You just had this explained. This checks whether it landed.",
+      },
+    ],
+    questions: exam.questions.map((q) => ({
+      id: q.id,
+      order: q.order,
+      prompt: q.prompt,
+      conceptName: q.concept.name,
+      kind: q.kind,
+      options: safeList(q.options ?? "[]"),
+    })),
+  });
+}
+
+function safeList(raw: string): string[] {
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === "string") : [];
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -102,6 +193,8 @@ async function startExam(userId: string) {
       order: q.order,
       prompt: q.prompt,
       conceptName: q.concept.name,
+      kind: q.kind,
+      options: q.options ? safeList(q.options) : [],
     })),
   });
 }
@@ -118,6 +211,8 @@ async function recordAnswer(
     where: { id: body.questionId, exam: { id: body.examId, userId, status: "in_progress" } },
   });
   if (!question) return NextResponse.json({ error: "Not found." }, { status: 404 });
+
+  if (question.kind === "choice") return recordChoice(question, body);
 
   const check = checkStudentWork(body.studentAnswer, question.correctAnswer, question.prompt);
 
@@ -155,6 +250,45 @@ async function recordAnswer(
   });
 
   // Recorded, not reported. The student sees results only at the end.
+  return NextResponse.json({ recorded: true });
+}
+
+/**
+ * Grades one multiple-choice answer.
+ *
+ * There is no working to inspect, so `reasoningValid` tracks correctness rather
+ * than pretending to a second, independent signal. What a wrong answer does
+ * carry is *which* misconception was chosen, and that is recorded — it is the
+ * whole reason the distractors are catalogue entries rather than invented
+ * wrong answers.
+ */
+async function recordChoice(
+  question: { id: string; correctAnswer: string; options: string | null },
+  body: { studentAnswer: string; timeSpentSeconds?: number }
+) {
+  const options = safeList(question.options ?? "[]");
+  const chosen = body.studentAnswer.trim();
+
+  // Only an option that was actually offered can be graded.
+  if (options.length > 0 && !options.includes(chosen)) {
+    return NextResponse.json({ error: "That wasn't one of the options." }, { status: 400 });
+  }
+
+  const isCorrect = chosen === question.correctAnswer.trim();
+
+  await prisma.examQuestion.update({
+    where: { id: question.id },
+    data: {
+      studentAnswer: chosen,
+      isCorrect,
+      reasoningValid: isCorrect,
+      firstErrorLine: null,
+      misconceptionCode: isCorrect ? null : misconceptionForAnswer(chosen),
+      timeSpentSeconds: body.timeSpentSeconds ?? null,
+      answeredAt: new Date(),
+    },
+  });
+
   return NextResponse.json({ recorded: true });
 }
 
