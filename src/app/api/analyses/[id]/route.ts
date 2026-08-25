@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { getSessionUserId } from "@/lib/auth/session";
+import { getMisconception } from "@/lib/diagnosis/misconceptions";
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await getSessionUserId();
@@ -26,6 +27,16 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
         ...g,
         evidence: safeJson(g.evidence, []),
         explanation: safeJson(g.explanationText, null),
+        // The documented misconception behind the error, plus how it was
+        // arrived at, so the diagnosis can be checked rather than trusted.
+        misconception: g.misconceptionCode
+          ? {
+              code: g.misconceptionCode,
+              basis: g.misconceptionBasis,
+              evidence: g.misconceptionEvidence,
+              ...describeMisconception(g.misconceptionCode),
+            }
+          : null,
       })),
     },
   });
@@ -36,6 +47,17 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
  * hand could hold anything. Returning a fallback keeps one malformed row from
  * turning the whole analysis screen into a 500.
  */
+/** Expands a stored catalogue code into the text the UI shows. */
+function describeMisconception(code: string) {
+  const m = getMisconception(code);
+  return {
+    name: m.name,
+    studentRule: m.studentRule,
+    whyItFails: m.whyItFails,
+    socraticPrompt: m.socraticPrompt,
+  };
+}
+
 function safeJson<T>(raw: string | null, fallback: T): T {
   if (!raw) return fallback;
   try {
