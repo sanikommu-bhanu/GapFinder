@@ -162,6 +162,12 @@ async function finishFromSteps(params: {
   const audit = verifyAndFindDivergenceDetailed(reasoningSteps);
   const verified = audit.steps;
 
+  // The concept graph is needed by the next stage and depends on nothing here,
+  // so it loads alongside the verification writes instead of after them.
+  const conceptsPromise = prisma.concept.findMany({
+    select: { id: true, slug: true, name: true, description: true, commonErrors: true },
+  });
+
   await prisma.reasoningStep.deleteMany({ where: { analysisId: params.analysisId } });
   await prisma.reasoningStep.createMany({
     data: verified.map((v) => ({
@@ -188,20 +194,37 @@ async function finishFromSteps(params: {
   const divergence = verified.find((v) => v.isFirstGap);
   const analysis = await prisma.analysis.findUniqueOrThrow({ where: { id: params.analysisId } });
 
+  // "No divergence found" and "nothing we could check" are different results,
+  // and reporting the second as the first would claim a verification that never
+  // happened — the one thing this product must never do.
+  const uncertainCount = verified.filter((v) => v.verdict === "uncertain").length;
+  if (uncertainCount === verified.length) {
+    return failWithReason(
+      params.analysisId,
+      "We couldn't read this as mathematical working. Each line needs to be an equation — try again with your steps written out, one per line."
+    );
+  }
+
   if (!divergence) {
-    // No error found — everything verified. Still a complete, honest result.
     await prisma.analysis.update({
       where: { id: params.analysisId },
-      data: { status: "complete", confidence: params.confidence, completedAt: new Date(), statusReason: null },
+      data: {
+        status: "complete",
+        confidence: params.confidence,
+        completedAt: new Date(),
+        // Say plainly when part of the work couldn't be checked.
+        statusReason:
+          uncertainCount > 0
+            ? `${uncertainCount} line${uncertainCount === 1 ? "" : "s"} couldn't be checked, but everything we could verify holds.`
+            : null,
+      },
     });
     return { status: "complete" };
   }
 
   await setStatus(params.analysisId, "classifying");
 
-  const concepts = await prisma.concept.findMany({
-    select: { id: true, slug: true, name: true, description: true, commonErrors: true },
-  });
+  const concepts = await conceptsPromise;
   if (concepts.length === 0) {
     return failWithReason(params.analysisId, "The concept graph has not been seeded yet. Run npm run db:seed.");
   }
@@ -228,33 +251,35 @@ async function finishFromSteps(params: {
     analysisId: params.analysisId,
   });
 
-  await prisma.gap.create({
-    data: {
-      analysisId: params.analysisId,
-      conceptId: concept.id,
-      classification: classification.classification,
-      surfaceError: classification.surfaceError,
-      underlyingGap: classification.underlyingGap,
-      evidence: JSON.stringify(classification.evidence),
-      confidence: classification.confidence,
-      explanationText: JSON.stringify(explanation),
-      status: "open",
-    },
-  });
-
-  await prisma.learningEvent.create({
-    data: {
-      userId: analysis.userId,
-      analysisId: params.analysisId,
-      type: "gap_found",
-      payload: JSON.stringify({ conceptSlug: concept.slug, classification: classification.classification }),
-    },
-  });
-
-  await prisma.analysis.update({
-    where: { id: params.analysisId },
-    data: { status: "complete", confidence: params.confidence, completedAt: new Date(), statusReason: null },
-  });
+  // One transaction: a gap without its learning event would leave the memory
+  // layer inconsistent with what the student can see.
+  await prisma.$transaction([
+    prisma.gap.create({
+      data: {
+        analysisId: params.analysisId,
+        conceptId: concept.id,
+        classification: classification.classification,
+        surfaceError: classification.surfaceError,
+        underlyingGap: classification.underlyingGap,
+        evidence: JSON.stringify(classification.evidence),
+        confidence: classification.confidence,
+        explanationText: JSON.stringify(explanation),
+        status: "open",
+      },
+    }),
+    prisma.learningEvent.create({
+      data: {
+        userId: analysis.userId,
+        analysisId: params.analysisId,
+        type: "gap_found",
+        payload: JSON.stringify({ conceptSlug: concept.slug, classification: classification.classification }),
+      },
+    }),
+    prisma.analysis.update({
+      where: { id: params.analysisId },
+      data: { status: "complete", confidence: params.confidence, completedAt: new Date(), statusReason: null },
+    }),
+  ]);
 
   return { status: "complete" };
 }
