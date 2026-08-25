@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import { useAppStore } from "@/store/useAppStore";
 
-const SUBJECTS = ["Math", "Physics", "Chemistry"];
+import { SUBJECT_NAMES } from "@/lib/subjects";
+
+const SUBJECTS = SUBJECT_NAMES;
 const LEVELS = ["Middle School", "High School", "College"];
 
 export default function PersonalizePage() {
