@@ -8,6 +8,9 @@ import { CoachReplyResult } from "@/lib/ai/schemas/pipeline";
 import { retrieveAcrossConcepts } from "@/lib/ai/rag/retrieve";
 import { coachReplyOffline } from "@/lib/ai/fallback/offline-coach";
 
+/** This route calls Gemini; the default serverless ceiling is too low. */
+export const maxDuration = 60;
+
 const Body = z.object({ message: z.string().min(1).max(1000) });
 
 const SYSTEM = `You are GapFinder's AI Coach. Answer the student's question using
