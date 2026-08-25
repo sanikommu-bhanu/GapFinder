@@ -92,7 +92,7 @@ export function StepCard({
         className
       )}
     >
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
           <p className={cn("text-[11px] font-semibold uppercase tracking-wide", meta.title)}>{title}</p>
           {meta.label && (
@@ -110,17 +110,20 @@ export function StepCard({
             </span>
           )}
         </div>
+        {/* Expressions wrap rather than truncate: a student has to be able to
+            read their own equation, and long ones are exactly the interesting
+            ones. */}
         {expression && (
           <p
             className={cn(
-              "mt-0.5 truncate font-display font-semibold text-navy-900",
+              "mt-0.5 break-words font-display font-semibold leading-snug text-navy-900",
               highlighted ? "text-lg" : "text-base"
             )}
           >
             {expression}
           </p>
         )}
-        {statement && <p className="mt-0.5 line-clamp-2 text-[11px] leading-relaxed text-ink-soft">{statement}</p>}
+        {statement && <p className="mt-1 text-[11px] leading-relaxed text-ink-soft">{statement}</p>}
       </div>
       <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-full", meta.badge)}>
         {meta.icon}
