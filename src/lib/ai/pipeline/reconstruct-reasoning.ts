@@ -1,5 +1,5 @@
-import { generateStructured } from "@/lib/ai/gemini-client";
-import { hasGeminiKey } from "@/lib/env";
+import { generateStructured } from "@/lib/ai/ai-client";
+import { hasAnyProvider } from "@/lib/ai/ai-client";
 import { ReasoningReconstructionResult } from "@/lib/ai/schemas/pipeline";
 import { parseLinearEquation } from "@/lib/math/linear-parse";
 import { toLinearForm } from "@/lib/math/solve-step";
@@ -22,7 +22,7 @@ export async function reconstructReasoning(params: {
   steps: { order: number; interpreted: string }[];
   analysisId?: string;
 }) {
-  if (hasGeminiKey()) {
+  if (hasAnyProvider()) {
     try {
       const { data, cached } = await generateStructured({
         stage: "reconstruct_reasoning",
