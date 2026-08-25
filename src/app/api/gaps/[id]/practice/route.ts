@@ -12,6 +12,9 @@ import {
 } from "@/lib/ai/fallback/practice-templates";
 import { getMisconceptionProfile } from "@/lib/services/misconception-history";
 
+/** This route calls Gemini; the default serverless ceiling is too low. */
+export const maxDuration = 60;
+
 const Body = z.object({ mode: z.enum(["repair", "transfer"]).default("repair") });
 
 /**
