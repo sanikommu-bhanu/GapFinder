@@ -5,6 +5,7 @@ import { verifyStep, detectDomain } from "@/lib/verification/verify-step";
 import { auditSolution } from "@/lib/verification/solution-audit";
 import { detectMisconception } from "@/lib/diagnosis/detect-misconception";
 import { MISCONCEPTIONS } from "@/lib/diagnosis/misconceptions";
+import { selectConceptVisual } from "@/lib/ai/visuals/select-visual";
 
 const audit = (...expressions: string[]) =>
   auditSolution(expressions.map((expression, i) => ({ order: i + 1, expression })));
@@ -264,5 +265,59 @@ describe("misconception catalogue", () => {
   it("keeps codes unique so they can be counted across students", () => {
     const codes = MISCONCEPTIONS.map((m) => m.code);
     expect(new Set(codes).size).toBe(codes.length);
+  });
+});
+
+describe("visuals across subjects", () => {
+  it("draws atom counts for a chemistry gap, from the verifier's own numbers", () => {
+    const v = selectConceptVisual({
+      conceptSlug: "balancing-equations",
+      originalExpression: "H2 + O2 -> H2O",
+    });
+    expect(v.kind).toBe("atom-balance");
+    if (v.kind !== "atom-balance") throw new Error("expected atom-balance");
+    expect(v.left).toEqual({ H: 2, O: 2 });
+    expect(v.right).toEqual({ H: 2, O: 1 });
+  });
+
+  it("builds a Punnett square from a monohybrid cross", () => {
+    const v = selectConceptVisual({
+      conceptSlug: "genetics-inheritance",
+      originalExpression: "Aa x Aa",
+    });
+    expect(v.kind).toBe("punnett");
+    if (v.kind !== "punnett") throw new Error("expected punnett");
+    expect(v.parentA).toEqual(["A", "a"]);
+    expect(v.dominant).toBe("A");
+  });
+
+  it("refuses a cross it can't read rather than guessing alleles", () => {
+    // Two different genes is a dihybrid cross — a different square entirely.
+    expect(selectConceptVisual({ conceptSlug: "genetics-inheritance", originalExpression: "Aa x Bb" }).kind).toBe(
+      "none"
+    );
+    expect(selectConceptVisual({ conceptSlug: "genetics-inheritance", originalExpression: "no cross here" }).kind).toBe(
+      "none"
+    );
+  });
+
+  it("shows the direction of photosynthesis, the usual confusion", () => {
+    const v = selectConceptVisual({ conceptSlug: "photosynthesis", originalExpression: "" });
+    expect(v.kind).toBe("process-flow");
+    if (v.kind !== "process-flow") throw new Error("expected process-flow");
+    expect(v.inputs).toContain("Carbon dioxide");
+    expect(v.outputs).toContain("Glucose");
+    expect(v.energy?.direction).toBe("stores");
+  });
+
+  it("shows respiration as the opposite direction", () => {
+    const v = selectConceptVisual({ conceptSlug: "respiration", originalExpression: "" });
+    if (v.kind !== "process-flow") throw new Error("expected process-flow");
+    expect(v.inputs).toContain("Glucose");
+    expect(v.energy?.direction).toBe("releases");
+  });
+
+  it("still returns none for a concept with no safe deterministic diagram", () => {
+    expect(selectConceptVisual({ conceptSlug: "atomic-structure", originalExpression: "x" }).kind).toBe("none");
   });
 });
