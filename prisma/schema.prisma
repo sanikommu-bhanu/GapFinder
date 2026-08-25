@@ -1,14 +1,22 @@
 // GapFinder data model
-// SQLite by default (zero external cost, zero network dependency).
-// Swap provider to "postgresql" + DATABASE_URL for production scale — schema is portable.
+//
+// PostgreSQL in every environment. The app previously used SQLite, which is
+// fine on one machine and impossible on a serverless host: there is no
+// writable, persistent filesystem for the database file to live on. Running
+// the same engine locally and in production also removes the class of bug
+// where something works on a laptop and fails on deploy.
+//
+// Any free Postgres works — Neon, Supabase, Vercel Postgres. Set DATABASE_URL.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Pooled connections for serverless; falls back to url when unset.
+  directUrl = env("DIRECT_DATABASE_URL")
 }
 
 // =========================================================
@@ -110,7 +118,11 @@ model UploadedWork {
   id           String   @id @default(cuid())
   analysisId   String   @unique
   analysis     Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  // Path the client fetches: /api/uploads/{analysisId}. Empty for typed work.
   imageUrl     String
+  // The compressed image itself, base64. Stored here rather than on disk
+  // because a serverless host has no persistent filesystem to write to.
+  imageData    String?
   sourceType   String   // "camera" | "gallery" | "typed"
   rawText      String?  // typed/OCR fallback text
   textContext  String?  // optional student-provided context
