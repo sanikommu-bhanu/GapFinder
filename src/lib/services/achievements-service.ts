@@ -28,11 +28,31 @@ export async function checkAndUnlockAchievements(userId: string) {
 
   for (const achievement of achievements) {
     if (unlockedIds.has(achievement.id)) continue;
-    const criteria = JSON.parse(achievement.criteria) as { stat: keyof typeof stats; min: number };
+    const criteria = parseCriteria(achievement.criteria);
+    if (!criteria) continue;
     if ((stats[criteria.stat] ?? 0) >= criteria.min) {
       await prisma.userAchievement.create({ data: { userId, achievementId: achievement.id } }).catch(() => {});
     }
   }
 
-  return prisma.userAchievement.findMany({ where: { userId }, include: { achievement: true } });
+  return { stats, unlocked: await prisma.userAchievement.findMany({ where: { userId } }) };
+}
+
+export type AchievementStats = {
+  gapsFound: number;
+  gapsRepaired: number;
+  transfersSucceeded: number;
+  teachBacks: number;
+  streakDays: number;
+};
+
+/** A malformed criteria column should skip one badge, not break the page. */
+export function parseCriteria(raw: string): { stat: keyof AchievementStats; min: number } | null {
+  try {
+    const parsed = JSON.parse(raw) as { stat?: string; min?: number };
+    if (!parsed.stat || typeof parsed.min !== "number") return null;
+    return { stat: parsed.stat as keyof AchievementStats, min: parsed.min };
+  } catch {
+    return null;
+  }
 }
