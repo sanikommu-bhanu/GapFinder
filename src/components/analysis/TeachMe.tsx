@@ -27,7 +27,15 @@ const ROLE_STYLE: Record<LessonLine["role"], { label: string; tone: string }> = 
  * Nothing here is generated at render time — every line comes from the proved
  * diagnosis, which is what makes it safe to say out loud.
  */
-export function TeachMe({ lines, rate = 1 }: { lines: LessonLine[]; rate?: number }) {
+export function TeachMe({
+  lines,
+  rate = 1,
+  className,
+}: {
+  lines: LessonLine[];
+  rate?: number;
+  className?: string;
+}) {
   const speech = useSpeechOutput({ rate });
   const [revealed, setRevealed] = useState(0);
   const [started, setStarted] = useState(false);
@@ -70,7 +78,7 @@ export function TeachMe({ lines, rate = 1 }: { lines: LessonLine[]; rate?: numbe
   if (lines.length === 0) return null;
 
   return (
-    <Card className="border border-lavender-200">
+    <Card className={cn("border border-lavender-200", className)}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-lavender-50">
@@ -115,6 +123,7 @@ export function TeachMe({ lines, rate = 1 }: { lines: LessonLine[]; rate?: numbe
         <div className="mt-4 flex flex-col gap-3" aria-live="polite">
           {lines.slice(0, revealed).map((line, i) => {
             const style = ROLE_STYLE[line.role];
+            const heading = line.label ?? style.label;
             const active = speech.speaking && speech.currentIndex === i;
             return (
               <div
@@ -125,7 +134,7 @@ export function TeachMe({ lines, rate = 1 }: { lines: LessonLine[]; rate?: numbe
                 )}
               >
                 <p className={cn("text-[10px] font-semibold uppercase tracking-wide", style.tone)}>
-                  {style.label}
+                  {heading}
                 </p>
                 <p className="mt-1 text-sm leading-relaxed text-navy-900">{line.text}</p>
                 {line.expression && (
