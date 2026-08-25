@@ -1,4 +1,4 @@
-import { generateStructured } from "@/lib/ai/gemini-client";
+import { generateStructured } from "@/lib/ai/ai-client";
 import { ExplanationResult } from "@/lib/ai/schemas/pipeline";
 import { retrieveKnowledge, type RetrievedChunk } from "@/lib/ai/rag/retrieve";
 
