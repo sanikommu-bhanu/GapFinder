@@ -8,7 +8,7 @@ import { applyMasteryEvent } from "@/lib/services/mastery-service";
 const Body = z.object({
   gapId: z.string(),
   problemId: z.string(),
-  studentSteps: z.string(),
+  studentSteps: z.string().min(1).max(4000),
 });
 
 export async function POST(req: NextRequest) {
@@ -24,9 +24,15 @@ export async function POST(req: NextRequest) {
   ]);
   if (!gap || !problem) return NextResponse.json({ error: "Not found." }, { status: 404 });
 
+  // Captured before the update so the UI can show the actual movement.
+  const priorMastery = await prisma.masteryRecord.findUnique({
+    where: { userId_conceptId: { userId, conceptId: gap.conceptId } },
+  });
+
   const validation = await validateAnswer({
     studentAnswer: parsed.data.studentSteps,
     canonicalAnswer: problem.correctAnswer,
+    problemPrompt: problem.prompt,
     analysisId: gap.analysisId,
   });
 
@@ -52,5 +58,10 @@ export async function POST(req: NextRequest) {
     await prisma.gap.update({ where: { id: gap.id }, data: { status: "closed" } });
   }
 
-  return NextResponse.json({ attempt, validation, masteryScore: masteryRecord.masteryScore });
+  return NextResponse.json({
+    attempt,
+    validation,
+    masteryScore: masteryRecord.masteryScore,
+    previousMasteryScore: priorMastery?.masteryScore ?? 0,
+  });
 }
