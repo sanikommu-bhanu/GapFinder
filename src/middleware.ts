@@ -32,8 +32,12 @@ function isPublicAsset(pathname: string): boolean {
 async function hasValidSession(req: NextRequest): Promise<boolean> {
   const token = req.cookies.get(SESSION_COOKIE)?.value;
   if (!token) return false;
+  // No fallback secret: a deploy that forgot SESSION_SECRET must reject every
+  // session rather than verify them against a value published in this file.
+  const configured = process.env.SESSION_SECRET;
+  if (!configured || configured.length < 16) return false;
   try {
-    const secret = new TextEncoder().encode(process.env.SESSION_SECRET ?? "dev-secret-change-me");
+    const secret = new TextEncoder().encode(configured);
     const { payload } = await jwtVerify(token, secret);
     return typeof payload.userId === "string" && payload.userId.length > 0;
   } catch {
