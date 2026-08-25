@@ -48,10 +48,45 @@ export function solveLinear(expr: string): number | null {
   return -form.k / form.m;
 }
 
-function fmt(n: number): string {
+/**
+ * Formats a derived value the way a maths teacher would write it.
+ *
+ * A third is "1/3", not "0.333333" — showing a truncated decimal as the correct
+ * answer would be teaching the student something slightly false, on the one
+ * screen where precision is the entire point.
+ */
+export function fmt(n: number): string {
   if (!Number.isFinite(n)) return String(n);
-  const rounded = Math.round(n * 1e6) / 1e6;
-  return Number.isInteger(rounded) ? String(rounded) : String(rounded);
+  const rounded = Math.round(n * 1e9) / 1e9;
+  if (Number.isInteger(rounded)) return String(rounded);
+
+  const fraction = asSimpleFraction(rounded);
+  if (fraction) return fraction;
+
+  // Not a tidy fraction — show a bounded decimal rather than a long tail.
+  return String(Math.round(rounded * 1e4) / 1e4);
+}
+
+/** Recovers a/b for small b, so exact answers stay exact. */
+function asSimpleFraction(value: number): string | null {
+  const sign = value < 0 ? "-" : "";
+  const abs = Math.abs(value);
+  for (let denominator = 2; denominator <= 24; denominator++) {
+    const numerator = abs * denominator;
+    if (Math.abs(numerator - Math.round(numerator)) < 1e-9) {
+      const n = Math.round(numerator);
+      const g = gcd(n, denominator);
+      const num = n / g;
+      const den = denominator / g;
+      if (den === 1) return `${sign}${num}`;
+      return `${sign}${num}/${den}`;
+    }
+  }
+  return null;
+}
+
+function gcd(a: number, b: number): number {
+  return b === 0 ? a : gcd(b, a % b);
 }
 
 /**
