@@ -26,6 +26,7 @@ export function classifyGapOffline(params: {
 
   const written = toLinearForm(divergence.expression);
   const shouldBe = corrected ? toLinearForm(corrected) : null;
+  const previous = toLinearForm(previousExpression);
   const prev = parseLinearEquation(previousExpression);
 
   let classification = "invalid-transformation";
@@ -35,7 +36,13 @@ export function classifyGapOffline(params: {
 
   if (written && shouldBe) {
     const constantGap = written.k - shouldBe.k;
-    const coefficientChanged = Math.abs(written.m - shouldBe.m) > 1e-9;
+    // Compare against the step they came FROM, not the step they should have
+    // reached: dividing one side only changes the coefficient relative to the
+    // previous line while leaving the other side untouched.
+    const coefficientChanged =
+      previous !== null &&
+      Math.abs(previous.m - written.m) > 1e-9 &&
+      Math.abs(previous.k - written.k) < 1e-9;
 
     // The signature of a sign error: a term crossed the equals sign keeping the
     // sign it already had. Moving b correctly lands at c - b; repeating the sign
@@ -53,8 +60,7 @@ export function classifyGapOffline(params: {
       underlyingGap = `Moving ${prev.constantOp}${prev.constant} across the equals sign means applying its inverse to both sides. It was carried over with the sign it already had, so the two sides no longer describe the same value.`;
       confidence = "medium";
     } else if (coefficientChanged) {
-      const ratio = Math.abs(shouldBe.m) > 1e-9 ? written.m / shouldBe.m : NaN;
-      const dividedOneSideOnly = Number.isFinite(ratio) && Math.abs(ratio - Math.round(ratio)) < 1e-6;
+      const dividedOneSideOnly = previous !== null && Math.abs(previous.k - written.k) < 1e-9;
       classification = "inverse-operation-misapplied";
       conceptSlug = pick("inverse-operations", "equations");
       underlyingGap = dividedOneSideOnly
