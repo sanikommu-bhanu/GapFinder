@@ -11,7 +11,10 @@
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
-    "eval:deterministic": "tsx eval/run-deterministic.ts"
+    "eval:deterministic": "tsx eval/run-deterministic.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "verify": "npm run lint && npm run typecheck && npm run test && npm run eval:deterministic"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
