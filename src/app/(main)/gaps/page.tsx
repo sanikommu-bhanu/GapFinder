@@ -6,6 +6,10 @@ import { TopBar } from "@/components/nav/TopBar";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/cn";
+import {
+  MisconceptionFingerprint,
+  type FingerprintStat,
+} from "@/components/analysis/MisconceptionFingerprint";
 
 type GapRow = {
   id: string;
@@ -35,6 +39,20 @@ export default function GapsPage() {
   const [gaps, setGaps] = useState<GapRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [fingerprint, setFingerprint] = useState<{
+    stats: FingerprintStat[];
+    brokenHabits: { code: string; name: string; occurrences: number }[];
+    totalDiagnoses: number;
+  } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/misconceptions")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d) setFingerprint({ stats: d.stats, brokenHabits: d.brokenHabits, totalDiagnoses: d.totalDiagnoses });
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetch("/api/gaps")
@@ -94,6 +112,15 @@ export default function GapsPage() {
             )}
           </div>
         </Card>
+
+        {fingerprint && fingerprint.totalDiagnoses > 0 && (
+          <MisconceptionFingerprint
+            stats={fingerprint.stats}
+            brokenHabits={fingerprint.brokenHabits}
+            totalDiagnoses={fingerprint.totalDiagnoses}
+            className="mt-3"
+          />
+        )}
 
         {conceptRows.length === 0 ? (
           <div className="mt-8 flex flex-col items-center px-4 text-center">
