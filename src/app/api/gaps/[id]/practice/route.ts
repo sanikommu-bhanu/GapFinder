@@ -10,6 +10,7 @@ import {
   validateGeneratedProblem,
   type GeneratedProblem,
 } from "@/lib/ai/fallback/practice-templates";
+import { getMisconceptionProfile } from "@/lib/services/misconception-history";
 
 const Body = z.object({ mode: z.enum(["repair", "transfer"]).default("repair") });
 
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   });
   if (!gap) return NextResponse.json({ error: "Not found." }, { status: 404 });
 
-  const [mastery, priorAttempts, priorProblems] = await Promise.all([
+  const [mastery, priorAttempts, priorProblems, profile] = await Promise.all([
     prisma.masteryRecord.findUnique({
       where: { userId_conceptId: { userId, conceptId: gap.conceptId } },
     }),
@@ -51,6 +52,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       take: 8,
       select: { prompt: true },
     }),
+    // The learner's own error pattern, so we can name the mistake we expect
+    // before they start rather than only diagnosing it afterwards.
+    getMisconceptionProfile(userId),
   ]);
 
   const avoidPrompts = priorProblems.map((p) => p.prompt);
@@ -125,5 +129,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     // Surfaced in the UI so the student always knows what produced their problem.
     source: chosen.source,
     rejectedByValidator,
+    // Stated up front, then checked against what they actually do.
+    prediction: profile.prediction
+      ? {
+          code: profile.prediction.code,
+          name: profile.prediction.misconception.name,
+          studentRule: profile.prediction.misconception.studentRule,
+          likelihood: profile.prediction.likelihood,
+          occurrences: profile.prediction.occurrences,
+          because: profile.prediction.because,
+        }
+      : null,
   });
 }
