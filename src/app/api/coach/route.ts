@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { getSessionUserId } from "@/lib/auth/session";
-import { hasGeminiKey } from "@/lib/env";
-import { generateStructured } from "@/lib/ai/gemini-client";
+import { hasAnyProvider } from "@/lib/ai/ai-client";
+import { generateStructured } from "@/lib/ai/ai-client";
 import { CoachReplyResult } from "@/lib/ai/schemas/pipeline";
 import { retrieveAcrossConcepts } from "@/lib/ai/rag/retrieve";
 import { coachReplyOffline } from "@/lib/ai/fallback/offline-coach";
@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
       openGaps.find((g) => g.conceptId === topRecurring.conceptId)?.concept
     : undefined;
 
-  if (hasGeminiKey()) {
+  if (hasAnyProvider()) {
     try {
       const { data } = await generateStructured({
         stage: "coach_reply",
