@@ -10,6 +10,7 @@ import { verifyAndFindDivergenceDetailed, type VerifiedStep } from "./verify-and
 import { classifyGap } from "./classify-gap";
 import { explainGap } from "./explain-gap";
 import { classifyGapOffline } from "./classify-gap-offline";
+import { detectMisconception, unclassified } from "@/lib/diagnosis/detect-misconception";
 
 export interface RunPipelineParams {
   analysisId: string;
@@ -250,6 +251,17 @@ async function finishFromSteps(params: {
 
   const concept = concepts.find((c) => c.slug === classification.conceptSlug) ?? concepts[0]!;
 
+  // Identify the documented misconception behind the error. Where the algebra
+  // has an unambiguous signature this is proved outright, with no model
+  // involved — the same student error always produces the same code, which is
+  // what makes these countable rather than merely descriptive.
+  const misconception =
+    detectMisconception({
+      divergence,
+      previousExpression: prevStep?.expression ?? "",
+      subject: params.subject,
+    }) ?? unclassified("No catalogue signature matched this step.");
+
   await setStatus(params.analysisId, "explaining");
 
   const explanation = await explainWithFallback({
@@ -274,6 +286,9 @@ async function finishFromSteps(params: {
         evidence: JSON.stringify(classification.evidence),
         confidence: classification.confidence,
         explanationText: JSON.stringify(explanation),
+        misconceptionCode: misconception.misconception.code,
+        misconceptionBasis: misconception.basis,
+        misconceptionEvidence: misconception.evidence,
         status: "open",
       },
     }),
