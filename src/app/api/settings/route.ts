@@ -4,7 +4,6 @@ import { prisma } from "@/lib/db/prisma";
 import { getSessionUserId } from "@/lib/auth/session";
 
 const Body = z.object({
-  theme: z.enum(["light", "dark", "system"]).optional(),
   accentColor: z.enum(["purple", "pink", "orange", "teal", "blue"]).optional(),
   fontScale: z.number().min(0.8).max(1.4).optional(),
   chatBackground: z.enum(["default", "lavender", "peach", "mono"]).optional(),
