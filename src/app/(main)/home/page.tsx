@@ -1,10 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Sparkles, ScanLine, Camera as CameraIcon, ArrowRight } from "lucide-react";
+import { Sparkles, ImageIcon, ArrowRight, Lightbulb, Target } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { ProgressRing } from "@/components/ui/ProgressRing";
+import { AppMenu } from "@/components/nav/AppMenu";
 import { useAppStore } from "@/store/useAppStore";
 
 const TOPICS = ["Math", "Physics", "Chemistry", "Biology"];
@@ -17,10 +18,17 @@ type OpenGap = {
   masteryScore: number;
 };
 
+function greeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 18) return "Good afternoon";
+  return "Good evening";
+}
+
 export default function HomePage() {
   const user = useAppStore((s) => s.user);
   const setUser = useAppStore((s) => s.setUser);
-  const [greetName, setGreetName] = useState("there");
+  const [name, setName] = useState<string | null>(user?.name?.split(" ")[0] ?? null);
   const [topic, setTopic] = useState("Math");
   const [overallMastery, setOverallMastery] = useState<number | null>(null);
   const [currentGap, setCurrentGap] = useState<OpenGap | null>(null);
@@ -28,11 +36,17 @@ export default function HomePage() {
 
   useEffect(() => {
     fetch("/api/auth/me")
-      .then((r) => r.json())
+      .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
-        if (d.user) {
-          setGreetName(d.user.name?.split(" ")[0] ?? "there");
-          setUser({ id: d.user.id, name: d.user.name, email: d.user.email, isPremium: d.user.profile?.isPremium, streakDays: d.user.profile?.streakDays });
+        if (d?.user) {
+          setName(d.user.name?.split(" ")[0] ?? null);
+          setUser({
+            id: d.user.id,
+            name: d.user.name,
+            email: d.user.email,
+            isPremium: d.user.profile?.isPremium,
+            streakDays: d.user.profile?.streakDays,
+          });
         }
       })
       .catch(() => {});
@@ -52,23 +66,28 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="px-5 pt-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-display text-xl font-bold text-navy-900">
-            Good morning, {user?.name?.split(" ")[0] ?? greetName}! 👋
+    <div className="px-5 pb-6 pt-[max(0.75rem,env(safe-area-inset-top))]">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 pt-1">
+          <h1 className="truncate font-display text-[21px] font-bold leading-tight text-navy-900">
+            {greeting()}
+            {name ? `, ${name}` : ""}! <span aria-hidden="true">👋</span>
           </h1>
-          <p className="text-xs text-ink-soft">Let&apos;s fix learning gaps today.</p>
+          <p className="mt-0.5 text-xs text-ink-soft">Let&apos;s fix learning gaps today.</p>
+        </div>
+        <div className="-mr-2 shrink-0">
+          <AppMenu />
         </div>
       </div>
 
+      {/* Continue where the student left off — shown only when a real open gap exists. */}
       {!gapsLoading && currentGap && (
-        <Link href={`/gaps/${currentGap.id}/practice`}>
-          <Card className="mt-4 flex items-center gap-3">
-            <ProgressRing value={overallMastery ?? 0} size={56} strokeWidth={6} label="" />
+        <Link href={`/gaps/${currentGap.id}/practice`} className="mt-4 block">
+          <Card className="flex items-center gap-3">
+            <ProgressRing value={currentGap.masteryScore} size={54} strokeWidth={6} />
             <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-lavender-600">
-                Continue Learning
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-lavender-600">
+                Continue learning
               </p>
               <p className="truncate text-sm font-semibold text-navy-900">{currentGap.concept.name}</p>
               <p className="truncate text-[11px] text-ink-soft">{currentGap.underlyingGap}</p>
@@ -78,46 +97,56 @@ export default function HomePage() {
         </Link>
       )}
 
-      {!gapsLoading && !currentGap && (
-        <Card className="mt-4 flex items-center gap-3 bg-surface-muted">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white">
-            <Sparkles className="h-4 w-4 text-lavender-500" />
-          </span>
-          <div>
-            <p className="text-sm font-semibold text-navy-900">No open gaps right now</p>
-            <p className="text-[11px] text-ink-soft">Scan your work to find your next one.</p>
-          </div>
-        </Card>
-      )}
-
       <div className="mt-4 grid grid-cols-2 gap-3">
         <Link href="/coach">
-          <Card className="flex flex-col gap-2 bg-gradient-lavender">
-            <Sparkles className="h-5 w-5 text-lavender-600" />
-            <p className="text-sm font-semibold text-navy-900">AI Coach</p>
-            <p className="text-[11px] text-ink-soft">Ask anything</p>
+          <Card className="flex h-full flex-col gap-2 active:scale-[0.99]">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-lavender-50">
+              <Sparkles className="h-4 w-4 text-lavender-600" />
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-navy-900">AI Coach</p>
+              <p className="text-[11px] text-ink-soft">Ask anything</p>
+            </div>
           </Card>
         </Link>
-        <Link href="/scan?mode=gallery">
-          <Card className="flex flex-col gap-2 bg-gradient-peach">
-            <ScanLine className="h-5 w-5 text-peach-500" />
-            <p className="text-sm font-semibold text-navy-900">Image Analyzer</p>
-            <p className="text-[11px] text-ink-soft">Upload work</p>
+        <Link href="/scan">
+          <Card className="flex h-full flex-col gap-2 active:scale-[0.99]">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-peach-50">
+              <ImageIcon className="h-4 w-4 text-peach-500" />
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-navy-900">Image Analyzer</p>
+              <p className="text-[11px] text-ink-soft">Upload work</p>
+            </div>
           </Card>
         </Link>
       </div>
 
-      <Link href="/scan">
-        <Card className="mt-3 flex items-center gap-3 bg-navy-900 text-white">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10">
-            <CameraIcon className="h-5 w-5" />
-          </span>
-          <span>
-            <p className="text-sm font-semibold">Upload Your Handwriting</p>
-            <p className="text-xs text-white/60">Analyze handwritten solutions</p>
+      <Link href="/scan" className="mt-3 block">
+        <Card className="flex items-center gap-3 active:scale-[0.99]">
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-navy-900">Upload Your Work</p>
+            <p className="mt-0.5 text-[11px] text-ink-soft">Analyze handwritten solutions</p>
+          </div>
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-navy-900 text-on-strong shadow-soft">
+            <ArrowRight className="h-4 w-4" />
           </span>
         </Card>
       </Link>
+
+      {!gapsLoading && !currentGap && overallMastery === 0 && (
+        <Card className="mt-3 flex items-center gap-3 bg-surface-muted shadow-none">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white">
+            <Target className="h-4 w-4 text-lavender-500" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-navy-900">No gaps found yet</p>
+            <p className="text-[11px] leading-relaxed text-ink-soft">
+              Upload a worked problem and we&apos;ll find the exact step where your reasoning changed.
+            </p>
+          </div>
+        </Card>
+      )}
 
       <div className="mt-6 flex items-center justify-between">
         <p className="text-sm font-semibold text-navy-900">Topics</p>
@@ -125,9 +154,9 @@ export default function HomePage() {
           See All
         </Link>
       </div>
-      <div className="mt-2 flex gap-2 overflow-x-auto scrollbar-none">
+      <div className="-mx-5 mt-2 flex gap-2 overflow-x-auto px-5 scrollbar-none">
         {TOPICS.map((t) => (
-          <Chip key={t} active={topic === t} onClick={() => setTopic(t)}>
+          <Chip key={t} active={topic === t} onClick={() => setTopic(t)} className="shrink-0">
             {t}
           </Chip>
         ))}
@@ -135,23 +164,30 @@ export default function HomePage() {
 
       <div className="mt-4 grid grid-cols-2 gap-3">
         <Link href="/scan">
-          <Card className="flex h-full flex-col gap-1">
-            <p className="text-sm font-semibold text-navy-900">Find The First Gap</p>
-            <p className="text-[11px] text-ink-soft">We locate the exact step where reasoning changed.</p>
-            <span className="mt-2 text-xs font-semibold text-lavender-600">Learn more →</span>
+          <Card className="flex h-full flex-col active:scale-[0.99]">
+            <p className="text-sm font-semibold leading-snug text-navy-900">Find The First Gap</p>
+            <p className="mt-1 text-[11px] leading-relaxed text-ink-soft">
+              We locate the exact step where your reasoning changed.
+            </p>
+            <span className="mt-auto pt-2 text-xs font-semibold text-lavender-600">Learn more →</span>
           </Card>
         </Link>
         <Link href="/gaps">
-          <Card className="flex h-full flex-col gap-1">
-            <p className="text-sm font-semibold text-navy-900">Close The Gap</p>
-            <p className="text-[11px] text-ink-soft">Personalized practice to strengthen understanding.</p>
-            <span className="mt-2 text-xs font-semibold text-lavender-600">Learn more →</span>
+          <Card className="flex h-full flex-col active:scale-[0.99]">
+            <p className="text-sm font-semibold leading-snug text-navy-900">Close The Gap</p>
+            <p className="mt-1 text-[11px] leading-relaxed text-ink-soft">
+              Practice built for the concept that actually broke.
+            </p>
+            <span className="mt-auto pt-2 text-xs font-semibold text-lavender-600">Learn more →</span>
           </Card>
         </Link>
       </div>
 
-      <div className="mb-4 mt-6 rounded-2xl bg-surface-muted p-3 text-xs text-ink-soft">
-        💡 Tip: Clear steps help us give more accurate analysis.
+      <div className="mt-5 flex items-start gap-2 rounded-2xl bg-surface-muted p-3">
+        <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-peach-500" />
+        <p className="text-xs leading-relaxed text-ink-soft">
+          Clear, complete steps help us reconstruct your reasoning instead of guessing at it.
+        </p>
       </div>
     </div>
   );
