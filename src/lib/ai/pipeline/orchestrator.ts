@@ -6,7 +6,7 @@ import { explainGapOffline } from "@/lib/ai/fallback/offline-explain";
 import type { ExplanationResult } from "@/lib/ai/schemas/pipeline";
 import { readAndExtractSteps } from "./read-and-extract";
 import { reconstructReasoning } from "./reconstruct-reasoning";
-import { verifyAndFindDivergence, type VerifiedStep } from "./verify-and-find-divergence";
+import { verifyAndFindDivergenceDetailed, type VerifiedStep } from "./verify-and-find-divergence";
 import { classifyGap } from "./classify-gap";
 import { explainGap } from "./explain-gap";
 import { classifyGapOffline } from "./classify-gap-offline";
@@ -159,7 +159,8 @@ async function finishFromSteps(params: {
   }
 
   await setStatus(params.analysisId, "verifying");
-  const verified = verifyAndFindDivergence(reasoningSteps);
+  const audit = verifyAndFindDivergenceDetailed(reasoningSteps);
+  const verified = audit.steps;
 
   await prisma.reasoningStep.deleteMany({ where: { analysisId: params.analysisId } });
   await prisma.reasoningStep.createMany({
@@ -172,7 +173,16 @@ async function finishFromSteps(params: {
       isFirstGap: v.isFirstGap,
       verificationNote: v.verificationNote,
       correctedExpression: v.correctedExpression,
+      verdict: v.verdict,
     })),
+  });
+
+  // The complete corrected path is derived once, here, from the student's own
+  // opening line — so every screen that shows "how it should have gone" is
+  // reading the same verified answer rather than deriving its own.
+  await prisma.analysis.update({
+    where: { id: params.analysisId },
+    data: { correctedSolution: JSON.stringify(audit.correctedSolution) },
   });
 
   const divergence = verified.find((v) => v.isFirstGap);
