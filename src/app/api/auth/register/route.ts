@@ -5,15 +5,30 @@ import { prisma } from "@/lib/db/prisma";
 import { createSession } from "@/lib/auth/session";
 
 const Body = z.object({
-  name: z.string().min(1),
-  email: z.string().email(),
-  password: z.string().min(6),
+  name: z.string().trim().min(1).max(80),
+  email: z.string().trim().toLowerCase().email().max(200),
+  password: z.string().min(8).max(200),
 });
 
 export async function POST(req: NextRequest) {
-  const parsed = Body.safeParse(await req.json());
+  let json: unknown;
+  try {
+    json = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
+  }
+
+  const parsed = Body.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
+    // A specific message the form can show, rather than a zod dump.
+    const issue = parsed.error.issues[0];
+    const message =
+      issue?.path[0] === "email"
+        ? "That doesn't look like a valid email address."
+        : issue?.path[0] === "password"
+          ? "Your password needs to be at least 8 characters."
+          : "Please fill in every field.";
+    return NextResponse.json({ error: message }, { status: 400 });
   }
   const { name, email, password } = parsed.data;
 
@@ -36,5 +51,5 @@ export async function POST(req: NextRequest) {
   });
 
   await createSession(user.id);
-  return NextResponse.json({ id: user.id, name: user.name, email: user.email });
+  return NextResponse.json({ id: user.id, name: user.name, email: user.email }, { status: 201 });
 }
