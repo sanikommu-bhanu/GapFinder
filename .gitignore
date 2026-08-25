@@ -4,19 +4,16 @@ out/
 build/
 dist/
 
-# Legacy local SQLite file — the app uses Postgres now, but old checkouts may
-# still have one lying around.
-prisma/dev.db
-prisma/dev.db-journal
+# Legacy SQLite file from before the move to Postgres.
+prisma/*.db
+prisma/*.db-journal
 
 # Env
 .env
 .env.local
 
-# Uploaded work is stored in the database, not on disk — this directory is a
-# leftover from the previous filesystem-backed implementation.
-public/uploads/*
-!public/uploads/.gitkeep
+# Uploaded work lives in the database, never on disk — a serverless host has
+# no persistent filesystem to write to.
 
 # Misc
 .DS_Store
