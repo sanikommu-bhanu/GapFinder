@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { getSessionUserId } from "@/lib/auth/session";
 import { generateRecommendation } from "@/lib/ai/pipeline/generate-recommendation";
@@ -26,9 +26,14 @@ function safeJson<T>(raw: string | null | undefined, fallback: T): T {
 /** This route calls Gemini; the default serverless ceiling is too low. */
 export const maxDuration = 60;
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const userId = await getSessionUserId();
   if (!userId) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+
+  // A roadmap is a path through ONE subject. Rendering all four in a single
+  // list put Algebra next to Photosynthesis, which reads as incoherent because
+  // it is — they share no prerequisites and no ordering.
+  const requestedSubject = req.nextUrl.searchParams.get("subject");
 
   const [concepts, relationships, confusedEdges, masteryRecords, memory, latestAnalysis, activeRec] =
     await Promise.all([
@@ -56,7 +61,26 @@ export async function GET() {
   const masteryByConceptId = new Map(masteryRecords.map((m) => [m.conceptId, m]));
   const conceptById = new Map(concepts.map((c) => [c.id, c]));
 
-  const nodes = concepts.map((c) => {
+  // Default to the subject the student has actually been working in, so the
+  // roadmap opens on something relevant rather than alphabetically first.
+  const subjectsWithWork = await prisma.gap.findMany({
+    where: { analysis: { userId } },
+    select: { analysis: { select: { subject: true } } },
+    orderBy: { createdAt: "desc" },
+    take: 20,
+  });
+  const mostRecentSubject = subjectsWithWork[0]?.analysis.subject ?? null;
+
+  const availableSubjects = Array.from(new Set(concepts.map((c) => c.subject))).sort();
+  const activeSubject =
+    (requestedSubject && availableSubjects.includes(requestedSubject) ? requestedSubject : null) ??
+    (mostRecentSubject && availableSubjects.includes(mostRecentSubject) ? mostRecentSubject : null) ??
+    availableSubjects[0] ??
+    "Math";
+
+  const subjectConcepts = concepts.filter((c) => c.subject === activeSubject);
+
+  const nodes = subjectConcepts.map((c) => {
     const mastery = masteryByConceptId.get(c.id);
     const score = mastery?.masteryScore ?? 0;
     const prereqIds = relationships.filter((r) => r.toId === c.id).map((r) => r.fromId);
@@ -128,6 +152,8 @@ export async function GET() {
   const recommendedConcept = recommendation ? conceptById.get(recommendation.conceptId) : null;
 
   return NextResponse.json({
+    activeSubject,
+    availableSubjects,
     nodes,
     recommendation: recommendation
       ? { ...recommendation, conceptName: recommendedConcept?.name ?? null, conceptSlug: recommendedConcept?.slug ?? null }
