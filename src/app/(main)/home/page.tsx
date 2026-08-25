@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Sparkles, ImageIcon, ArrowRight, Lightbulb, Target } from "lucide-react";
+import { Sparkles, ImageIcon, ArrowRight, Lightbulb, Target, Compass, GraduationCap } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { ProgressRing } from "@/components/ui/ProgressRing";
@@ -98,7 +98,34 @@ export default function HomePage() {
         </Link>
       )}
 
+      {/* The two ways in, side by side. A student either has a question they
+          can't start, or working they want checked — neither should be buried. */}
       <div className="mt-4 grid grid-cols-2 gap-3">
+        <Link href="/solve">
+          <Card className="flex h-full flex-col gap-2 active:scale-[0.99]">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-peach-50">
+              <Compass className="h-4 w-4 text-peach-500" />
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-navy-900">Solve With Me</p>
+              <p className="text-[11px] text-ink-soft">Stuck on a question</p>
+            </div>
+          </Card>
+        </Link>
+        <Link href="/scan">
+          <Card className="flex h-full flex-col gap-2 active:scale-[0.99]">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-lavender-50">
+              <ImageIcon className="h-4 w-4 text-lavender-600" />
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-navy-900">Check My Work</p>
+              <p className="text-[11px] text-ink-soft">Find where it broke</p>
+            </div>
+          </Card>
+        </Link>
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-3">
         <Link href="/coach">
           <Card className="flex h-full flex-col gap-2 active:scale-[0.99]">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-lavender-50">
@@ -110,14 +137,14 @@ export default function HomePage() {
             </div>
           </Card>
         </Link>
-        <Link href="/scan">
+        <Link href="/exam">
           <Card className="flex h-full flex-col gap-2 active:scale-[0.99]">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-peach-50">
-              <ImageIcon className="h-4 w-4 text-peach-500" />
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-surface-muted">
+              <GraduationCap className="h-4 w-4 text-navy-900" />
             </span>
             <div>
-              <p className="text-sm font-semibold text-navy-900">Image Analyzer</p>
-              <p className="text-[11px] text-ink-soft">Upload work</p>
+              <p className="text-sm font-semibold text-navy-900">Exam Mode</p>
+              <p className="text-[11px] text-ink-soft">No hints</p>
             </div>
           </Card>
         </Link>
