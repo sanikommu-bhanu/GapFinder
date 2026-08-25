@@ -4,11 +4,14 @@ import { prisma } from "@/lib/db/prisma";
 import { getSessionUserId } from "@/lib/auth/session";
 import { validateAnswer } from "@/lib/ai/pipeline/validate-answer";
 import { applyMasteryEvent } from "@/lib/services/mastery-service";
+import { evaluatePrediction } from "@/lib/services/misconception-history";
 
 const Body = z.object({
   gapId: z.string(),
   problemId: z.string(),
   studentSteps: z.string().min(1).max(4000),
+  /** The misconception code we told the student we were watching for. */
+  predictedCode: z.string().max(64).nullable().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -56,5 +59,16 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  return NextResponse.json({ attempt, validation });
+  // Check the claim we made before they started. A prediction that fails is
+  // the strongest evidence this product can produce that something changed —
+  // but only because it was stated in advance.
+  const prediction = evaluatePrediction({
+    predictedCode: parsed.data.predictedCode ?? null,
+    // The gap being practised is the one we predicted a repeat of, so a wrong
+    // answer here counts as that same misconception recurring.
+    actualCode: validation.isCorrect ? null : (gap.misconceptionCode ?? null),
+    wasCorrect: validation.isCorrect,
+  });
+
+  return NextResponse.json({ attempt, validation, prediction });
 }
