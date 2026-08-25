@@ -1,5 +1,6 @@
-import { verifyFinalAnswer } from "@/lib/verification/math-verifier";
 import { generateStructured } from "@/lib/ai/gemini-client";
+import { hasGeminiKey } from "@/lib/env";
+import { checkStudentWork } from "@/lib/verification/check-student-work";
 import { z } from "zod";
 
 const AiAssistedCheck = z.object({
@@ -17,25 +18,49 @@ export interface ValidationResult {
   isCorrect: boolean;
   verifiedBy: "deterministic" | "ai_assisted";
   feedback: string;
+  /** 1-based line of the first invalid step, when the checker found one. */
+  firstErrorLine?: number | null;
+  /** What that line should have read — derived algebraically, never generated. */
+  correctedExpression?: string | null;
 }
 
 /**
- * Deterministic verification is attempted first (fast, free, reliable for
- * symbolic/numeric answers). Only when the deterministic parser cannot
- * confidently evaluate the student's answer (e.g. it's a word-problem style
- * free-text response) do we fall back to a single Gemini call.
+ * Grades a student's practice work.
+ *
+ * The deterministic checker runs first and handles anything written as
+ * equations: it verifies every step against the one before it (the same
+ * first-divergence engine used on their homework) and then checks the final
+ * answer. Only genuinely unparseable submissions — a word-problem answer in
+ * prose, say — fall through to a single Gemini call.
  */
 export async function validateAnswer(params: {
   studentAnswer: string;
   canonicalAnswer: string;
+  /** The problem as posed, so the student's first move is checked too. */
+  problemPrompt?: string;
   /** Links this call back to the originating analysis, for the AI Observability trace view. */
   analysisId?: string;
 }): Promise<ValidationResult> {
-  const deterministic = verifyFinalAnswer(params.studentAnswer, params.canonicalAnswer);
-  const deterministicallyParseable = !deterministic.note.startsWith("Could not parse");
+  const check = checkStudentWork(params.studentAnswer, params.canonicalAnswer, params.problemPrompt);
 
-  if (deterministicallyParseable) {
-    return { isCorrect: deterministic.isValid, verifiedBy: "deterministic", feedback: deterministic.note };
+  if (!check.unparseable) {
+    return {
+      isCorrect: check.isCorrect,
+      verifiedBy: "deterministic",
+      feedback: check.feedback,
+      firstErrorLine: check.firstErrorLine,
+      correctedExpression: check.correctedExpression,
+    };
+  }
+
+  if (!hasGeminiKey()) {
+    return {
+      isCorrect: false,
+      verifiedBy: "deterministic",
+      feedback: check.feedback,
+      firstErrorLine: null,
+      correctedExpression: null,
+    };
   }
 
   try {
@@ -48,12 +73,13 @@ export async function validateAnswer(params: {
     });
     return { isCorrect: data.isCorrect, verifiedBy: "ai_assisted", feedback: data.feedback };
   } catch {
-    // Total fallback: cannot verify, mark for manual/ungated review rather than
-    // silently failing the student.
+    // Cannot verify — say so rather than marking a student wrong on a guess.
     return {
       isCorrect: false,
       verifiedBy: "deterministic",
-      feedback: "Couldn't automatically verify this answer — try restating it more precisely.",
+      feedback: "We couldn't automatically verify that answer — try writing your working as equations, one per line.",
+      firstErrorLine: null,
+      correctedExpression: null,
     };
   }
 }
