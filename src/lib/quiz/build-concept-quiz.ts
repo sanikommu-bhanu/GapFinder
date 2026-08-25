@@ -54,7 +54,7 @@ export function buildConceptQuiz(source: ConceptQuizSource, seed: string): Choic
     OPTIONS_PER_QUESTION - 1
   );
   if (ruleDistractors.length >= 2) {
-    const correct = sentence(firstSentence(description));
+    const correct = condense(description);
     questions.push({
       prompt: `Which of these describes ${conceptName.toLowerCase()} correctly?`,
       options: shuffle([correct, ...ruleDistractors], `${seed}:1`),
@@ -67,12 +67,18 @@ export function buildConceptQuiz(source: ConceptQuizSource, seed: string): Choic
   //    Recognising the flaw is a stronger signal than recognising the fact.
   const target: Misconception | undefined = own[0] ?? nearby[0];
   if (target) {
-    const correct = sentence(firstSentence(target.whyItFails));
+    const correct = condense(target.whyItFails);
+    // Distractors stay in the same subject, because an obviously off-topic
+    // option teaches a student to answer by elimination. What they must not do
+    // is overlap with the belief being examined: "respiration happens in every
+    // cell" is a fair criticism of a claim about respiring, and a question with
+    // two defensible answers measures the wording, not the student.
+    const related = stems(target.studentRule);
     const wrong = fill(
-      [...own.filter((m) => m.code !== target.code), ...nearby, ...distant].map((m) =>
-        sentence(firstSentence(m.whyItFails))
-      ),
-      [],
+      nearby
+        .filter((m) => !sharesStem(m.whyItFails, related))
+        .map((m) => condense(m.whyItFails)),
+      distant.map((m) => condense(m.whyItFails)),
       OPTIONS_PER_QUESTION - 1
     );
     if (wrong.length >= 2) {
@@ -113,6 +119,41 @@ function fill(primary: string[], secondary: string[], count: number): string[] {
     out.push(candidate);
   }
   return out;
+}
+
+/**
+ * Trims an option to the length of the others.
+ *
+ * The longest option being the right one is a tell students learn to exploit
+ * before they learn the subject, so a definition that runs to three clauses is
+ * cut back to the one that carries the claim.
+ */
+function condense(text: string, max = 110): string {
+  const first = firstSentence(text.replace(/\s+/g, " ").trim());
+  if (first.length <= max) return sentence(first);
+  const cut = first.slice(0, max);
+  const lastComma = cut.lastIndexOf(",");
+  const lastSpace = cut.lastIndexOf(" ");
+  // Never mid-word: a truncated option reads as a typo, not a wrong answer.
+  const boundary = lastComma > 40 ? lastComma : lastSpace > 40 ? lastSpace : max;
+  return sentence(cut.slice(0, boundary).trim());
+}
+
+/** Six-character stems of the content words, enough to tie respire/respiration. */
+function stems(text: string): Set<string> {
+  return new Set(
+    text
+      .toLowerCase()
+      .replace(/[^a-z ]+/g, " ")
+      .split(/\s+/)
+      .filter((w) => w.length >= 5)
+      .map((w) => w.slice(0, 6))
+  );
+}
+
+function sharesStem(text: string, against: Set<string>): boolean {
+  for (const stem of stems(text)) if (against.has(stem)) return true;
+  return false;
 }
 
 function firstSentence(text: string): string {
