@@ -7,8 +7,9 @@ import { Chip } from "@/components/ui/Chip";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 import { AppMenu } from "@/components/nav/AppMenu";
 import { useAppStore } from "@/store/useAppStore";
+import { SUBJECTS } from "@/lib/subjects";
 
-const TOPICS = ["Math", "Physics", "Chemistry", "Biology"];
+
 
 type OpenGap = {
   id: string;
@@ -155,9 +156,9 @@ export default function HomePage() {
         </Link>
       </div>
       <div className="-mx-5 mt-2 flex gap-2 overflow-x-auto px-5 scrollbar-none">
-        {TOPICS.map((t) => (
-          <Chip key={t} active={topic === t} onClick={() => setTopic(t)} className="shrink-0">
-            {t}
+        {SUBJECTS.map((s) => (
+          <Chip key={s.name} active={topic === s.name} onClick={() => setTopic(s.name)} className="shrink-0">
+            {s.name}
           </Chip>
         ))}
       </div>
