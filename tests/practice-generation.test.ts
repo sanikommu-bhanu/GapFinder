@@ -8,6 +8,7 @@ import { selectDifficulty } from "@/lib/ai/pipeline/select-intervention";
 import { computeMasteryUpdate } from "@/lib/ai/pipeline/update-mastery";
 import { scoreTeachBackOffline } from "@/lib/ai/fallback/offline-rubric";
 import { solveLinear } from "@/lib/math/solve-step";
+import { selectConceptVisual } from "@/lib/ai/visuals/select-visual";
 
 /**
  * The validator is the guarantee that a student is never shown a problem whose
@@ -181,5 +182,34 @@ describe("scoreTeachBackOffline", () => {
     const result = scoreTeachBackOffline({ studentExplanation: "you subtract it", conceptName: "Equations" });
     expect(result.criteriaMet).toHaveLength(4);
     expect(result.criteriaMet.every((c) => typeof c.note === "string" && c.note.length > 0)).toBe(true);
+  });
+});
+
+describe("selectConceptVisual", () => {
+  it("draws the negative bracket, where the sign is most often lost", () => {
+    const visual = selectConceptVisual({
+      conceptSlug: "distribution",
+      originalExpression: "2(3x-5) - 4(x+2) = 3(x-1) + 7",
+    });
+    expect(visual.kind).toBe("distributive-area");
+    if (visual.kind !== "distributive-area") throw new Error("expected an area model");
+    // -4(x+2) is the risky one, so that is the term put on screen.
+    expect(visual.a).toBe(-4);
+    expect(visual.b).toBe(1);
+    expect(visual.c).toBe(2);
+    expect(visual.variable).toBe("x");
+  });
+
+  it("builds a balance model for a plain linear equation", () => {
+    const visual = selectConceptVisual({
+      conceptSlug: "inverse-operations",
+      originalExpression: "2x + 7 = 15",
+    });
+    expect(visual.kind).toBe("balance");
+  });
+
+  it("returns none rather than inventing a diagram it can't derive", () => {
+    expect(selectConceptVisual({ conceptSlug: "distribution", originalExpression: "nonsense" }).kind).toBe("none");
+    expect(selectConceptVisual({ conceptSlug: "quadratics", originalExpression: "2x + 7 = 15" }).kind).toBe("none");
   });
 });
