@@ -1,4 +1,5 @@
 import { auditSolution, type StepVerdict } from "@/lib/verification/solution-audit";
+import type { VerificationDomain } from "@/lib/verification/verify-step";
 
 export interface VerifiedStep {
   order: number;
@@ -19,6 +20,8 @@ export interface VerifiedStep {
    * or something we could not evaluate.
    */
   verdict: StepVerdict;
+  /** Which verifier judged this step — algebra, quantitative, chemical, or none. */
+  domain: VerificationDomain;
 }
 
 export interface VerificationResult {
@@ -56,6 +59,7 @@ export function verifyAndFindDivergenceDetailed(
       verificationNote: s.note,
       correctedExpression: s.correctedExpression,
       verdict: s.verdict,
+      domain: s.domain,
     })),
     correctedSolution: audit.correctedSolution,
     correctFinalAnswer: audit.correctFinalAnswer,
