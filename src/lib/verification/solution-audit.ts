@@ -1,4 +1,4 @@
-import { verifyEquationStep } from "@/lib/verification/math-verifier";
+import { verifyStep, type VerificationDomain } from "@/lib/verification/verify-step";
 import { correctNextStep, correctSolutionChain, solveLinear, toLinearForm } from "@/lib/math/solve-step";
 
 /**
@@ -33,6 +33,8 @@ export interface AuditedStep {
   order: number;
   expression: string;
   verdict: StepVerdict;
+  /** Which verifier judged this step — surfaced so the claim is auditable. */
+  domain: VerificationDomain;
   /** Why this verdict, in words a student can read. */
   note: string;
   /** What this line should have said, derived algebraically. Null when unknown. */
@@ -57,12 +59,12 @@ export interface SolutionAudit {
 }
 
 /**
- * A step is "uncertain" rather than wrong when we genuinely cannot evaluate it.
+ * A step is "uncertain" rather than wrong when no verifier can evaluate it.
  * Marking unparseable work as an error would accuse students of mistakes they
  * did not make — the single worst failure this product could have.
  */
 function isEvaluable(expression: string): boolean {
-  return expression.includes("=") && toLinearForm(expression) !== null;
+  return /[=→]|->/.test(expression);
 }
 
 export function auditSolution(
@@ -88,6 +90,7 @@ export function auditSolution(
         order: current.order,
         expression: current.expression,
         verdict: "uncertain",
+        domain: "none",
         note: "We couldn't evaluate this line, so we're not judging it either way.",
         correctedExpression: null,
         isFirstGap: false,
@@ -101,6 +104,7 @@ export function auditSolution(
         order: current.order,
         expression: current.expression,
         verdict: "correct",
+        domain: "none",
         note: "The problem as given.",
         correctedExpression: null,
         isFirstGap: false,
@@ -109,19 +113,41 @@ export function auditSolution(
       continue;
     }
 
-    const followsFromPrevious = verifyEquationStep(previous.expression, current.expression).isValid;
+    const verification = verifyStep(previous.expression, current.expression);
+
+    // No verifier recognised this transition. Say so rather than guess.
+    if (!verification) {
+      audited.push({
+        order: current.order,
+        expression: current.expression,
+        verdict: "uncertain",
+        domain: "none",
+        note: "We couldn't check this step against the one above it.",
+        correctedExpression: null,
+        isFirstGap: false,
+        followsFromPrevious: false,
+      });
+      continue;
+    }
+
+    const followsFromPrevious = verification.isValid;
     // Has the student drifted from the true answer, regardless of whether this
     // particular line was a legal move from the line above it?
     const stepSolution = solveLinear(current.expression);
     const onCorrectPath =
       trueSolution !== null && stepSolution !== null && Math.abs(stepSolution - trueSolution) < 1e-9;
 
-    if (followsFromPrevious && onCorrectPath) {
+    // A chemical or quantitative step has no "solution set" to stay on — for
+    // those, following from the previous line IS being correct.
+    const pathIsMeaningful = verification.domain === "algebra" && trueSolution !== null;
+
+    if (followsFromPrevious && (onCorrectPath || !pathIsMeaningful)) {
       audited.push({
         order: current.order,
         expression: current.expression,
         verdict: "correct",
-        note: "Follows from the line above, and still solves to the right answer.",
+        domain: verification.domain,
+        note: verification.note,
         correctedExpression: null,
         isFirstGap: false,
         followsFromPrevious: true,
@@ -141,9 +167,8 @@ export function auditSolution(
         order: current.order,
         expression: current.expression,
         verdict: isFirst ? "first_divergence" : "independent_error",
-        note: isFirst
-          ? "This is the first step that doesn't follow from the one above it — where the reasoning changed."
-          : "A separate mistake: this doesn't follow from your own previous line either.",
+        domain: verification.domain,
+        note: verification.note,
         correctedExpression: corrected,
         isFirstGap: isFirst,
         followsFromPrevious: false,
@@ -158,6 +183,7 @@ export function auditSolution(
       order: current.order,
       expression: current.expression,
       verdict: "downstream_consequence",
+      domain: verification.domain,
       note: "Correctly worked from the line above — but that line already carried the earlier error.",
       correctedExpression: null,
       isFirstGap: false,
