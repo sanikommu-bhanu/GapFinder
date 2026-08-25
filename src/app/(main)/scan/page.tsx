@@ -8,9 +8,27 @@ import { Chip } from "@/components/ui/Chip";
 import { Button } from "@/components/ui/Button";
 import { useAppStore } from "@/store/useAppStore";
 import { cn } from "@/lib/cn";
+import { SUBJECTS, getSubject } from "@/lib/subjects";
 
-const SUBJECTS = ["Math", "Physics", "Chemistry"];
 const MAX_FILE_BYTES = 6 * 1024 * 1024;
+
+/**
+ * A real worked solution with a real mistake, for anyone who wants to see what
+ * the app does before finding their own homework.
+ *
+ * This is not a fixture or a canned result: pressing it fills the box, and the
+ * submission runs the same pipeline as any other, producing its diagnosis live.
+ * The mistake is in the distribution on line 2 — one line earlier than most
+ * students assume when they check this kind of working.
+ */
+const EXAMPLE_WORK = [
+  "2(3x-5) - 4(x+2) = 3(x-1) + 7",
+  "6x - 10 - 4x + 8 = 3x - 1 + 7",
+  "2x - 2 = 3x + 6",
+  "2x - 3x = 6 + 2",
+  "-x = 8",
+  "x = -8",
+].join("\n");
 
 type Mode = "photo" | "typed";
 
@@ -217,21 +235,48 @@ export default function ScanPage() {
               placeholder={"2x + 7 = 15\n2x = 15 + 7\n2x = 22\nx = 11"}
               className="w-full resize-none rounded-2xl border border-navy-50 bg-surface-muted p-4 font-display text-base leading-relaxed text-navy-900 outline-none transition-colors placeholder:font-body placeholder:text-sm placeholder:text-ink-faint focus:border-lavender-400 focus:bg-surface"
             />
-            <p className="mt-1.5 px-1 text-[11px] text-ink-faint">
-              {typedLines.length === 0
-                ? "Start with the problem, then each step you took."
-                : `${typedLines.length} line${typedLines.length === 1 ? "" : "s"} — we'll check each against the one above it.`}
-            </p>
+            <div className="mt-1.5 flex items-start justify-between gap-3 px-1">
+              <p className="text-[11px] text-ink-faint">
+                {typedLines.length === 0
+                  ? "Start with the problem, then each step you took."
+                  : `${typedLines.length} line${typedLines.length === 1 ? "" : "s"} — we'll check each against the one above it.`}
+              </p>
+              {typed.trim().length === 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTyped(EXAMPLE_WORK);
+                    setError(null);
+                  }}
+                  className="shrink-0 text-[11px] font-semibold text-lavender-600"
+                >
+                  Use an example
+                </button>
+              )}
+            </div>
           </div>
         )}
 
-        <div className="mt-4 flex gap-2 overflow-x-auto scrollbar-none">
+        <div className="-mx-5 mt-4 flex gap-2 overflow-x-auto px-5 scrollbar-none">
           {SUBJECTS.map((s) => (
-            <Chip key={s} active={subject === s} onClick={() => setSubject(s)} className="shrink-0">
-              {s}
+            <Chip key={s.name} active={subject === s.name} onClick={() => setSubject(s.name)} className="shrink-0">
+              {s.name}
+              {s.level === "partial" && <span className="ml-1 text-[10px] opacity-60">partial</span>}
             </Chip>
           ))}
         </div>
+
+        {/* Says what will actually be verified for the chosen subject, so a
+            student is never told their chemistry is right when all we checked
+            was the algebra inside it. */}
+        <p
+          className={cn(
+            "mt-2 px-1 text-[11px] leading-relaxed",
+            getSubject(subject).level === "partial" ? "text-warning" : "text-ink-faint"
+          )}
+        >
+          {getSubject(subject).note}
+        </p>
 
         {error && (
           <p role="alert" className="mt-3 rounded-2xl bg-danger-50 px-4 py-3 text-sm text-danger">
