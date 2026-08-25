@@ -117,7 +117,7 @@ export default function ScanPage() {
             <button
               onClick={clearImage}
               aria-label="Remove photo"
-              className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-navy-900/80 text-white backdrop-blur"
+              className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-navy-900/80 text-on-strong backdrop-blur"
             >
               <X className="h-4 w-4" />
             </button>
