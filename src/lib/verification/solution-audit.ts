@@ -1,5 +1,7 @@
 import { verifyStep, type VerificationDomain } from "@/lib/verification/verify-step";
-import { correctNextStep, correctSolutionChain, solveLinear, toLinearForm } from "@/lib/math/solve-step";
+import { checkChemicalBalance, looksLikeChemicalEquation } from "@/lib/verification/domains/chemistry";
+import { correctQuantitativeStep } from "@/lib/verification/domains/quantitative";
+import { correctNextStep, correctSolutionChain, solveLinear } from "@/lib/math/solve-step";
 
 /**
  * The Complete Solution Audit.
@@ -158,7 +160,14 @@ export function auditSolution(
     if (!followsFromPrevious) {
       // A genuinely new mistake: this doesn't even follow from the student's own
       // working, so it isn't inherited from the earlier error.
-      const corrected = correctNextStep(previous.expression, current.expression);
+      // The correction has to come from the same domain that judged the step:
+      // an algebraic fraction is the wrong answer to a physics arithmetic slip.
+      const corrected =
+        verification.domain === "quantitative"
+          ? correctQuantitativeStep(previous.expression, current.expression)
+          : verification.domain === "chemical"
+            ? null
+            : correctNextStep(previous.expression, current.expression);
       const isFirst = firstDivergenceOrder === null;
       if (isFirst) firstDivergenceOrder = current.order;
       else independentErrorOrders.push(current.order);
@@ -189,6 +198,24 @@ export function auditSolution(
       isFirstGap: false,
       followsFromPrevious: true,
     });
+  }
+
+  // A balancing problem is judged on where it ends up: intermediate lines are
+  // allowed to be unbalanced, but the last one is the answer.
+  const last = sorted[sorted.length - 1];
+  if (
+    last &&
+    firstDivergenceOrder === null &&
+    looksLikeChemicalEquation(last.expression) &&
+    checkChemicalBalance(last.expression)?.isBalanced === false
+  ) {
+    const finalStep = audited.find((a) => a.order === last.order);
+    if (finalStep) {
+      finalStep.verdict = "first_divergence";
+      finalStep.isFirstGap = true;
+      finalStep.note = `${checkChemicalBalance(last.expression)?.note ?? ""} This is your final line, so it needs to balance.`;
+      firstDivergenceOrder = last.order;
+    }
   }
 
   return {
