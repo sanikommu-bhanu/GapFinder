@@ -34,11 +34,6 @@ export default function LoginPage() {
     }
   }
 
-  function useDemo() {
-    setEmail("demo@gapfinder.app");
-    setPassword("demo1234");
-  }
-
   return (
     <div className="flex flex-1 flex-col justify-center bg-white px-6 py-10">
       <h1 className="font-display text-2xl font-bold text-navy-900">Welcome back</h1>
@@ -65,9 +60,6 @@ export default function LoginPage() {
         <Button type="submit" loading={loading} className="mt-2 w-full">
           Log in
         </Button>
-        <button type="button" onClick={useDemo} className="text-sm font-medium text-lavender-600">
-          Use Demo Mode credentials
-        </button>
       </form>
 
       <p className="mt-6 text-center text-sm text-ink-soft">
