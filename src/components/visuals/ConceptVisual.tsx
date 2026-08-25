@@ -10,6 +10,8 @@ import { CoordinatePlaneVisual } from "./CoordinatePlaneVisual";
 import { AtomBalanceVisual } from "./AtomBalanceVisual";
 import { PunnettSquareVisual } from "./PunnettSquareVisual";
 import { ProcessFlowVisual } from "./ProcessFlowVisual";
+import { AtomShellVisual } from "./AtomShellVisual";
+import { CellCompareVisual } from "./CellCompareVisual";
 
 /**
  * Renders the deterministic visual module chosen by selectConceptVisual().
@@ -44,7 +46,17 @@ export function ConceptVisual({ visual }: { visual: VisualModule }) {
         />
       );
     case "coordinate-plane":
-      return <CoordinatePlaneVisual points={visual.points} range={visual.range} caption={visual.caption} />;
+      return (
+        <CoordinatePlaneVisual
+          points={visual.points}
+          range={visual.range}
+          connect={visual.connect}
+          xLabel={visual.xLabel}
+          yLabel={visual.yLabel}
+          equation={visual.equation}
+          caption={visual.caption}
+        />
+      );
     case "atom-balance":
       return <AtomBalanceVisual left={visual.left} right={visual.right} caption={visual.caption} />;
     case "punnett":
@@ -64,6 +76,26 @@ export function ConceptVisual({ visual }: { visual: VisualModule }) {
           location={visual.location}
           outputs={visual.outputs}
           energy={visual.energy}
+          caption={visual.caption}
+        />
+      );
+    case "atom-shells":
+      return (
+        <AtomShellVisual
+          symbol={visual.symbol}
+          name={visual.name}
+          protons={visual.protons}
+          neutrons={visual.neutrons}
+          shells={visual.shells}
+          caption={visual.caption}
+        />
+      );
+    case "cell-compare":
+      return (
+        <CellCompareVisual
+          shared={visual.shared}
+          plantOnly={visual.plantOnly}
+          animalOnly={visual.animalOnly}
           caption={visual.caption}
         />
       );
