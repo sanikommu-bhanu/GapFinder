@@ -36,10 +36,11 @@ export function verifyEquationStep(prevExpr: string, nextExpr: string): StepVeri
     // robustly (handles symbolic simplification limits in mathjs).
     const variable = extractVariable(prevExpr) ?? extractVariable(nextExpr);
     if (!variable) {
-      // No variable — pure arithmetic identity check.
-      const isValid = Math.abs(Number(evaluate(prevDiff.toString())) ) < 1e-9
-        ? Math.abs(Number(evaluate(nextDiff.toString()))) < 1e-9
-        : ratiosConsistent(prevDiff.toString(), nextDiff.toString(), variable);
+      // No variable — pure arithmetic identity check: both sides must balance
+      // before and after, or neither.
+      const prevHolds = Math.abs(Number(evaluate(prevDiff.toString()))) < 1e-9;
+      const nextHolds = Math.abs(Number(evaluate(nextDiff.toString()))) < 1e-9;
+      const isValid = prevHolds === nextHolds;
       return { isValid, note: isValid ? "Arithmetic identity holds." : "Arithmetic does not hold." };
     }
 
