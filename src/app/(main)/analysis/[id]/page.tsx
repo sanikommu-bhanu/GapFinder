@@ -59,6 +59,7 @@ export default function AnalysisDetailPage() {
   const [gap, setGap] = useState<Gap | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [status, setStatus] = useState("complete");
+  const [statusReason, setStatusReason] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -75,6 +76,7 @@ export default function AnalysisDetailPage() {
           return;
         }
         setStatus(d.analysis.status);
+        setStatusReason(d.analysis.statusReason ?? null);
         setSteps(d.analysis.reasoningSteps ?? []);
         setCorrectedSolution(d.analysis.correctedSolution ?? []);
         setGap(d.analysis.gaps?.[0] ?? null);
@@ -147,7 +149,7 @@ export default function AnalysisDetailPage() {
         <div className="px-5">
           <Card>
             <p className="text-sm leading-relaxed text-navy-900">
-              This analysis didn&apos;t finish. Your work is still saved in history.
+              {statusReason ?? "This analysis didn't finish. Your work is still saved in history."}
             </p>
             <Link href="/scan">
               <Button className="mt-4 w-full">Try again</Button>
@@ -172,6 +174,14 @@ export default function AnalysisDetailPage() {
           <p className="mt-2 text-center text-sm leading-relaxed text-ink-soft">
             We verified each transition algebraically. None of them changed the solution set — your reasoning holds.
           </p>
+
+          {/* If part of the work was unreadable, say so rather than letting the
+              headline imply we checked everything. */}
+          {statusReason && (
+            <p className="mt-3 rounded-2xl bg-warning-50 px-4 py-3 text-center text-xs leading-relaxed text-navy-900">
+              {statusReason}
+            </p>
+          )}
 
           <div className="mt-6 flex w-full flex-col gap-2.5">
             {steps.map((s) => (
