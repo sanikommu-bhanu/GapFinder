@@ -57,14 +57,15 @@ export function solveLinear(expr: string): number | null {
  */
 export function fmt(n: number): string {
   if (!Number.isFinite(n)) return String(n);
-  const rounded = Math.round(n * 1e9) / 1e9;
-  if (Number.isInteger(rounded)) return String(rounded);
+  if (Math.abs(n - Math.round(n)) < 1e-9) return String(Math.round(n));
 
-  const fraction = asSimpleFraction(rounded);
+  // Test the raw value: rounding first pushes exact thirds just past the
+  // tolerance and turns "2/3" into "0.6667".
+  const fraction = asSimpleFraction(n);
   if (fraction) return fraction;
 
   // Not a tidy fraction — show a bounded decimal rather than a long tail.
-  return String(Math.round(rounded * 1e4) / 1e4);
+  return String(Math.round(n * 1e4) / 1e4);
 }
 
 /** Recovers a/b for small b, so exact answers stay exact. */
@@ -73,7 +74,7 @@ function asSimpleFraction(value: number): string | null {
   const abs = Math.abs(value);
   for (let denominator = 2; denominator <= 24; denominator++) {
     const numerator = abs * denominator;
-    if (Math.abs(numerator - Math.round(numerator)) < 1e-9) {
+    if (Math.abs(numerator - Math.round(numerator)) < 1e-7) {
       const n = Math.round(numerator);
       const g = gcd(n, denominator);
       const num = n / g;
@@ -103,10 +104,17 @@ export function correctNextStep(prevExpr: string, studentNextExpr: string): stri
   if (!form || Math.abs(form.m) < 1e-12) return null;
 
   const solution = -form.k / form.m;
-  const studentIsolatesVariable = /^\s*[a-zA-Z]\s*=/.test(studentNextExpr.replace(/\s/g, " "));
 
-  // The student jumped to a final answer ("x = 11") — correct that answer.
-  if (studentIsolatesVariable) return `${form.variable} = ${fmt(solution)}`;
+  const rhs = studentNextExpr.split("=")[1]?.trim() ?? "";
+  const startsWithBareVariable = /^\s*[a-zA-Z]\s*=/.test(studentNextExpr.replace(/\s/g, " "));
+  // "x = 7" is an answer; "x = 12 + 5" is a move still being worked out. The
+  // second deserves the minimal correction ("x = 12 - 5"), because that is the
+  // single edit the student actually needs to see.
+  const rhsIsUnevaluated = /[+\-*/]/.test(rhs.replace(/^[+-]/, ""));
+
+  if (startsWithBareVariable && !rhsIsUnevaluated) {
+    return `${form.variable} = ${fmt(solution)}`;
+  }
 
   // Otherwise they were mid-isolation (e.g. "2x = 15 + 7"). Show the correct
   // isolation of the variable term, preserving the arithmetic they were doing
