@@ -9,8 +9,8 @@ import { correctSolutionChain } from "@/lib/math/solve-step";
  * text pretending to be reasoning — the wording is fixed, and the *content*
  * comes from retrieval plus math.
  *
- * Used when Gemini is unavailable, and in Demo Mode. Surfaces label it as
- * "grounded, AI offline" so a reader is never misled about what produced it.
+ * Used when Gemini is unavailable. Surfaces label it as "grounded, AI
+ * offline" so a reader is never misled about what produced it.
  */
 export function explainGapOffline(params: {
   conceptName: string;
