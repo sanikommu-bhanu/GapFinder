@@ -7,6 +7,9 @@ import { evaluateTeachBack } from "@/lib/ai/pipeline/evaluate-teachback";
 import { scoreTeachBackOffline } from "@/lib/ai/fallback/offline-rubric";
 import { applyMasteryEvent } from "@/lib/services/mastery-service";
 
+/** This route calls Gemini; the default serverless ceiling is too low. */
+export const maxDuration = 60;
+
 const Body = z.object({
   studentExplanation: z.string().min(1).max(4000),
   inputMode: z.enum(["voice", "text"]).default("text"),
