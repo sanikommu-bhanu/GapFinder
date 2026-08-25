@@ -23,6 +23,9 @@ function safeJson<T>(raw: string | null | undefined, fallback: T): T {
  * mastered on evidence rather than on completion. The next-best step is then
  * recommended against that same evidence.
  */
+/** This route calls Gemini; the default serverless ceiling is too low. */
+export const maxDuration = 60;
+
 export async function GET() {
   const userId = await getSessionUserId();
   if (!userId) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
