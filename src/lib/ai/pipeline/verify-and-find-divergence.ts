@@ -1,5 +1,4 @@
-import { verifyEquationStep } from "@/lib/verification/math-verifier";
-import { correctNextStep } from "@/lib/math/solve-step";
+import { auditSolution, type StepVerdict } from "@/lib/verification/solution-audit";
 
 export interface VerifiedStep {
   order: number;
@@ -14,50 +13,60 @@ export interface VerifiedStep {
    * nothing rather than an unverified correction.
    */
   correctedExpression: string | null;
+  /**
+   * The complete-audit verdict for this step: whether it is correct, the first
+   * divergence, a consequence carried from that divergence, a separate mistake,
+   * or something we could not evaluate.
+   */
+  verdict: StepVerdict;
+}
+
+export interface VerificationResult {
+  steps: VerifiedStep[];
+  /** The full correct path, derived from the student's opening line. */
+  correctedSolution: string[];
+  correctFinalAnswer: string | null;
+  independentErrorOrders: number[];
+  downstreamCount: number;
 }
 
 /**
- * Walks the reconstructed reasoning steps in order and deterministically
- * verifies each transition against the previous one. The FIRST invalid
- * transition is marked isFirstGap — this is the "first divergence" the whole
- * product is built around, and it is computed with math, not an LLM guess.
+ * Runs the Complete Solution Audit over the reconstructed steps and adapts it
+ * to the shape the pipeline persists.
  *
- * Once the first gap is found, later steps are still verified against their own
- * predecessor, so a student can see that everything after the divergence is a
- * *consequence* rather than a separate mistake.
+ * The audit is what distinguishes a root misconception from the errors it
+ * causes: `isValid` still means "this line follows from the one above it", but
+ * `verdict` carries the richer judgement the UI needs to show one red step and
+ * a chain of amber ones rather than four equal-looking failures.
  */
+export function verifyAndFindDivergenceDetailed(
+  steps: { order: number; statement: string; expression: string }[]
+): VerificationResult {
+  const sorted = [...steps].sort((a, b) => a.order - b.order);
+  const audit = auditSolution(sorted.map((s) => ({ order: s.order, expression: s.expression })));
+  const statementByOrder = new Map(sorted.map((s) => [s.order, s.statement]));
+
+  return {
+    steps: audit.steps.map((s) => ({
+      order: s.order,
+      statement: statementByOrder.get(s.order) ?? s.expression,
+      expression: s.expression,
+      isValid: s.verdict === "correct" || s.verdict === "downstream_consequence",
+      isFirstGap: s.isFirstGap,
+      verificationNote: s.note,
+      correctedExpression: s.correctedExpression,
+      verdict: s.verdict,
+    })),
+    correctedSolution: audit.correctedSolution,
+    correctFinalAnswer: audit.correctFinalAnswer,
+    independentErrorOrders: audit.independentErrorOrders,
+    downstreamCount: audit.downstreamCount,
+  };
+}
+
+/** Back-compatible entry point returning just the step list. */
 export function verifyAndFindDivergence(
   steps: { order: number; statement: string; expression: string }[]
 ): VerifiedStep[] {
-  const sorted = [...steps].sort((a, b) => a.order - b.order);
-  const results: VerifiedStep[] = [];
-  let firstGapFound = false;
-
-  for (let i = 0; i < sorted.length; i++) {
-    const current = sorted[i]!;
-    if (i === 0) {
-      results.push({
-        ...current,
-        isValid: true,
-        isFirstGap: false,
-        verificationNote: "Starting point.",
-        correctedExpression: null,
-      });
-      continue;
-    }
-    const prev = sorted[i - 1]!;
-    const verification = verifyEquationStep(prev.expression, current.expression);
-    const isFirstGap = !verification.isValid && !firstGapFound;
-    if (isFirstGap) firstGapFound = true;
-
-    results.push({
-      ...current,
-      isValid: verification.isValid,
-      isFirstGap,
-      verificationNote: verification.note,
-      correctedExpression: verification.isValid ? null : correctNextStep(prev.expression, current.expression),
-    });
-  }
-
-  return results;
+  return verifyAndFindDivergenceDetailed(steps).steps;
 }
