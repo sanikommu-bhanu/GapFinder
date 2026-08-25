@@ -17,5 +17,29 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   });
 
   if (!analysis) return NextResponse.json({ error: "Not found." }, { status: 404 });
-  return NextResponse.json({ analysis });
+
+  return NextResponse.json({
+    analysis: {
+      ...analysis,
+      gaps: analysis.gaps.map((g) => ({
+        ...g,
+        evidence: safeJson(g.evidence, []),
+        explanation: safeJson(g.explanationText, null),
+      })),
+    },
+  });
+}
+
+/**
+ * Gap JSON columns are written by the pipeline, but a row seeded or migrated by
+ * hand could hold anything. Returning a fallback keeps one malformed row from
+ * turning the whole analysis screen into a 500.
+ */
+function safeJson<T>(raw: string | null, fallback: T): T {
+  if (!raw) return fallback;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
 }
