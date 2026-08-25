@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { Check, Lock, Sparkles, TrendingUp, TrendingDown } from "lucide-react";
 import { TopBar } from "@/components/nav/TopBar";
 import { Card } from "@/components/ui/Card";
+import { Chip } from "@/components/ui/Chip";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 
@@ -28,19 +29,27 @@ export default function RoadmapPage() {
   const router = useRouter();
   const [nodes, setNodes] = useState<Node[]>([]);
   const [recommendation, setRecommendation] = useState<Recommendation | null>(null);
+  const [subjects, setSubjects] = useState<string[]>([]);
+  const [activeSubject, setActiveSubject] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/roadmap")
+    // The API picks the subject the student last worked in when none is asked
+    // for, so the roadmap opens on something relevant.
+    const query = activeSubject ? `?subject=${encodeURIComponent(activeSubject)}` : "";
+    setLoading(true);
+    fetch(`/api/roadmap${query}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("Couldn't load your roadmap."))))
       .then((d) => {
         setNodes(d.nodes ?? []);
         setRecommendation(d.recommendation ?? null);
+        setSubjects(d.availableSubjects ?? []);
+        setActiveSubject((current) => current ?? d.activeSubject ?? null);
       })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [activeSubject]);
 
   if (loading) {
     return (
@@ -63,10 +72,33 @@ export default function RoadmapPage() {
           Ordered by what your own work showed, not by a syllabus.
         </p>
 
+        {subjects.length > 1 && (
+          <div className="-mx-5 mt-4 flex gap-2 overflow-x-auto px-5 scrollbar-none">
+            {subjects.map((subject) => (
+              <Chip
+                key={subject}
+                active={activeSubject === subject}
+                onClick={() => setActiveSubject(subject)}
+                className="shrink-0"
+              >
+                {subject}
+              </Chip>
+            ))}
+          </div>
+        )}
+
         {error && (
           <p role="alert" className="mt-4 rounded-2xl bg-danger-50 px-4 py-3 text-sm text-danger">
             {error}
           </p>
+        )}
+
+        {!loading && nodes.length === 0 && (
+          <Card className="mt-4 bg-surface-muted shadow-none">
+            <p className="text-sm leading-relaxed text-ink-soft">
+              No concepts mapped for {activeSubject} yet. Analyze some work in this subject and the path fills in.
+            </p>
+          </Card>
         )}
 
         <div className="relative mt-5">
