@@ -194,6 +194,13 @@ model Gap {
   evidence       String   // JSON: array of evidence pointers {stepId, note}
   confidence     String   // high|medium|low
   explanationText String?
+  // Stable code from the documented misconception catalogue
+  // (lib/diagnosis/misconceptions.ts). Countable across students, unlike a
+  // model-authored label.
+  misconceptionCode String?
+  // "proved" (algebraic signature) or "matched" (model chose from the catalogue).
+  misconceptionBasis String?
+  misconceptionEvidence String?
   status         String   @default("open") // open|repaired|closed
   createdAt      DateTime @default(now())
 
