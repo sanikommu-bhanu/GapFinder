@@ -72,6 +72,21 @@ describe("correctSolutionChain", () => {
   it("skips the division line when the coefficient is 1", () => {
     expect(correctSolutionChain("x + 5 = 12")).toEqual(["x + 5 = 12", "x = 12 - 5", "x = 7"]);
   });
+
+  it("expands brackets and gathers variables from both sides", () => {
+    // The reference worksheet: the student botched both distributions.
+    const chain = correctSolutionChain("2(3x-5) - 4(x+2) = 3(x-1) + 7");
+    expect(chain).not.toBeNull();
+    expect(chain![0]).toBe("2(3x-5) - 4(x+2) = 3(x-1) + 7");
+    // Expanded and collected, before anything is moved across.
+    expect(chain).toContain("2x - 18 = 3x + 4");
+    expect(chain![chain!.length - 1]).toBe("x = -22");
+  });
+
+  it("corrects a bracket expansion with the properly expanded line", () => {
+    const corrected = correctNextStep("2(3x-5) - 4(x+2) = 3(x-1) + 7", "6x - 10 - 4x + 8 = 3x - 1 + 7");
+    expect(corrected).toBe("2x - 18 = 3x + 4");
+  });
 });
 
 describe("fmt", () => {
