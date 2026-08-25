@@ -1,4 +1,4 @@
-import { generateStructured } from "@/lib/ai/gemini-client";
+import { generateStructured } from "@/lib/ai/ai-client";
 import { PracticeGenerationResult } from "@/lib/ai/schemas/pipeline";
 import type { Difficulty } from "./select-intervention";
 
