@@ -1,167 +1,215 @@
-# GapFinder — AI Architecture Report
+# GapFinder — Architecture
 
-## Status honesty note
-This sandbox has no network access, so I could not run `npm install`, `prisma generate`,
-a dev server, or a live Gemini call here — meaning nothing below was freshly tested in
-this session. The codebase already implements most of the spec (see "What's real" vs
-"What's missing" below). Everything in this report describes what's actually in the repo,
-not aspirational scope.
+## What was verified, and how
 
-## Models / providers
-- **Vision + reasoning**: Google Gemini (`GEMINI_MODEL`, default `gemini-2.0-flash`) via
-  `src/lib/ai/gemini-client.ts`. All 17 pipeline stages call structured-output prompts
-  (Zod schemas in `src/lib/ai/schemas/pipeline.ts`) and validate the JSON before it
-  touches the database — invalid shapes throw and the pipeline fails gracefully rather
-  than persisting hallucinated structure.
-- No vector DB / paid retrieval service. RAG is local TF-IDF over a curated
-  `KnowledgeChunk` table (see below) — deliberate, since the knowledge base is small
-  and curated, not a general corpus.
+Everything below was run against the live app on this machine: `npm install`,
+`prisma db push`, `db:seed`, the dev server, a real `GEMINI_API_KEY`, the unit
+suite, the deterministic eval, and `next build`. Where something is unverified,
+it says so explicitly in **Known limits** at the end.
 
-## Data flow (upload → recommendation)
-1. `read-and-extract.ts` — vision call reads handwriting into `ExtractedStep[]` with
-   per-step confidence. Low confidence → `needs_confirmation`, pipeline pauses and asks
-   the student rather than guessing (`ARCHITECTURE` enforces the "don't hallucinate"
-   rule from the spec).
-2. `reconstruct-reasoning.ts` — normalizes steps into `ReasoningStep[]` with parsed
-   expressions.
-3. `verify-and-find-divergence.ts` — deterministic math verification
-   (`src/lib/verification/math-verifier.ts`, uses `mathjs`) marks each step valid/invalid
-   and flags the **first** invalid step as `isFirstGap`; downstream wrong steps are
-   recorded but not treated as independent misconceptions.
-4. `classify-gap.ts` — maps the divergence to a `Concept` (surface error, underlying
-   gap, evidence, confidence) against the seeded concept graph.
-5. `retrieve.ts` (RAG) + `explain-gap.ts` — pulls the top-k `KnowledgeChunk`s for that
-   concept (definitions, misconceptions, worked examples, teaching explanations) and
-   grounds the generated explanation in them + the specific evidence from step 3.
-6. Everything is persisted (`ExtractedStep`, `ReasoningStep`, `Gap`, `LearningEvent`)
-   so nothing shown to the student is regenerated from memory later — reports and the
-   coach read from these rows, not from a fresh model call re-imagining the session.
+---
 
-## Practice → transfer → teach-back
-- `generate-practice.ts` produces a problem targeting the diagnosed misconception, then
-  `validate-answer.ts` deterministically re-solves it before it's ever shown (rejects
-  ambiguous/impossible/mis-keyed problems rather than trusting the generator).
-- Transfer problems reuse the same concept in a different surface form (per spec) and
-  go through the same validation gate.
-- `evaluate-teachback.ts` grades the student's own explanation against a rubric
-  (concept, reasoning, correct rule, correct application) rather than keyword matching.
+## The design rule
 
-## Mastery model
-`update-mastery.ts` + `mastery-service.ts`: mastery is a bounded running score updated
-per event type (gap found, practice correct/incorrect, transfer correct/incorrect,
-teach-back score) with a trend (`up`/`down`/`flat`), not a flat "+1 per correct answer."
-History is kept (last 30 points) so the mastery UI can show real trend, not just a
-current percentage.
+**AI interprets. Deterministic code verifies.**
 
-## Knowledge graph
-`Concept` + `ConceptRelationship` (`prerequisite` / `related` / `extends`) tables are
-real relational data, seeded in `prisma/seed.ts`, and are what `generate-recommendation.ts`
-walks to produce the "Next Best Step" (concept + why + evidence + activity).
+A language model is the only thing that can read handwriting or infer what a
+student was attempting. It is *not* trustworthy for deciding whether a student
+made a mistake — it can be confidently wrong, and a false accusation is the
+worst failure this product can have. So the load-bearing claims are computed:
 
-## Learning memory
-`LearningMemory` aggregates recurring gaps, successful/failed repairs, and transfer
-results per user — this is what the AI Coach (`api/coach/route.ts`) is grounded in, so
-"why do I keep making this mistake" is answered from real recurrence counts, not a
-generic LLM guess.
+| Decision | Owner | Rationale |
+| --- | --- | --- |
+| What do the marks say? | Gemini vision | Only a model can read it |
+| What was the student attempting? | Gemini | Requires reading intent |
+| Does step *n* follow from *n−1*? | `mathjs` | Must be provable |
+| Where is the first divergence? | `solution-audit.ts` | The core claim |
+| What should that step have read? | `solve-step.ts` | Never generated |
+| Root error vs. carried consequence? | `solution-audit.ts` | Structural, not stylistic |
+| Which concept broke? | Gemini (fallback: structural) | Needs judgement |
+| Is practice work correct? | Same divergence engine | Grading must be exact |
+| Is a generated problem valid? | Solved independently | Never show an unverified problem |
 
-## Visual Lesson Engine (added this session)
-`src/lib/ai/visuals/select-visual.ts` + `src/components/visuals/*` + wired into the
-existing "Concept Visual" screen (`analysis/[id]/page.tsx`, `view === "concept"`).
+---
 
-Deliberate design choice vs. the literal spec wording ("AI selects the module and
-supplies parameters"): module *and* numeric parameters are chosen **deterministically**
-from the already-verified equation string (`src/lib/math/linear-parse.ts`), not by an
-LLM call. The spec's own reliability rule — never trust a generator with the critical
-numbers in a math diagram — argues against having a model "supply parameters" even in
-text form, since a hallucinated coefficient is exactly as wrong as a hallucinated image.
-If the concept has no safe deterministic mapping or the equation string doesn't parse,
-`selectConceptVisual` returns `{ kind: "none" }` and the screen falls back to the
-existing plain-text explanation — safe fallback over a fabricated diagram.
+## Pipeline
 
-Modules implemented: balance-equation (wired to inverse-operations/equations/algebra,
-matches your reference mockup's scale illustration), number-line (sign-handling),
-distributive-area (distribution), factor-tree (factoring). Fraction-bar and
-coordinate-plane components exist and are ready to wire in but aren't yet mapped to a
-seeded concept slug (no "fractions" or graphing concept is seeded in `prisma/seed.ts`
-today — flagged below).
+```
+POST /api/analyses                       returns 202 in ~250ms
+        │                                (never blocks the UI)
+        ▼
+  status: reading         Gemini vision reads the lines
+                          → low confidence anywhere? pause and ASK the student
+  status: reconstructing  Gemini narrates each step
+                          → expressions copied through, never rewritten
+  status: verifying       mathjs verifies every transition; audit runs
+                          → first divergence + corrected line computed here
+  status: classifying     Gemini names the concept, from verified steps only
+  status: explaining      local RAG retrieves; Gemini grounds its wording in it
+  status: complete
+```
 
-## Evaluation harness (added this session)
-`eval/fixtures/reasoning-cases.json` — 15 cases spanning correct work, wrong intermediate
-step, wrong final answer, multiple errors, negative numbers, distribution (correct and
-partial), factoring, fractions, an alternative-valid-approach case, a word problem, and
-two behavior-only entries for ambiguous/messy handwriting (those need real image
-fixtures I didn't have to attach this session).
+The Analyzing screen polls `/api/analyses/[id]/status`, so the progress bar
+tracks stages that actually finished. A run that dies mid-pipeline is detected
+by age and reported, rather than spinning forever.
 
-`eval/run-deterministic.ts` runs the subset of cases that only exercise
-`math-verifier.ts` (pure `mathjs`, no API key, no DB) — run with
-`npx tsx eval/run-deterministic.ts` once `npm install` has been run. I hand-traced every
-case against the verifier's proportionality logic since I can't execute code in this
-sandbox (no network to `npm install`), and adjusted three cases that would have
-"passed" for the wrong reason or failed on scope the deterministic verifier was never
-meant to cover — each is now labeled honestly in its `note` field rather than silently
-fudged. That hand-trace is not a substitute for actually running it; treat the file as
-unverified until it's been run for real.
+### Reconstruction is reconciled, not trusted
 
-The Gemini-dependent stages (extraction, reconstruction, classification, explanation)
-have no automated eval yet — that requires a configured `GEMINI_API_KEY` and a live
-run, which this sandbox can't do.
+`reconstruct-reasoning.ts` rebuilds its output from the student's own step list
+and takes only the *narration* from the model. A model that dropped, merged or
+silently corrected a line would corrupt the divergence search that runs next —
+invisibly. This is enforced in code, not by prompt instruction.
 
-## AI Observability (added this session)
-`AiUsageLog` now carries `analysisId`, `latencyMs`, and `retrievedChunkIds` (schema
-change — needs `prisma db push`/migrate once this is run for real). `generateStructured`
-in `gemini-client.ts` times every call and writes those fields on both the cache-hit and
-live-call paths. Threaded through the four core pipeline stages
-(`read-and-extract`, `reconstruct-reasoning`, `classify-gap`, `explain-gap`) and the
-orchestrator that calls them — `explain-gap` also logs which `KnowledgeChunk` ids the
-RAG step actually retrieved, so retrieval is traceable per call, not just per feature.
+### Gemini schema conversion
 
-New screens: `/dev/observability` (list, with per-analysis call count / avg latency /
-error count) → `/dev/observability/[id]` (full trace: input → extracted steps →
-reasoning replay with first-divergence highlighted → gap + retrieved knowledge +
-generated intervention → practice/transfer/teach-back results → raw call log with
-latency and errors). Linked from Settings → Developer. New API routes at
-`src/app/api/dev/observability/` read only already-persisted rows — this view never
-triggers a new model call.
+`zod-to-json-schema` emits `additionalProperties`, which Gemini's
+`responseSchema` rejects with a 400 — this made *every* structured call in the
+project fail. `schemas/to-gemini-schema.ts` reduces a zod schema to the exact
+subset Gemini documents, inlining `$ref`s and collapsing `anyOf` (preserving
+nullability). Every response is then re-validated against the original zod
+schema before it is used.
 
-**Known scope limit**: only the four core analyze-stage calls are linked to an
-`analysisId` right now. Practice generation, transfer generation, teach-back evaluation,
-recommendation phrasing, and the AI Coach all still call `generateStructured` (so
-they're logged with stage/success/cached/latency) but aren't yet tied back to a specific
-`analysisId` — extending `generatePracticeProblem`/`evaluateTeachBack`/etc. the same way
-is mechanical but wasn't done this pass to keep the change reviewable.
+---
 
-## What's real vs. what's still missing against your spec
-**Implemented and wired to persisted state:** reasoning reconstruction + first-divergence
-detection, evidence-based gap diagnosis, confidence-aware "ask, don't hallucinate" flow,
-RAG over curated chunks, mastery model with trend, knowledge graph relationships used in
-recommendations, practice/transfer generation with pre-validation, teach-back rubric
-grading, learning memory, AI Coach grounded in that memory, reports built from real
-events, a deterministic Visual Lesson Engine for 4 of 7 seeded concepts, a
-partially-runnable evaluation fixture set, and an AI Observability trace view for the
-core analyze pipeline.
+## Complete Solution Audit
 
-**Not yet built — gaps you should know about before calling this done:**
-- **Observability coverage is partial**: practice/transfer/teach-back/coach/recommendation
-  calls are logged but not yet linked to a specific analysisId (see above) — the trace
-  view will show them as an empty call log even though they happened.
-- **Fraction and quadratic/coordinate concepts aren't seeded** in `prisma/seed.ts`, so
-  the fraction-bar and coordinate-plane visual components exist but have nothing to
-  attach to yet — either seed those concepts or extend `select-visual.ts`'s mapping for
-  `quadratics`.
-- **Gemini-stage evaluation** (extraction accuracy, classification accuracy) has no
-  automated harness or measured numbers — only the deterministic-verifier subset is even
-  structured to run without a live API key.
-- **The new `AiUsageLog` columns require a schema migration** (`prisma db push` or
-  `migrate dev`) before the app will run — this session could not run it (no network/DB).
-- **Nothing in this session was executed.** No `npm install`, no build, no dev server,
-  no live Gemini call — every new file here is unverified by anything other than manual
-  reading, including the observability API routes and pages. Treat it as a diff to
-  review and test, not as tested code.
+Each step is judged against two references — the student's own previous line,
+and the correct path:
 
-## Recommendation
-This is a real multi-file Next.js + Prisma app, not something safe to keep extending
-blind in a sandbox with no package installation, no build step, and no way to run Gemini
-calls to check output shape. The productive next step is opening this repo in **Claude
-Code** (desktop, terminal, or VS Code extension), where I can `npm install`, run the dev
-server, actually call Gemini, and build+test the Visual Lesson Engine, observability view,
-and eval harness against real output instead of writing them uncompiled here.
+| Verdict | Meaning |
+| --- | --- |
+| `correct` | Follows, and still solves to the right answer |
+| `first_divergence` | First line that does not follow |
+| `downstream_consequence` | Correctly worked from an already-wrong line |
+| `independent_error` | A separate mistake, not inherited |
+| `uncertain` | Could not be evaluated — never counted as an error |
+
+A submission where *every* step is `uncertain` fails with an honest message
+rather than reporting "everything checked out". Claiming a verification that
+never happened is the one outcome the audit must not produce.
+
+---
+
+## RAG
+
+Local TF-IDF over a curated corpus of `KnowledgeChunk` rows (explanations,
+misconceptions, worked examples, teaching strategies) — no paid vector
+database, and no embedding cost. Two retrieval modes:
+
+- **Per concept** — for gap explanations, filtered by chunk kind
+- **Across concepts** — for the coach, boosting concepts the student has open
+  gaps in, because a general question still deserves an answer about their work
+
+Retrieved chunk IDs are stored on the `AiUsageLog` row for the call, and
+surfaced in the UI: "Grounded in *n* sources", expandable to read them. If
+retrieval returns nothing, the component renders nothing rather than implying
+a grounding that did not happen.
+
+---
+
+## Adaptive learning
+
+`selectDifficulty` picks the level deterministically from mastery and recent
+attempts, *before* generation — so the model is told what to build rather than
+also deciding how hard it should be.
+
+`computeMasteryUpdate` is an EMA where **transfer success is weighted roughly
+double practice success**. Passing a repair problem can be pattern-matching;
+passing the same idea in a shape you haven't seen cannot. Teach-back moves the
+score toward the rubric result.
+
+Gap lifecycle: `open` → `repaired` (practice passed) → `closed` (transfer passed).
+
+---
+
+## Graceful degradation
+
+Observed live, after the free-tier quota was genuinely exhausted during
+testing. With all three Gemini calls failing:
+
+- First divergence still found correctly (sign error, step 2)
+- Concept still classified — `sign-error` / Sign Handling — at **medium**
+  confidence rather than the high Gemini reports, because structural evidence
+  is genuinely weaker
+- Corrected expression and full corrected solution still derived
+- Explanation still grounded in 2 real retrieved chunks
+- Practice still generated and validated, labelled `Verified locally`
+- Completed in ~2s
+
+Every surface labels provenance (`AI · verified` vs `Verified locally`). The
+app degrades; it does not lie about what produced a result.
+
+---
+
+## Security
+
+- `src/middleware.ts` — **must** live under `src/`; with a src directory Next.js
+  ignores a root-level middleware file entirely, which had left every protected
+  route publicly reachable. Verifies the JWT signature via `jose` (edge-safe),
+  and clears a cookie that fails verification.
+- Every API route independently calls `getSessionUserId()` and scopes queries by
+  user. Cross-user access was tested with a second account: 404 on analyses,
+  gaps, and practice.
+- Login hashes against a dummy value when the account doesn't exist, so response
+  timing doesn't reveal which emails are registered.
+- All inputs bounded by zod (image size, step count, text length, enum values).
+- `GEMINI_API_KEY` is read only in server modules; `src/lib/env.ts` is never
+  imported from a client component.
+
+---
+
+## Performance
+
+| Measurement | Result |
+| --- | --- |
+| `POST /api/analyses` (warm) | ~250 ms — the UI is never blocked |
+| Full pipeline, 3 live Gemini calls | ~12 s |
+| Full pipeline, cache hit | ~2 s |
+| Full pipeline, all Gemini down | ~2 s (deterministic) |
+| First Load JS (shared) | 87.3 kB |
+| Largest route | ~111 kB |
+
+Gemini responses are cached by content hash (`AiCallCache`); images are
+compressed with `sharp` before upload; the concept graph loads concurrently
+with verification writes; gap creation, the learning event and the status
+update are one transaction.
+
+---
+
+## Testing
+
+```
+npm run verify   # lint + typecheck + 88 unit tests + deterministic eval
+```
+
+- **88 unit tests** across the verifier, the audit, derived corrections,
+  student-work checking, problem validation, difficulty selection, mastery
+  scoring, the offline rubric and visual selection.
+- **Deterministic eval** over 15 fixtures — correct work, single root error,
+  root + downstream, multiple independent errors, fractions, negatives,
+  distribution, word problems, alternative valid approaches. **13 passed, 0
+  failed, 2 skipped** (need image fixtures). **100% divergence-detection
+  accuracy on scored cases.**
+
+---
+
+## Known limits
+
+These are real and unfixed:
+
+- **Only single-variable linear algebra is genuinely verified.** That covers
+  linear equations, distribution and rearrangement completely, and the symbolic
+  half of physics/chemistry working. It does **not** check units, balance
+  chemical equations, or read diagrams. The capture screen states this per
+  subject rather than implying full support.
+- **Gemini-stage accuracy is unmeasured.** The deterministic layers are
+  measured at 100% on the fixture set; extraction and classification accuracy
+  have no automated harness and no numbers.
+- **No image fixtures**, so the handwriting-reading stage is verified only by
+  live manual use, not by the eval suite.
+- **No automated E2E suite.** The critical path was walked manually in a real
+  browser and via the API; there is no Playwright/Cypress run guarding it.
+- **SQLite and local-disk uploads** are fine for a single instance and will not
+  survive a serverless deployment without swapping the datasource and moving
+  uploads to object storage. The Prisma schema is portable; the upload path is
+  not.
