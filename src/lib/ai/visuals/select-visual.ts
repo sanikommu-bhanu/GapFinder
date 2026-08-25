@@ -21,6 +21,12 @@ export type VisualModule =
       kind: "coordinate-plane";
       points: { x: number; y: number; label?: string; color?: string }[];
       range?: number;
+      /** Joins the points in order — a relationship, not a scatter. */
+      connect?: boolean;
+      xLabel?: string;
+      yLabel?: string;
+      /** The relationship being drawn, shown on the plot. */
+      equation?: string;
       caption: string;
     }
   | {
@@ -43,6 +49,22 @@ export type VisualModule =
       location: string;
       outputs: string[];
       energy?: { direction: "stores" | "releases"; label: string };
+      caption: string;
+    }
+  | {
+      kind: "atom-shells";
+      symbol: string;
+      name: string;
+      protons: number;
+      neutrons: number;
+      shells: number[];
+      caption: string;
+    }
+  | {
+      kind: "cell-compare";
+      shared: string[];
+      plantOnly: string[];
+      animalOnly: string[];
       caption: string;
     }
   | { kind: "none" };
@@ -85,6 +107,83 @@ const PROCESS_FLOWS: Record<
 };
 
 /**
+ * Curated structural facts for the two concepts whose diagram is a picture of a
+ * thing rather than a computation.
+ *
+ * Sodium is the worked example for atomic structure because its single outer
+ * electron is what makes its behaviour legible; the cell comparison is drawn as
+ * plant-versus-animal because the mistake this concept produces is a boundary
+ * error, not a naming one.
+ */
+const STRUCTURES = {
+  "atomic-structure": {
+    symbol: "Na",
+    name: "Sodium",
+    protons: 11,
+    neutrons: 12,
+    shells: [2, 8, 1],
+    caption:
+      "Sodium: 11 protons, 11 electrons in shells of 2, 8 and 1. The single outer electron is why it reacts the way it does.",
+  },
+  "cell-structure": {
+    shared: ["Nucleus", "Cell membrane", "Mitochondria", "Cytoplasm", "Ribosomes"],
+    plantOnly: ["Cell wall", "Chloroplasts", "Permanent vacuole"],
+    animalOnly: [],
+    caption:
+      "Plant cells have mitochondria too — they respire as well as photosynthesise. The wall sits outside the membrane; it does not replace it.",
+  },
+} as const;
+
+/**
+ * Straight-line relationships in physics, written down rather than derived.
+ *
+ * Each one is the defining equation of the concept with the other quantities
+ * held fixed, so the line drawn is the relationship itself. The axis labels are
+ * part of the data for a reason: an unlabelled line through the origin could be
+ * any claim at all, which would make it decoration rather than a diagram.
+ */
+const PHYSICS_RELATIONSHIPS: Record<
+  string,
+  {
+    slope: number;
+    intercept: number;
+    xs: number[];
+    xLabel: string;
+    yLabel: string;
+    equation: string;
+    caption: string;
+  }
+> = {
+  kinematics: {
+    slope: 2,
+    intercept: 1,
+    xs: [0, 1, 2, 3],
+    xLabel: "time (s)",
+    yLabel: "velocity (m/s)",
+    equation: "v = u + at, with u = 1 m/s and a = 2 m/s²",
+    caption: "On a velocity-time graph the gradient is the acceleration, and the area underneath is the distance.",
+  },
+  "newtons-laws": {
+    slope: 0.5,
+    intercept: 0,
+    xs: [0, 2, 4, 6],
+    xLabel: "resultant force (N)",
+    yLabel: "acceleration (m/s²)",
+    equation: "a = F / m, with m = 2 kg",
+    caption: "Double the resultant force and the acceleration doubles — the mass sets the gradient.",
+  },
+  "energy-and-work": {
+    slope: 3,
+    intercept: 0,
+    xs: [0, 1, 2, 3],
+    xLabel: "distance moved (m)",
+    yLabel: "work done (J)",
+    equation: "W = Fd, with F = 3 N",
+    caption: "Work is force times distance, so with a steady force it rises in a straight line.",
+  },
+};
+
+/**
  * Chooses a visual module and computes its numeric parameters deterministically
  * from the already-verified equation string produced earlier in the pipeline
  * (math-verifier.ts). This deliberately does NOT ask a model to invent the
@@ -99,8 +198,19 @@ export function selectConceptVisual(params: {
   conceptSlug: string;
   originalExpression?: string | null; // e.g. first reasoning step, "2x + 7 = 15"
   correctedExpression?: string | null; // e.g. the repaired next step, "2x = 8"
+  /**
+   * Allows the curated worked examples — the physics relationships and the
+   * parabola — to be drawn.
+   *
+   * Off by default, and deliberately so. Those diagrams are correct statements
+   * about the concept but say nothing about *this* student's working, so
+   * showing one beside a diagnosis would put a picture on screen that their own
+   * lines can't be checked against. The concept explainer, where there is no
+   * student working at all, is the one place that is the right thing to draw.
+   */
+  allowCuratedExample?: boolean;
 }): VisualModule {
-  const { conceptSlug, originalExpression, correctedExpression } = params;
+  const { conceptSlug, originalExpression, correctedExpression, allowCuratedExample } = params;
 
   if (["inverse-operations", "equations", "algebra"].includes(conceptSlug)) {
     const before = originalExpression ? parseLinearEquation(originalExpression) : null;
@@ -216,6 +326,69 @@ export function selectConceptVisual(params: {
     };
   }
 
+  if (conceptSlug === "atomic-structure" && allowCuratedExample) {
+    const atom = STRUCTURES["atomic-structure"];
+    return { kind: "atom-shells", ...atom, shells: [...atom.shells] };
+  }
+
+  if (conceptSlug === "cell-structure" && allowCuratedExample) {
+    const cell = STRUCTURES["cell-structure"];
+    return {
+      kind: "cell-compare",
+      shared: [...cell.shared],
+      plantOnly: [...cell.plantOnly],
+      animalOnly: [...cell.animalOnly],
+      caption: cell.caption,
+    };
+  }
+
+  // ------------------------------------------------------------------ Physics
+  //
+  // These are straight-line relationships between two named quantities, which
+  // is a real diagram rather than a decorative one — but only if the axes say
+  // what they are. Every point is computed from the stated equation.
+  const relationship = allowCuratedExample ? PHYSICS_RELATIONSHIPS[conceptSlug] : undefined;
+  if (relationship) {
+    const points = relationship.xs.map((x) => ({
+      x,
+      y: relationship.slope * x + relationship.intercept,
+      label: undefined,
+      color: "#8B5CF6",
+    }));
+    const range = Math.max(6, ...points.map((p) => Math.abs(p.y) + 1), ...points.map((p) => Math.abs(p.x) + 1));
+    return {
+      kind: "coordinate-plane",
+      points,
+      range,
+      connect: true,
+      xLabel: relationship.xLabel,
+      yLabel: relationship.yLabel,
+      equation: relationship.equation,
+      caption: relationship.caption,
+    };
+  }
+
+  if (conceptSlug === "quadratics" && allowCuratedExample) {
+    // y = x^2 - 4, plotted from its own definition. The roots are where it
+    // crosses, which is the thing students are actually being asked to find.
+    const xs = [-3, -2, -1, 0, 1, 2, 3];
+    return {
+      kind: "coordinate-plane",
+      points: xs.map((x) => ({
+        x,
+        y: x * x - 4,
+        label: x * x - 4 === 0 ? `(${x}, 0)` : undefined,
+        color: x * x - 4 === 0 ? "#22C55E" : "#8B5CF6",
+      })),
+      range: 6,
+      connect: true,
+      xLabel: "x",
+      yLabel: "y",
+      equation: "y = x² - 4",
+      caption: "The roots are where the curve crosses zero — here, x = -2 and x = 2.",
+    };
+  }
+
   if (conceptSlug === "linear-graphing") {
     // Parse a slope-intercept equation "y = mx + b" (or "y=mx-b") from the
     // verified expression and plot exactly two deterministic points: the
@@ -234,6 +407,10 @@ export function selectConceptVisual(params: {
         { x: 1, y: m + b, label: `(1, ${m + b})`, color: "#22C55E" },
       ],
       range: Math.max(6, Math.abs(b) + Math.abs(m) + 2),
+      connect: true,
+      xLabel: "x",
+      yLabel: "y",
+      equation: source.trim(),
       caption: "Start at the y-intercept, then apply the slope once to find a second point on the line.",
     };
   }
