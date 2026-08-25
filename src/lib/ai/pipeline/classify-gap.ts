@@ -1,4 +1,4 @@
-import { generateStructured } from "@/lib/ai/gemini-client";
+import { generateStructured } from "@/lib/ai/ai-client";
 import { GapClassificationResult } from "@/lib/ai/schemas/pipeline";
 
 const SYSTEM = `You classify a student's math/science error at its point of first
