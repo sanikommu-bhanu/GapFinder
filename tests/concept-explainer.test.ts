@@ -226,6 +226,7 @@ describe("concept visuals from curated examples", () => {
         conceptSlug: example.visualSlug ?? slug,
         originalExpression: example.expression,
         correctedExpression: example.corrected ?? null,
+        allowCuratedExample: true,
       });
       expect(visual.kind, `${slug} should render a visual`).not.toBe("none");
     }
@@ -237,9 +238,20 @@ describe("concept visuals from curated examples", () => {
     }
   });
 
+  it("keeps the curated examples out of a diagnosis, where they would mislead", () => {
+    // The same call without the flag must not put a parabola or a physics line
+    // next to a student's own working.
+    expect(selectConceptVisual({ conceptSlug: "quadratics", originalExpression: "2x + 7 = 15" }).kind).toBe(
+      "none"
+    );
+    expect(selectConceptVisual({ conceptSlug: "newtons-laws" }).kind).toBe("none");
+  });
+
   it("has no example for a concept the visual selector cannot draw", () => {
-    // cell-structure has no deterministic diagram, so it must not claim one.
-    expect(exampleFor("cell-structure")).toBeNull();
-    expect(selectConceptVisual({ conceptSlug: "cell-structure" }).kind).toBe("none");
+    // Nothing in the corpus lets us draw formula substitution honestly on its
+    // own, so it borrows the balance model rather than claiming a diagram of
+    // its own — and a concept we ship no example for must render nothing.
+    expect(exampleFor("this-concept-does-not-exist")).toBeNull();
+    expect(selectConceptVisual({ conceptSlug: "this-concept-does-not-exist" }).kind).toBe("none");
   });
 });
