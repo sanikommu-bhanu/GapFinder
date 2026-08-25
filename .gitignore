@@ -1,0 +1,23 @@
+node_modules/
+.next/
+out/
+build/
+dist/
+
+# Local database — never commit, always regenerate via `npm run db:push && npm run db:seed`
+prisma/dev.db
+prisma/dev.db-journal
+
+# Env
+.env
+.env.local
+
+# Uploaded user work (contains user images)
+public/uploads/*
+!public/uploads/.gitkeep
+
+# Misc
+.DS_Store
+*.pem
+npm-debug.log*
+.vercel
