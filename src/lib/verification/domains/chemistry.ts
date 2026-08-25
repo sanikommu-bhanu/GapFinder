@@ -150,34 +150,81 @@ export function checkChemicalBalance(equation: string): BalanceCheck | null {
   };
 }
 
+/** Strips the leading coefficient, leaving the substance itself. */
+function speciesFormulas(side: string): string[] {
+  return side
+    .split(/\s\+\s|(?<=[a-zA-Z0-9)\]])\s*\+\s*(?=\d*[A-Z])/)
+    .map((raw) =>
+      raw
+        .replace(/\((s|l|g|aq)\)/gi, "")
+        .trim()
+        .replace(/^\d+/, "") // the coefficient is what balancing is allowed to change
+        .trim()
+    )
+    .filter(Boolean);
+}
+
 /**
- * Verifies a step in a balancing problem: the atoms present must not change
- * between steps — only the coefficients may — and the target is balance.
+ * Verifies a step in a balancing problem.
+ *
+ * Two rules, and they are different in kind:
+ *
+ *   1. **The substances may not change.** Balancing adjusts coefficients only.
+ *      Turning H2O into H2O2 makes the oxygen count work and silently swaps
+ *      water for hydrogen peroxide — it answers a different question. This is
+ *      the single most common and most damaging error in balancing, so it is
+ *      always a mistake, at any step.
+ *
+ *   2. **Being unbalanced mid-working is not an error.** A student balancing
+ *      carbon before hydrogen passes through unbalanced lines on the way to a
+ *      correct answer. Flagging those would mark the method itself wrong.
+ *      Balance is judged on the final line, by the caller.
  */
 export function verifyChemicalStep(prevEquation: string, nextEquation: string): { isValid: boolean; note: string } {
-  const prev = checkChemicalBalance(prevEquation);
   const next = checkChemicalBalance(nextEquation);
-
   if (!next) return { isValid: false, note: "This line couldn't be read as a chemical equation." };
 
-  // The species themselves must be the same; only coefficients may change.
-  if (prev) {
-    const prevElements = new Set([...Object.keys(prev.left), ...Object.keys(prev.right)]);
-    const nextElements = new Set([...Object.keys(next.left), ...Object.keys(next.right)]);
-    const added = [...nextElements].filter((e) => !prevElements.has(e));
-    const removed = [...prevElements].filter((e) => !nextElements.has(e));
-    if (added.length > 0 || removed.length > 0) {
-      const changes = [
-        added.length ? `${added.join(", ")} appeared` : "",
-        removed.length ? `${removed.join(", ")} disappeared` : "",
-      ]
-        .filter(Boolean)
-        .join(" and ");
-      return { isValid: false, note: `Elements can't be created or destroyed — ${changes}.` };
+  const prevParts = prevEquation.split(ARROW);
+  const nextParts = nextEquation.split(ARROW);
+
+  if (prevParts.length >= 3 && nextParts.length >= 3) {
+    const changed = [
+      ...findChangedSpecies(prevParts[0]!, nextParts[0]!, "left"),
+      ...findChangedSpecies(prevParts[2]!, nextParts[2]!, "right"),
+    ];
+    if (changed.length > 0) {
+      return {
+        isValid: false,
+        note: `${changed[0]} Balancing changes the number in front of a substance, never the formula itself — that would make it a different chemical.`,
+      };
     }
   }
 
-  return next.isBalanced
-    ? { isValid: true, note: next.note }
-    : { isValid: false, note: next.note };
+  return {
+    isValid: true,
+    note: next.isBalanced ? next.note : `${next.note} Keep going.`,
+  };
+}
+
+/** Reports any substance whose formula (not coefficient) changed. */
+function findChangedSpecies(prevSide: string, nextSide: string, which: "left" | "right"): string[] {
+  const before = speciesFormulas(prevSide);
+  const after = speciesFormulas(nextSide);
+
+  const removed = before.filter((f) => !after.includes(f));
+  const added = after.filter((f) => !before.includes(f));
+  if (removed.length === 0 && added.length === 0) return [];
+
+  if (removed.length === 1 && added.length === 1) {
+    return [`On the ${which}, ${removed[0]} became ${added[0]}.`];
+  }
+  if (added.length > 0) {
+    return [`On the ${which}, ${added.join(", ")} appeared where it wasn't before.`];
+  }
+  return [`On the ${which}, ${removed.join(", ")} disappeared.`];
+}
+
+/** True when this line is a fully balanced equation. */
+export function isBalanced(equation: string): boolean {
+  return checkChemicalBalance(equation)?.isBalanced === true;
 }
