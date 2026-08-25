@@ -1,31 +1,22 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
-export type ThemeChoice = "light" | "dark" | "system";
-
 export interface Appearance {
-  theme: ThemeChoice;
   accentColor: string;
   fontScale: number;
 }
 
-const DEFAULTS: Appearance = { theme: "system", accentColor: "purple", fontScale: 1 };
+const DEFAULTS: Appearance = { accentColor: "purple", fontScale: 1 };
 const STORAGE_KEY = "gapfinder-appearance";
 
-interface ThemeContextValue extends Appearance {
+interface AppearanceContextValue extends Appearance {
   /** Applies immediately, persists locally, and saves to the account. */
   update: (patch: Partial<Appearance>) => void;
-  /** What the page is actually rendering right now. */
-  resolvedTheme: "light" | "dark";
 }
 
-const ThemeContext = createContext<ThemeContextValue>({
-  ...DEFAULTS,
-  update: () => {},
-  resolvedTheme: "light",
-});
+const AppearanceContext = createContext<AppearanceContextValue>({ ...DEFAULTS, update: () => {} });
 
-export const useAppearance = () => useContext(ThemeContext);
+export const useAppearance = () => useContext(AppearanceContext);
 
 function readLocal(): Appearance {
   if (typeof window === "undefined") return DEFAULTS;
@@ -38,42 +29,34 @@ function readLocal(): Appearance {
   }
 }
 
-function apply(appearance: Appearance, systemDark: boolean) {
+function apply(appearance: Appearance) {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
-  const resolved = appearance.theme === "system" ? (systemDark ? "dark" : "light") : appearance.theme;
-  root.setAttribute("data-theme", resolved);
   root.setAttribute("data-accent", appearance.accentColor);
   root.style.setProperty("--font-scale", String(appearance.fontScale));
-  // Keeps the browser's own UI (address bar, form controls) in step.
-  root.style.colorScheme = resolved;
 }
 
 /**
  * Applies the student's appearance settings to the live document.
  *
- * Theme, accent and text size were previously saved to the account and then
- * ignored — three settings screens that changed nothing. This makes them real:
- * the choice lands instantly from local storage, is confirmed against the
- * server copy so it follows the student across devices, and tracks the OS
- * setting while the theme is "system".
+ * Accent and text size were previously saved to the account and then ignored —
+ * settings that changed nothing. This makes them real: the choice lands
+ * instantly from local storage and is reconciled with the account copy so it
+ * follows the student across devices.
+ *
+ * There is no theme switch. GapFinder ships one bright palette by design (see
+ * theme.css); text size is the accessibility control that matters here, and it
+ * scales the entire interface rather than one screen.
  */
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [appearance, setAppearance] = useState<Appearance>(DEFAULTS);
-  const [systemDark, setSystemDark] = useState(false);
 
-  // Local first, so there's no flash of the wrong theme while the fetch runs.
+  // Local first, so there is no flash of the wrong accent while the fetch runs.
   useEffect(() => {
-    const local = readLocal();
-    setAppearance(local);
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    setSystemDark(mq.matches);
-    const onChange = (e: MediaQueryListEvent) => setSystemDark(e.matches);
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
+    setAppearance(readLocal());
   }, []);
 
-  // Then reconcile with the account, which is the source of truth across devices.
+  // Then reconcile with the account, the source of truth across devices.
   useEffect(() => {
     let cancelled = false;
     fetch("/api/settings")
@@ -82,14 +65,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         if (cancelled || !d?.settings) return;
         setAppearance((current) => {
           const next: Appearance = {
-            theme: (d.settings.theme as ThemeChoice) ?? current.theme,
             accentColor: d.settings.accentColor ?? current.accentColor,
             fontScale: d.settings.fontScale ?? current.fontScale,
           };
           try {
             window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
           } catch {
-            // Private browsing can refuse writes; the theme still applies.
+            // Private browsing can refuse writes; the setting still applies.
           }
           return next;
         });
@@ -101,8 +83,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    apply(appearance, systemDark);
-  }, [appearance, systemDark]);
+    apply(appearance);
+  }, [appearance]);
 
   const update = useCallback((patch: Partial<Appearance>) => {
     setAppearance((current) => {
@@ -121,34 +103,23 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  const value = useMemo<ThemeContextValue>(
-    () => ({
-      ...appearance,
-      update,
-      resolvedTheme: appearance.theme === "system" ? (systemDark ? "dark" : "light") : appearance.theme,
-    }),
-    [appearance, systemDark, update]
-  );
+  const value = useMemo<AppearanceContextValue>(() => ({ ...appearance, update }), [appearance, update]);
 
-  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+  return <AppearanceContext.Provider value={value}>{children}</AppearanceContext.Provider>;
 }
 
 /**
- * Runs before first paint so the correct theme is already on <html> when the
- * page appears — without it, a dark-mode user sees a white flash on every load.
+ * Runs before first paint so the chosen accent and text size are already on
+ * <html> when the page appears, instead of snapping in after hydration.
  */
 export const themeBootstrapScript = `
 (function(){
   try {
     var raw = localStorage.getItem(${JSON.stringify(STORAGE_KEY)});
     var a = raw ? JSON.parse(raw) : {};
-    var theme = a.theme || "system";
-    var dark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
     var r = document.documentElement;
-    r.setAttribute("data-theme", dark ? "dark" : "light");
     if (a.accentColor) r.setAttribute("data-accent", a.accentColor);
     if (a.fontScale) r.style.setProperty("--font-scale", String(a.fontScale));
-    r.style.colorScheme = dark ? "dark" : "light";
   } catch (e) {}
 })();
 `;
