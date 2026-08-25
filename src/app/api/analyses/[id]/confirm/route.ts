@@ -3,6 +3,10 @@ import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { getSessionUserId } from "@/lib/auth/session";
 import { continuePipelineFromSteps } from "@/lib/ai/pipeline/orchestrator";
+import { runInBackground } from "@/lib/background";
+
+/** Resuming re-runs the model stages, so it needs the same ceiling. */
+export const maxDuration = 60;
 
 const Body = z.object({
   steps: z
@@ -60,19 +64,22 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     data: { status: "reconstructing", statusReason: null },
   });
 
-  void continuePipelineFromSteps({
-    analysisId: params.id,
-    subject: analysis.subject,
-    steps: parsed.data.steps,
-  }).catch(async (err) => {
-    console.error("[analysis] resume crashed", params.id, err);
-    await prisma.analysis
-      .update({
-        where: { id: params.id },
-        data: { status: "failed", statusReason: "Something went wrong analyzing this. Please try again." },
-      })
-      .catch(() => {});
-  });
+  runInBackground(
+    continuePipelineFromSteps({
+      analysisId: params.id,
+      subject: analysis.subject,
+      steps: parsed.data.steps,
+    }).catch(async (err) => {
+      console.error("[analysis] resume crashed", params.id, err);
+      await prisma.analysis
+        .update({
+          where: { id: params.id },
+          data: { status: "failed", statusReason: "Something went wrong analyzing this. Please try again." },
+        })
+        .catch(() => {});
+    }),
+    `resume ${params.id}`
+  );
 
   return NextResponse.json({ status: "resumed" }, { status: 202 });
 }
