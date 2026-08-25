@@ -10,8 +10,13 @@ import { useAppStore } from "@/store/useAppStore";
 import { cn } from "@/lib/cn";
 import { SUBJECTS } from "@/lib/subjects";
 import { SubjectCapability } from "@/components/ui/SubjectCapability";
+import { prepareImageForUpload, base64ToDataUrl } from "@/lib/media/prepare-upload";
 
-const MAX_FILE_BYTES = 6 * 1024 * 1024;
+/**
+ * A generous ceiling, because the browser downscales before uploading — this
+ * only exists to catch someone selecting a video or a RAW file by mistake.
+ */
+const MAX_FILE_BYTES = 40 * 1024 * 1024;
 
 /**
  * A real worked solution with a real mistake, for anyone who wants to see what
@@ -44,6 +49,7 @@ export default function ScanPage() {
   const [typed, setTyped] = useState("");
   const [subject, setSubject] = useState("Math");
   const [loading, setLoading] = useState(false);
+  const [preparing, setPreparing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const setActiveAnalysis = useAppStore((s) => s.setActiveAnalysis);
 
@@ -52,36 +58,34 @@ export default function ScanPage() {
     .map((l) => l.trim())
     .filter(Boolean);
 
-  function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     // Reset so choosing the same file twice still fires a change.
     e.target.value = "";
     if (!f) return;
     setError(null);
 
-    if (!f.type.startsWith("image/")) {
+    // Some phones report an empty type for HEIC, so a missing type is not
+    // grounds for rejection — let the decoder be the judge.
+    if (f.type && !f.type.startsWith("image/")) {
       setError("That file isn't an image. Choose a photo of your written work.");
       return;
     }
     if (f.size > MAX_FILE_BYTES) {
-      setError("That photo is over 6 MB. Try again with a smaller or lower-resolution image.");
+      setError("That file is very large. Choose a photo rather than a video or RAW file.");
       return;
     }
 
-    const reader = new FileReader();
-    reader.onerror = () => setError("We couldn't read that file. Try choosing it again.");
-    reader.onload = () => {
-      const result = reader.result as string;
-      const base64 = result.split(",")[1] ?? "";
-      if (!base64) {
-        setError("We couldn't read that file. Try choosing it again.");
-        return;
-      }
-      // The preview appears the instant the file is read — no waiting on the server.
-      setPreview(result);
-      setFileData({ base64, mime: f.type });
-    };
-    reader.readAsDataURL(f);
+    setPreparing(true);
+    try {
+      const prepared = await prepareImageForUpload(f);
+      setPreview(base64ToDataUrl(prepared.base64, prepared.mimeType));
+      setFileData({ base64: prepared.base64, mime: prepared.mimeType });
+    } catch {
+      setError("We couldn't read that photo. Try taking it again, or choose another.");
+    } finally {
+      setPreparing(false);
+    }
   }
 
   function clearImage() {
@@ -130,7 +134,7 @@ export default function ScanPage() {
     }
   }
 
-  const canSubmit = mode === "typed" ? typedLines.length >= 2 : Boolean(fileData);
+  const canSubmit = mode === "typed" ? typedLines.length >= 2 : Boolean(fileData) && !preparing;
 
   return (
     <div className="pb-8">
@@ -170,7 +174,12 @@ export default function ScanPage() {
           <>
             <div className="relative mt-4">
               <Card className="flex aspect-[4/3] items-center justify-center overflow-hidden bg-surface-muted p-0">
-                {preview ? (
+                {preparing ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <span className="h-6 w-6 animate-spin rounded-full border-2 border-lavender-200 border-t-lavender-500" />
+                    <p className="text-xs text-ink-soft">Preparing your photo…</p>
+                  </div>
+                ) : preview ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={preview} alt="Your uploaded work" className="h-full w-full object-contain" />
                 ) : (
