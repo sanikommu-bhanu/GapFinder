@@ -1,4 +1,4 @@
-import { generateStructured } from "@/lib/ai/gemini-client";
+import { generateStructured } from "@/lib/ai/ai-client";
 import { TeachBackEvalResult } from "@/lib/ai/schemas/pipeline";
 
 const SYSTEM = `You evaluate a student's spoken/typed explanation of a concept
