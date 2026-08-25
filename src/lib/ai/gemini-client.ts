@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI, type Part } from "@google/generative-ai";
 import { z } from "zod";
-import { zodToJsonSchema } from "zod-to-json-schema";
+import { toGeminiResponseSchema } from "@/lib/ai/schemas/to-gemini-schema";
 import { env, hasGeminiKey } from "@/lib/env";
 import { prisma } from "@/lib/db/prisma";
 import { computeCacheKey } from "./cache-key";
@@ -71,7 +71,7 @@ export async function generateStructured<T extends z.ZodTypeAny>(
     }
   }
 
-  const jsonSchema = zodToJsonSchema(opts.schema, { target: "openApi3" });
+  const jsonSchema = toGeminiResponseSchema(opts.schema);
   const model = getClient().getGenerativeModel({
     model: opts.useVisionModel ? env.GEMINI_VISION_MODEL : env.GEMINI_MODEL,
     systemInstruction: opts.systemInstruction,
