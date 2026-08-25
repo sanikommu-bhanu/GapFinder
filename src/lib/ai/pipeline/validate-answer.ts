@@ -1,5 +1,5 @@
-import { generateStructured } from "@/lib/ai/gemini-client";
-import { hasGeminiKey } from "@/lib/env";
+import { generateStructured } from "@/lib/ai/ai-client";
+import { hasAnyProvider } from "@/lib/ai/ai-client";
 import { checkStudentWork } from "@/lib/verification/check-student-work";
 import { z } from "zod";
 
@@ -53,7 +53,7 @@ export async function validateAnswer(params: {
     };
   }
 
-  if (!hasGeminiKey()) {
+  if (!hasAnyProvider()) {
     return {
       isCorrect: false,
       verifiedBy: "deterministic",
