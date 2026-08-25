@@ -6,6 +6,12 @@ export interface LessonLine {
   text: string;
   /** Rendered in the display font when it's an expression rather than prose. */
   expression?: string;
+  /**
+   * Overrides the role's default heading. A concept explainer's beats read
+   * differently from a diagnosis's ("What it is", not "What you wrote") while
+   * still using the same roles for styling and pacing.
+   */
+  label?: string;
 }
 
 /**
