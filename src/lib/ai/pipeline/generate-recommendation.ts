@@ -35,6 +35,12 @@ export async function generateRecommendation(params: {
   /** Pairs of concept slugs the knowledge graph flags as commonly mixed up by students. */
   commonlyConfusedEdges?: { aSlug: string; bSlug: string }[];
   /**
+   * Concepts the student can actually start now. Recommending a locked concept
+   * as "next" contradicts the roadmap on the very same screen, so anything
+   * still gated by an unmet prerequisite is excluded from the ranking.
+   */
+  unlockedConceptIds?: string[];
+  /**
    * This call is cross-analysis (it reasons over the whole roadmap, not one
    * upload), so there's no single owning analysis the way there is for
    * per-upload stages. We still attach the student's most recent analysis id
@@ -50,7 +56,12 @@ export async function generateRecommendation(params: {
     confusedWith.set(e.bSlug, [...(confusedWith.get(e.bSlug) ?? []), e.aSlug]);
   }
 
+  const reachable = params.unlockedConceptIds
+    ? new Set(params.unlockedConceptIds)
+    : null;
+
   const scored = params.masteryRecords
+    .filter((m) => !reachable || reachable.has(m.conceptId))
     .map((m) => {
       let score = 100 - m.masteryScore;
       if (params.recurringGapConceptIds.includes(m.conceptId)) score += 30;
