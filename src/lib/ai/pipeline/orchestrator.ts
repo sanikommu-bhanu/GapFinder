@@ -13,10 +13,13 @@ import { classifyGapOffline } from "./classify-gap-offline";
 
 export interface RunPipelineParams {
   analysisId: string;
-  imageBase64: string;
-  imageMimeType: string;
+  /** Omitted when the student typed their working instead of photographing it. */
+  imageBase64?: string;
+  imageMimeType?: string;
   subject: string;
   textContext?: string | null;
+  /** Steps the student typed directly — skips the vision stage entirely. */
+  typedSteps?: string[];
 }
 
 export interface RunPipelineResult {
@@ -36,11 +39,37 @@ export interface RunPipelineResult {
 export async function runAnalysisPipeline(params: RunPipelineParams): Promise<RunPipelineResult> {
   await setStatus(params.analysisId, "reading");
 
+  // Typed working needs no interpretation: the student already told us exactly
+  // what each line says, which is strictly better evidence than reading a photo.
+  if (params.typedSteps?.length) {
+    const steps = params.typedSteps.map((line, i) => ({ order: i + 1, interpreted: line.trim() }));
+    await prisma.extractedStep.createMany({
+      data: steps.map((s) => ({
+        analysisId: params.analysisId,
+        order: s.order,
+        rawLine: s.interpreted,
+        interpreted: s.interpreted,
+        confidence: "high",
+        needsConfirm: false,
+      })),
+    });
+    return finishFromSteps({
+      analysisId: params.analysisId,
+      subject: params.subject,
+      steps,
+      confidence: "high",
+    });
+  }
+
+  if (!params.imageBase64) {
+    return failWithReason(params.analysisId, "No work was submitted to analyze.");
+  }
+
   let extraction;
   try {
     extraction = await readAndExtractSteps({
       imageBase64: params.imageBase64,
-      imageMimeType: params.imageMimeType,
+      imageMimeType: params.imageMimeType ?? "image/jpeg",
       subject: params.subject,
       textContext: params.textContext,
       analysisId: params.analysisId,
@@ -319,9 +348,9 @@ async function failWithReason(analysisId: string, reason: string): Promise<RunPi
 async function failGracefully(analysisId: string, err: unknown): Promise<RunPipelineResult> {
   const reason =
     err instanceof AiUnavailableError && err.reason === "quota"
-      ? "Gemini's free-tier limit was reached. Try again shortly, or explore Demo Mode — it runs the same journey with no API calls."
+      ? "Gemini's rate limit was reached. We finished what we could verify ourselves — try again in a minute for the full explanation."
       : err instanceof AiUnavailableError && err.reason === "no_key"
-        ? "Live AI is not configured on this server. Demo Mode runs the full journey without it."
+        ? "Live AI isn't configured on this server, so we could only run the parts we verify locally."
         : err instanceof AiUnavailableError && err.reason === "invalid_response"
           ? "The AI returned something we could not verify, so we stopped rather than show you a guess. Please try again."
           : "Something went wrong analyzing this. Please try again.";
