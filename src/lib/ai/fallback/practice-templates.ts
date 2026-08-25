@@ -1,5 +1,5 @@
 import { verifyFinalAnswer } from "@/lib/verification/math-verifier";
-import { solveLinear } from "@/lib/math/solve-step";
+import { solveLinear, fmt } from "@/lib/math/solve-step";
 
 /**
  * Deterministic practice/transfer problem generation.
@@ -7,7 +7,7 @@ import { solveLinear } from "@/lib/math/solve-step";
  * Two jobs, both required by the product's honesty rules:
  *
  * 1. It is the offline path. When Gemini is unavailable (no key, quota
- *    exhausted, network down, or Demo Mode) a student must still get a real,
+ *    exhausted, or network down) a student must still get a real,
  *    correct problem targeting their actual gap — not an error screen.
  * 2. It is the validator. Every problem — generated here OR by Gemini — is run
  *    through `validateGeneratedProblem` before a student ever sees it, so the
@@ -25,22 +25,54 @@ export interface GeneratedProblem {
 }
 
 /**
+ * Pulls the equation out of a problem statement.
+ *
+ * A generated prompt often carries framing ("Solve for n: 5n + 7 = 47"), and
+ * rejecting those would throw away every usable problem the model writes. This
+ * finds the equation inside the text; if there isn't one, there is nothing to
+ * verify and the caller rejects the problem.
+ */
+export function extractEquation(prompt: string): string | null {
+  const normalized = prompt
+    .replace(/[×·]/g, "*")
+    .replace(/[−–—]/g, "-")
+    .replace(/\?[$]/g, "")
+    .trim();
+
+  // Longest run of equation-ish characters containing exactly one "=".
+  const candidates = normalized.match(/[0-9a-zA-Z().+\-*/^\s]*=[0-9a-zA-Z().+\-*/^\s]*/g);
+  if (!candidates) return null;
+
+  for (const candidate of candidates
+    .map((c) => c.trim())
+    .sort((a, b) => b.length - a.length)) {
+    if ((candidate.match(/=/g) ?? []).length !== 1) continue;
+    const [lhs, rhs] = candidate.split("=");
+    if (!lhs?.trim() || !rhs?.trim()) continue;
+    if (!/[0-9]/.test(candidate)) continue;
+    // Trim leading prose words that got swept in ("Solve for n 5n + 7 = 47").
+    const cleanedLhs = lhs.trim().split(/\s{2,}|:/).pop()?.trim() ?? lhs.trim();
+    const equation = `${cleanedLhs} = ${rhs.trim()}`;
+    if (solveLinear(equation) !== null) return equation;
+  }
+  return null;
+}
+
+/**
  * Checks that a problem's declared answer really is the answer, by solving the
  * problem independently and comparing. Returns false for anything unverifiable
- * — an unverifiable problem is never shown.
+ * — an unverifiable problem is never shown to a student.
  */
 export function validateGeneratedProblem(prompt: string, correctAnswer: string): boolean {
-  const solved = solveLinear(prompt);
+  const equation = extractEquation(prompt);
+  if (!equation) return false;
+  const solved = solveLinear(equation);
   if (solved === null) return false;
-  const variable = prompt.match(/[a-zA-Z]/)?.[0] ?? "x";
+  const variable = equation.match(/[a-zA-Z]/)?.[0] ?? "x";
   const check = verifyFinalAnswer(correctAnswer, `${variable} = ${solved}`);
   return check.isValid;
 }
 
-function fmt(n: number): string {
-  const r = Math.round(n * 1e6) / 1e6;
-  return String(r);
-}
 
 /** Deterministic pseudo-random so a given gap gets a stable but varied problem. */
 function seededPick<T>(items: T[], seed: string, offset = 0): T {
