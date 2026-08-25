@@ -31,7 +31,7 @@ export function coachReplyOffline(params: {
 
   const memoryLine =
     params.focusConceptName && params.recurringGapCount && params.recurringGapCount > 1
-      ? ` Your record shows ${params.conceptRepeatPhrase ?? `this has come up ${params.recurringGapCount} times in ${params.focusConceptName.toLowerCase()}`}, which is why it's worth slowing down on.`
+      ? ` Your own record shows this has come up ${params.recurringGapCount} times in ${params.focusConceptName.toLowerCase()}, which is why it's worth slowing down on.`
       : "";
 
   return {
