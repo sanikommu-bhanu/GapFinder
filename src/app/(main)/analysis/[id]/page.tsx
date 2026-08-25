@@ -103,7 +103,7 @@ export default function AnalysisDetailPage() {
       .finally(() => setLoading(false));
   }, [params.id, router]);
 
-  // Reveal cadence: quick enough not to waste a judge's time, slow enough that
+  // Reveal cadence: quick enough not to waste anyone's time, slow enough that
   // the eye follows the chain down to the step that breaks.
   useEffect(() => {
     if (loading || view !== "replay" || steps.length === 0) return;
@@ -117,6 +117,15 @@ export default function AnalysisDetailPage() {
     const timer = setTimeout(() => setRevealed((n) => n + 1), revealed === 0 ? 120 : 330);
     return () => clearTimeout(timer);
   }, [loading, view, steps.length, revealed]);
+
+  // A backgrounded tab, a throttled timer or a dropped frame must never leave
+  // the student looking at a half-drawn list with no way forward. Whatever
+  // happens to the animation, everything is on screen shortly after load.
+  useEffect(() => {
+    if (loading || steps.length === 0) return;
+    const failsafe = setTimeout(() => setRevealed(steps.length), 400 + steps.length * 340);
+    return () => clearTimeout(failsafe);
+  }, [loading, steps.length]);
 
   const firstGapStep = useMemo(() => steps.find((s) => s.isFirstGap), [steps]);
   const previousStep = useMemo(() => {
@@ -224,7 +233,10 @@ export default function AnalysisDetailPage() {
               We rebuilt your reasoning and checked every line against the one before it.
             </p>
 
-            <div className="mt-4 flex flex-col gap-2.5">
+            <div
+              className="mt-4 flex flex-col gap-2.5"
+              onClick={() => setRevealed(steps.length)}
+            >
               {steps.map((s, i) => (
                 <div
                   key={s.id}
@@ -248,23 +260,27 @@ export default function AnalysisDetailPage() {
             </div>
 
             {allRevealed && (
-              <div className="animate-fade-up">
-                <Card className="mt-4 bg-surface-muted shadow-none">
-                  <p className="text-xs leading-relaxed text-ink-soft">
-                    <span className="font-semibold text-navy-900">One mistake, not {1 + downstream}.</span>{" "}
-                    {downstream > 0
-                      ? `Step ${firstGapStep.order} is where the reasoning changed. The ${downstream} step${downstream === 1 ? "" : "s"} after it ${downstream === 1 ? "was" : "were"} worked correctly — from a line that was already wrong.`
-                      : `Step ${firstGapStep.order} is where the reasoning changed.`}
-                    {independent > 0 &&
-                      ` We also found ${independent} separate mistake${independent === 1 ? "" : "s"} further down.`}
-                  </p>
-                </Card>
-
-                <Button className="mt-4 w-full" onClick={() => setView("first-gap")}>
-                  Show me where it broke <ArrowRight className="h-4 w-4" />
-                </Button>
-              </div>
+              <Card className="mt-4 bg-surface-muted shadow-none animate-fade-up">
+                <p className="text-xs leading-relaxed text-ink-soft">
+                  <span className="font-semibold text-navy-900">One mistake, not {1 + downstream}.</span>{" "}
+                  {downstream > 0
+                    ? `Step ${firstGapStep.order} is where the reasoning changed. The ${downstream} step${downstream === 1 ? "" : "s"} after it ${downstream === 1 ? "was" : "were"} worked correctly — from a line that was already wrong.`
+                    : `Step ${firstGapStep.order} is where the reasoning changed.`}
+                  {independent > 0 &&
+                    ` We also found ${independent} separate mistake${independent === 1 ? "" : "s"} further down.`}
+                </p>
+              </Card>
             )}
+
+            {/* Always rendered. Gating the only way forward on an animation
+                finishing is how a student ends up stuck on this screen. */}
+            <Button
+              className="mt-4 w-full"
+              onClick={() => (allRevealed ? setView("first-gap") : setRevealed(steps.length))}
+            >
+              {allRevealed ? "Show me where it broke" : "Skip to the result"}
+              <ArrowRight className="h-4 w-4" />
+            </Button>
           </div>
         </>
       )}
