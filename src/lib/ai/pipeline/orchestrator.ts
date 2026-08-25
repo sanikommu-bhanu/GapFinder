@@ -4,7 +4,7 @@ import { hasGeminiKey } from "@/lib/env";
 import { retrieveKnowledge } from "@/lib/ai/rag/retrieve";
 import { explainGapOffline } from "@/lib/ai/fallback/offline-explain";
 import type { ExplanationResult } from "@/lib/ai/schemas/pipeline";
-import { readAndExtractSteps } from "./read-and-extract";
+import { analyzeWork } from "./analyze-work";
 import { reconstructReasoning } from "./reconstruct-reasoning";
 import { verifyAndFindDivergenceDetailed, type VerifiedStep } from "./verify-and-find-divergence";
 import { classifyGap } from "./classify-gap";
@@ -66,12 +66,25 @@ export async function runAnalysisPipeline(params: RunPipelineParams): Promise<Ru
     return failWithReason(params.analysisId, "No work was submitted to analyze.");
   }
 
-  let extraction;
+  // One multimodal call reads, narrates and classifies. It used to be three,
+  // which cost three round-trips and three charges against the free-tier quota
+  // for a single photo. Combining them is safe because nothing the model says
+  // is trusted: the divergence is proved by the verifier immediately after.
+  const concepts = await prisma.concept.findMany({
+    select: { id: true, slug: true, name: true, subject: true, description: true, commonErrors: true },
+  });
+  const subjectConcepts = concepts.filter(
+    (c) => c.subject.toLowerCase() === params.subject.toLowerCase()
+  );
+  const shortlist = subjectConcepts.length > 0 ? subjectConcepts : concepts;
+
+  let analysis;
   try {
-    extraction = await readAndExtractSteps({
+    analysis = await analyzeWork({
       imageBase64: params.imageBase64,
       imageMimeType: params.imageMimeType ?? "image/jpeg",
       subject: params.subject,
+      availableConceptSlugs: shortlist.map((c) => c.slug),
       textContext: params.textContext,
       analysisId: params.analysisId,
     });
@@ -79,15 +92,22 @@ export async function runAnalysisPipeline(params: RunPipelineParams): Promise<Ru
     return failGracefully(params.analysisId, err);
   }
 
-  if (extraction.result.steps.length === 0) {
+  const read = analysis.result;
+
+  // A photograph of a question with nothing attempted has no reasoning to
+  // diagnose. Saying so plainly beats "we couldn't read any steps", which
+  // sounds like a failure of ours rather than a description of the page.
+  if (read.isQuestionOnly || read.steps.length === 0) {
     return failWithReason(
       params.analysisId,
-      "We could not read any working steps in that image. Try a straighter, better-lit photo with one problem per photo."
+      read.isQuestionOnly
+        ? "This looks like a question with no working yet. GapFinder finds where your reasoning broke, so it needs to see your attempt — even a wrong one."
+        : "We could not read any working steps in that image. Try a straighter, better-lit photo with one problem per photo."
     );
   }
 
   await prisma.extractedStep.createMany({
-    data: extraction.result.steps.map((s) => ({
+    data: read.steps.map((s) => ({
       analysisId: params.analysisId,
       order: s.order,
       rawLine: s.rawLine,
@@ -97,25 +117,34 @@ export async function runAnalysisPipeline(params: RunPipelineParams): Promise<Ru
     })),
   });
 
-  if (extraction.result.needsConfirmation) {
+  if (read.needsConfirmation) {
     await prisma.analysis.update({
       where: { id: params.analysisId },
       data: {
         status: "needs_confirmation",
-        confidence: extraction.result.overallConfidence,
+        confidence: read.overallConfidence,
         statusReason:
-          extraction.result.confirmationQuestion ??
+          read.confirmationQuestion ??
           "Some of your handwriting was hard to read. Check what we got before we analyze it.",
       },
     });
-    return { status: "needs_confirmation", reason: extraction.result.confirmationQuestion ?? undefined };
+    return { status: "needs_confirmation", reason: read.confirmationQuestion ?? undefined };
   }
 
   return finishFromSteps({
     analysisId: params.analysisId,
     subject: params.subject,
-    steps: extraction.result.steps.map((s) => ({ order: s.order, interpreted: s.interpreted })),
-    confidence: extraction.result.overallConfidence,
+    steps: read.steps.map((s) => ({ order: s.order, interpreted: s.interpreted })),
+    confidence: read.overallConfidence,
+    // Carried through so the later stages don't re-ask the model what it
+    // already told us in this same call.
+    preAnalysed: {
+      statements: new Map(read.steps.map((s) => [s.order, s.statement])),
+      conceptSlug: read.conceptSlug,
+      misconceptionCode: read.misconceptionCode,
+      surfaceError: read.surfaceError,
+      underlyingGap: read.underlyingGap,
+    },
   });
 }
 
@@ -139,24 +168,44 @@ export async function continuePipelineFromSteps(params: {
  * resume land here, so there is exactly one implementation of the part that
  * decides what a gap actually is.
  */
+interface PreAnalysed {
+  statements: Map<number, string>;
+  conceptSlug: string;
+  misconceptionCode: string;
+  surfaceError: string;
+  underlyingGap: string;
+}
+
 async function finishFromSteps(params: {
   analysisId: string;
   subject: string;
   steps: { order: number; interpreted: string }[];
   confidence: string;
+  /** Present when the combined call already narrated and classified. */
+  preAnalysed?: PreAnalysed;
 }): Promise<RunPipelineResult> {
   await setStatus(params.analysisId, "reconstructing");
 
   let reasoningSteps: { order: number; statement: string; expression: string }[];
-  try {
-    const reconstruction = await reconstructReasoning({
-      subject: params.subject,
-      steps: params.steps,
-      analysisId: params.analysisId,
-    });
-    reasoningSteps = reconstruction.result.reasoningSteps;
-  } catch (err) {
-    return failGracefully(params.analysisId, err);
+  if (params.preAnalysed) {
+    // Already narrated in the combined call — asking again would spend a
+    // second request to learn what we were just told.
+    reasoningSteps = params.steps.map((step) => ({
+      order: step.order,
+      statement: params.preAnalysed!.statements.get(step.order) ?? step.interpreted,
+      expression: step.interpreted,
+    }));
+  } else {
+    try {
+      const reconstruction = await reconstructReasoning({
+        subject: params.subject,
+        steps: params.steps,
+        analysisId: params.analysisId,
+      });
+      reasoningSteps = reconstruction.result.reasoningSteps;
+    } catch (err) {
+      return failGracefully(params.analysisId, err);
+    }
   }
 
   await setStatus(params.analysisId, "verifying");
@@ -241,13 +290,30 @@ async function finishFromSteps(params: {
   const concepts = subjectConcepts.length > 0 ? subjectConcepts : allConcepts;
 
   const prevStep = verified[verified.findIndex((v) => v.isFirstGap) - 1];
-  const classification = await classifyWithFallback({
-    subject: params.subject,
-    verified,
-    divergence,
-    concepts,
-    analysisId: params.analysisId,
-  });
+
+  // The combined call already chose a concept and described the error. Only
+  // fall back to a separate classification request when it didn't.
+  const preClassified =
+    params.preAnalysed && concepts.some((c) => c.slug === params.preAnalysed!.conceptSlug)
+      ? {
+          conceptSlug: params.preAnalysed.conceptSlug,
+          classification: params.preAnalysed.misconceptionCode,
+          surfaceError: params.preAnalysed.surfaceError || divergence.verificationNote,
+          underlyingGap: params.preAnalysed.underlyingGap || divergence.verificationNote,
+          evidence: [{ stepOrder: divergence.order, note: divergence.verificationNote }],
+          confidence: "high" as const,
+        }
+      : null;
+
+  const classification =
+    preClassified ??
+    (await classifyWithFallback({
+      subject: params.subject,
+      verified,
+      divergence,
+      concepts,
+      analysisId: params.analysisId,
+    }));
 
   const concept = concepts.find((c) => c.slug === classification.conceptSlug) ?? concepts[0]!;
 
