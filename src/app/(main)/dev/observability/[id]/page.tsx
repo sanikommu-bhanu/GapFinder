@@ -32,7 +32,7 @@ interface Detail {
     uploadedWork: { imageUrl: string; sourceType: string; rawText: string | null } | null;
   };
   extractedSteps: { id: string; order: number; rawLine: string; interpreted: string; confidence: string; needsConfirm: boolean }[];
-  reasoningSteps: { id: string; order: number; statement: string; expression: string; isValid: boolean; isFirstGap: boolean; verificationNote: string | null }[];
+  reasoningSteps: { id: string; order: number; statement: string; expression: string; isValid: boolean; isFirstGap: boolean; verificationNote: string | null; verdict?: string; correctedExpression?: string | null }[];
   gaps: {
     id: string;
     classification: string;
@@ -117,7 +117,7 @@ export default function ObservabilityDetailPage() {
                   key={s.id}
                   title={`Step ${s.order}: ${s.statement}`}
                   expression={s.expression}
-                  status={s.isFirstGap ? "error" : s.isValid ? "valid" : "warning"}
+                  verdict={(s.verdict as any) ?? (s.isFirstGap ? "first_divergence" : s.isValid ? "correct" : "downstream_consequence")}
                   highlighted={s.isFirstGap}
                 />
               ))}
