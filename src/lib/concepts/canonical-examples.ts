@@ -58,10 +58,8 @@ export const CANONICAL_EXAMPLES: Record<string, CanonicalExample> = {
     caption: "A worked example: break the number into a factor pair.",
   },
   quadratics: {
-    expression: "y = 2x + 0",
-    corrected: "y = 2x + 0",
-    caption: "A worked example: plotting the line the roots sit on.",
-    visualSlug: "linear-graphing",
+    expression: "y = x^2 - 4",
+    caption: "A worked example: the curve crosses zero at its roots.",
   },
   fractions: {
     expression: "3/4",
@@ -86,22 +84,16 @@ export const CANONICAL_EXAMPLES: Record<string, CanonicalExample> = {
     visualSlug: "inverse-operations",
   },
   kinematics: {
-    expression: "y = 2x + 1",
-    corrected: "y = 2x + 1",
-    caption: "A worked example: a velocity-time line — the gradient is the acceleration.",
-    visualSlug: "linear-graphing",
+    expression: "v = u + at",
+    caption: "A worked example: velocity against time, with the acceleration as the gradient.",
   },
   "energy-and-work": {
-    expression: "y = 2x + 0",
-    corrected: "y = 2x + 0",
-    caption: "A worked example: energy rising in proportion to the distance moved.",
-    visualSlug: "linear-graphing",
+    expression: "W = Fd",
+    caption: "A worked example: work done against distance moved, at a steady force.",
   },
   "newtons-laws": {
-    expression: "y = 2x + 0",
-    corrected: "y = 2x + 0",
-    caption: "A worked example: with mass fixed, acceleration is proportional to force.",
-    visualSlug: "linear-graphing",
+    expression: "F = ma",
+    caption: "A worked example: acceleration against resultant force, with the mass fixed.",
   },
   "chemical-equations": {
     expression: "2H2 + O2 -> 2H2O",
@@ -121,10 +113,12 @@ export const CANONICAL_EXAMPLES: Record<string, CanonicalExample> = {
     visualSlug: "balancing-equations",
   },
   "atomic-structure": {
-    expression: "2H2 + O2 -> 2H2O",
-    corrected: "2H2 + O2 -> 2H2O",
-    caption: "A worked example: atoms are rearranged, never created or destroyed.",
-    visualSlug: "balancing-equations",
+    expression: "Na",
+    caption: "A worked example: sodium, shell by shell.",
+  },
+  "cell-structure": {
+    expression: "plant vs animal",
+    caption: "A worked example: what each kind of cell has, and what it does not.",
   },
   "genetics-inheritance": {
     expression: "Aa x Aa",
