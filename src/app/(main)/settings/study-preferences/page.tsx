@@ -4,7 +4,9 @@ import { TopBar } from "@/components/nav/TopBar";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 
-const SUBJECTS = ["Math", "Physics", "Chemistry"];
+import { SUBJECT_NAMES } from "@/lib/subjects";
+
+const SUBJECTS = SUBJECT_NAMES;
 const PACE = ["relaxed", "standard", "intense"] as const;
 
 export default function StudyPreferencesPage() {
