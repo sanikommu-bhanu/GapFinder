@@ -20,7 +20,15 @@ export function ConceptVisual({ visual }: { visual: VisualModule }) {
     case "number-line":
       return <NumberLineVisual from={visual.from} to={visual.to} caption={visual.caption} />;
     case "distributive-area":
-      return <DistributiveAreaVisual a={visual.a} b={visual.b} c={visual.c} caption={visual.caption} />;
+      return (
+        <DistributiveAreaVisual
+          a={visual.a}
+          b={visual.b}
+          c={visual.c}
+          variable={visual.variable}
+          caption={visual.caption}
+        />
+      );
     case "factor-tree":
       return <FactorTreeVisual levels={visual.levels} caption={visual.caption} />;
     case "fraction":
