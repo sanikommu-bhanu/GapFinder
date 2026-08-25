@@ -2,25 +2,9 @@ import { z } from "zod";
 
 export const ConfidenceLevel = z.enum(["high", "medium", "low"]);
 
-// Stage 1+2: Vision/handwriting interpretation -> step extraction (combined into
-// one Gemini call since both operate on the same image, to conserve requests).
-export const StepExtractionResult = z.object({
-  overallConfidence: ConfidenceLevel,
-  needsConfirmation: z.boolean(),
-  confirmationQuestion: z.string().nullable(),
-  steps: z.array(
-    z.object({
-      order: z.number().int(),
-      rawLine: z.string(),
-      interpreted: z.string(),
-      confidence: ConfidenceLevel,
-      needsConfirm: z.boolean(),
-    })
-  ),
-});
-export type StepExtractionResult = z.infer<typeof StepExtractionResult>;
-
-// Stage 3: Reasoning reconstruction — restates each step as a reasoning claim.
+// Reasoning reconstruction — restates each step as a reasoning claim.
+// Only used on the typed-input path now; the photo path gets narration from
+// the single combined call in analyze-work.ts.
 // (Validity itself is computed deterministically afterward, not by the model.)
 export const ReasoningReconstructionResult = z.object({
   reasoningSteps: z.array(
