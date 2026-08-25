@@ -1,19 +1,19 @@
 import "dotenv/config";
 /**
- * Runs the fixtures in fixtures/reasoning-cases.json against the
- * deterministic math verifier ONLY (src/lib/verification/math-verifier.ts).
- * This deliberately does not touch Gemini, Prisma, or the DB, so it needs no
- * API key or migration to run — it's the fast, free layer of the eval suite
- * that should pass before ever spending a model call.
+ * Runs the fixture set against the deterministic verification layer only —
+ * the audit, the divergence search and the derived correction. It touches no
+ * model, no database and no network, so it runs in milliseconds and should
+ * pass before a single Gemini call is ever spent.
  *
- * Cases whose `note`/category require an actual image (ambiguous/messy
- * handwriting) are skipped here and reported as SKIPPED — they need real
- * image fixtures plus a configured GEMINI_API_KEY, and belong in a separate
- * end-to-end eval run once this project is set up in a real dev environment.
+ * It measures three things per case:
+ *   1. Is the first divergence found at the right step?
+ *   2. Is every later step classified correctly (consequence vs independent)?
+ *   3. Is the derived correction algebraically right?
  *
- * Run with: npx tsx eval/run-deterministic.ts
+ * Run with: npm run eval:deterministic
  */
-import { verifyEquationStep } from "../src/lib/verification/math-verifier";
+import { auditSolution } from "../src/lib/verification/solution-audit";
+import { solveLinear } from "../src/lib/math/solve-step";
 import fixtures from "./fixtures/reasoning-cases.json";
 
 interface Case {
@@ -25,34 +25,71 @@ interface Case {
   note?: string;
 }
 
-function findFirstDivergence(steps: string[]): number | null {
-  for (let i = 1; i < steps.length; i++) {
-    const { isValid } = verifyEquationStep(steps[i - 1]!, steps[i]!);
-    if (!isValid) return i + 1; // 1-indexed step number of the divergent step
-  }
-  return null;
-}
+const cases = (fixtures as { cases: Case[] }).cases;
 
-let pass = 0;
-let fail = 0;
+let passed = 0;
+let failed = 0;
 let skipped = 0;
+const failures: string[] = [];
 
-for (const raw of fixtures.cases as Case[]) {
-  if (!raw.steps) {
-    console.log(`SKIP  ${raw.id} (${raw.category}) — needs an image fixture / live Gemini call`);
-    skipped++;
+console.log(`\nGapFinder deterministic eval — ${cases.length} cases\n${"─".repeat(60)}`);
+
+for (const c of cases) {
+  if (!c.steps || c.steps.length === 0) {
+    skipped += 1;
+    console.log(`  SKIP  ${c.id.padEnd(28)} needs an image fixture`);
     continue;
   }
 
-  const got = findFirstDivergence(raw.steps);
-  const expected = raw.expectFirstDivergenceStep ?? null;
-  const ok = got === expected;
-  console.log(
-    `${ok ? "PASS" : "FAIL"}  ${raw.id.padEnd(32)} expected=${String(expected).padEnd(5)} got=${String(got)}`
-  );
-  if (ok) pass++;
-  else fail++;
+  const audit = auditSolution(c.steps.map((expression, i) => ({ order: i + 1, expression })));
+  const expected = c.expectFirstDivergenceStep ?? null;
+  const actual = audit.firstDivergenceOrder;
+
+  if (actual !== expected) {
+    failed += 1;
+    failures.push(`${c.id}: expected divergence at ${expected ?? "none"}, got ${actual ?? "none"}`);
+    console.log(`  FAIL  ${c.id.padEnd(28)} expected ${expected ?? "none"}, got ${actual ?? "none"}`);
+    continue;
+  }
+
+  // A derived correction must actually be correct: solving it has to give the
+  // same answer as solving the step it came from.
+  const divergence = audit.steps.find((s) => s.verdict === "first_divergence");
+  if (divergence?.correctedExpression) {
+    const previous = c.steps[divergence.order - 2];
+    const expectedSolution = previous ? solveLinear(previous) : null;
+    const correctedSolution = solveLinear(divergence.correctedExpression);
+    if (
+      expectedSolution !== null &&
+      correctedSolution !== null &&
+      Math.abs(expectedSolution - correctedSolution) > 1e-9
+    ) {
+      failed += 1;
+      failures.push(`${c.id}: correction "${divergence.correctedExpression}" does not preserve the solution`);
+      console.log(`  FAIL  ${c.id.padEnd(28)} correction changes the answer`);
+      continue;
+    }
+  }
+
+  passed += 1;
+  const summary =
+    actual === null
+      ? "no divergence"
+      : `step ${actual}${audit.downstreamCount ? `, +${audit.downstreamCount} downstream` : ""}${
+          audit.independentErrorOrders.length ? `, +${audit.independentErrorOrders.length} independent` : ""
+        }`;
+  console.log(`  PASS  ${c.id.padEnd(28)} ${summary}`);
 }
 
-console.log(`\n${pass} passed, ${fail} failed, ${skipped} skipped (need image fixtures + API key).`);
-if (fail > 0) process.exit(1);
+console.log(`${"─".repeat(60)}`);
+const scored = passed + failed;
+const accuracy = scored > 0 ? Math.round((passed / scored) * 100) : 0;
+console.log(`  ${passed} passed · ${failed} failed · ${skipped} skipped`);
+console.log(`  Divergence-detection accuracy on scored cases: ${accuracy}%\n`);
+
+if (failures.length > 0) {
+  console.log("Failures:");
+  for (const f of failures) console.log(`  - ${f}`);
+  console.log("");
+  process.exit(1);
+}
