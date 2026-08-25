@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { WorkInput } from "@/components/ui/WorkInput";
 import { SourceBadge } from "@/components/ui/SourceBadge";
+import { PredictionCard, PredictionOutcome, type Prediction } from "@/components/analysis/PredictionCard";
 
 type Problem = { id: string; prompt: string; difficulty: string };
 type Result = {
@@ -18,12 +19,19 @@ type Result = {
   correctedExpression?: string | null;
 };
 
+type PredictionResult = {
+  outcome: "broke-pattern" | "repeated" | "different-slip" | "none";
+  message: string;
+};
+
 export default function PracticePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [problem, setProblem] = useState<Problem | null>(null);
   const [conceptName, setConceptName] = useState<string | null>(null);
   const [source, setSource] = useState<"gemini" | "deterministic" | null>(null);
+  const [prediction, setPrediction] = useState<Prediction | null>(null);
+  const [predictionResult, setPredictionResult] = useState<PredictionResult | null>(null);
   const [steps, setSteps] = useState("");
   const [loading, setLoading] = useState(true);
   const [checking, setChecking] = useState(false);
@@ -47,6 +55,7 @@ export default function PracticePage() {
       setProblem(d.problem);
       setConceptName(d.concept?.name ?? null);
       setSource(d.source ?? null);
+      setPrediction(d.prediction ?? null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't prepare a practice problem.");
     } finally {
@@ -70,11 +79,17 @@ export default function PracticePage() {
       const res = await fetch("/api/practice-attempts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ gapId: params.id, problemId: problem.id, studentSteps: steps }),
+        body: JSON.stringify({
+          gapId: params.id,
+          problemId: problem.id,
+          studentSteps: steps,
+          predictedCode: prediction?.code ?? null,
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "Couldn't check your work.");
       setResult(data.validation);
+      setPredictionResult(data.prediction ?? null);
       setAttempts((n) => n + 1);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't check your work.");
@@ -127,6 +142,15 @@ export default function PracticePage() {
           </h2>
           <p className="mt-2 text-center text-sm leading-relaxed text-ink-soft">{result.feedback}</p>
 
+          {prediction && predictionResult && predictionResult.outcome !== "none" && (
+            <PredictionOutcome
+              outcome={predictionResult.outcome}
+              message={predictionResult.message}
+              predictionName={prediction.name}
+              className="mt-5 w-full"
+            />
+          )}
+
           <Card className="mt-6 w-full bg-lavender-50 shadow-none">
             <p className="text-xs font-semibold text-lavender-600">One more thing</p>
             <p className="mt-1 text-sm leading-relaxed text-navy-900">
@@ -159,6 +183,17 @@ export default function PracticePage() {
             </div>
             <p className="mt-1.5 font-display text-2xl font-bold text-navy-900">{problem.prompt}</p>
           </Card>
+        )}
+
+        {prediction && !result && <PredictionCard prediction={prediction} className="mt-4" />}
+
+        {prediction && predictionResult && predictionResult.outcome === "repeated" && (
+          <PredictionOutcome
+            outcome={predictionResult.outcome}
+            message={predictionResult.message}
+            predictionName={prediction.name}
+            className="mt-3"
+          />
         )}
 
         {result && !result.isCorrect && (
