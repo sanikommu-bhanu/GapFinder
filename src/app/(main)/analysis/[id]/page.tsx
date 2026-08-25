@@ -62,7 +62,7 @@ type Gap = {
   concept: { id: string; name: string; slug: string };
 };
 
-const VIEWS = ["replay", "first-gap", "audit", "socratic", "explanation", "concept"] as const;
+const VIEWS = ["replay", "first-gap", "audit", "socratic", "understand"] as const;
 type View = (typeof VIEWS)[number];
 
 export default function AnalysisDetailPage() {
@@ -172,13 +172,19 @@ export default function AnalysisDetailPage() {
     // A photo of a question with no attempt isn't a failure — it's the wrong
     // tool. Offer the right one instead of sending them back to try again.
     const isQuestionOnly = statusReason?.startsWith("QUESTION_ONLY:");
-    const message = isQuestionOnly
-      ? statusReason!.replace("QUESTION_ONLY:", "").trim()
-      : (statusReason ?? "This analysis didn't finish. Your work is still saved in history.");
+    const typeInstead = statusReason?.startsWith("TYPE_INSTEAD:");
+    const message = (statusReason ?? "This analysis didn't finish. Your work is still saved in history.")
+      .replace("QUESTION_ONLY:", "")
+      .replace("TYPE_INSTEAD:", "")
+      .trim();
 
     return (
       <div className="pb-8">
-        <TopBar title={isQuestionOnly ? "Nothing to diagnose yet" : "Analysis stopped"} />
+        <TopBar
+          title={
+            isQuestionOnly ? "Nothing to diagnose yet" : typeInstead ? "Let's try it another way" : "Analysis stopped"
+          }
+        />
         <div className="px-5">
           <Card>
             <p className="text-sm leading-relaxed text-navy-900">{message}</p>
@@ -195,6 +201,17 @@ export default function AnalysisDetailPage() {
                     I&apos;ll try it first, then check my work
                   </Button>
                 </Link>
+              </>
+            ) : typeInstead ? (
+              <>
+                <Link href="/scan?mode=typed">
+                  <Button className="mt-4 w-full">
+                    Type my working instead <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </Link>
+                <p className="mt-2 text-center text-[11px] leading-relaxed text-ink-faint">
+                  Same diagnosis, same verification — it just skips the photo step.
+                </p>
               </>
             ) : (
               <Link href="/scan">
@@ -348,7 +365,7 @@ export default function AnalysisDetailPage() {
 
             <Button
               className="mt-5 w-full"
-              onClick={() => setView(gap?.misconception ? "socratic" : "explanation")}
+              onClick={() => setView(gap?.misconception ? "socratic" : "understand")}
               disabled={!gap}
             >
               Why did this happen? <ArrowRight className="h-4 w-4" />
@@ -363,15 +380,15 @@ export default function AnalysisDetailPage() {
           <SocraticPrompt
             question={gap.misconception.socraticPrompt}
             hint={gap.misconception.whyItFails}
-            onReveal={() => setView("explanation")}
+            onReveal={() => setView("understand")}
           />
         </>
       )}
 
-      {view === "explanation" && gap && (
+      {view === "understand" && gap && (
         <>
           <TopBar
-            title="Gap Explanation"
+            title="Understand This Gap"
             onBack={() => setView(gap.misconception ? "socratic" : "audit")}
           />
           <div className="px-5">
@@ -421,21 +438,9 @@ export default function AnalysisDetailPage() {
               </Card>
             )}
 
-            <GroundedNote chunkIds={gap.explanation?.groundedInChunkIds ?? []} className="mt-3" />
-
-            <Button className="mt-4 w-full" onClick={() => setView("concept")}>
-              Teach me this <ArrowRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </>
-      )}
-
-      {view === "concept" && gap && (
-        <>
-          <TopBar title="Concept Visual" onBack={() => setView("explanation")} />
-          <div className="px-5">
-            <p className="text-center text-[13px] text-ink-soft">{gap.concept.name}</p>
-
+            {/* The lesson, on the same screen as the diagnosis. Splitting the
+                diagram and the spoken teaching onto a further tap meant most
+                students never saw either. */}
             {(() => {
               const visual = selectConceptVisual({
                 conceptSlug: gap.concept.slug,
@@ -443,12 +448,10 @@ export default function AnalysisDetailPage() {
                 correctedExpression: firstGapStep.correctedExpression ?? undefined,
               });
               if (visual.kind === "none") {
-                // No safe deterministic diagram for this shape — the written
-                // explanation stands alone rather than showing an invented one.
                 return (
-                  <Card className="mt-4">
-                    <p className="text-sm font-semibold text-navy-900">The rule behind this step</p>
-                    <p className="mt-2 text-sm leading-relaxed text-ink-soft">
+                  <Card className="mt-3">
+                    <p className="text-xs font-semibold text-ink-soft">The rule behind this step</p>
+                    <p className="mt-1.5 text-sm leading-relaxed text-navy-900">
                       An equation is a balance. Whatever you do to one side you must do to the other, or the two sides
                       stop describing the same value — which is what happened at step {firstGapStep.order}.
                     </p>
@@ -456,28 +459,25 @@ export default function AnalysisDetailPage() {
                 );
               }
               return (
-                <Card className="mt-4">
+                <Card className="mt-3">
+                  <p className="mb-3 text-xs font-semibold text-ink-soft">{gap.concept.name}</p>
                   <ConceptVisual visual={visual} />
                 </Card>
               );
             })()}
 
-            {/* The same diagnosis, spoken and animated. Built from proved
-                values only — a voice carries more authority than text, so
-                nothing generated at render time goes into it. */}
-            {firstGapStep && (
-              <TeachMe
-                lines={buildLesson({
-                  studentExpression: firstGapStep.expression,
-                  previousExpression: previousStep?.expression ?? null,
-                  correctedExpression: firstGapStep.correctedExpression,
-                  conceptName: gap.concept.name,
-                  misconception: gap.misconception ? getMisconception(gap.misconception.code) : null,
-                  correctReasoning: gap.explanation?.correctReasoning ?? [],
-                  stepOrder: firstGapStep.order,
-                })}
-              />
-            )}
+            <TeachMe
+              className="mt-3"
+              lines={buildLesson({
+                studentExpression: firstGapStep.expression,
+                previousExpression: previousStep?.expression ?? null,
+                correctedExpression: firstGapStep.correctedExpression,
+                conceptName: gap.concept.name,
+                misconception: gap.misconception ? getMisconception(gap.misconception.code) : null,
+                correctReasoning: gap.explanation?.correctReasoning ?? [],
+                stepOrder: firstGapStep.order,
+              })}
+            />
 
             {gap.explanation?.correctReasoning?.length ? (
               <Card className="mt-3 border border-success-50">
@@ -494,6 +494,8 @@ export default function AnalysisDetailPage() {
                 </div>
               </Card>
             ) : null}
+
+            <GroundedNote chunkIds={gap.explanation?.groundedInChunkIds ?? []} className="mt-3" />
 
             <ResourcePanel gapId={gap.id} className="mt-3" />
 
@@ -514,6 +516,7 @@ export default function AnalysisDetailPage() {
           </div>
         </>
       )}
+
     </div>
   );
 }
