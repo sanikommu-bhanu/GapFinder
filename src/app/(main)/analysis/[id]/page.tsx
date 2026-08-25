@@ -169,17 +169,38 @@ export default function AnalysisDetailPage() {
   }
 
   if (status === "failed") {
+    // A photo of a question with no attempt isn't a failure — it's the wrong
+    // tool. Offer the right one instead of sending them back to try again.
+    const isQuestionOnly = statusReason?.startsWith("QUESTION_ONLY:");
+    const message = isQuestionOnly
+      ? statusReason!.replace("QUESTION_ONLY:", "").trim()
+      : (statusReason ?? "This analysis didn't finish. Your work is still saved in history.");
+
     return (
       <div className="pb-8">
-        <TopBar title="Analysis stopped" />
+        <TopBar title={isQuestionOnly ? "Nothing to diagnose yet" : "Analysis stopped"} />
         <div className="px-5">
           <Card>
-            <p className="text-sm leading-relaxed text-navy-900">
-              {statusReason ?? "This analysis didn't finish. Your work is still saved in history."}
-            </p>
-            <Link href="/scan">
-              <Button className="mt-4 w-full">Try again</Button>
-            </Link>
+            <p className="text-sm leading-relaxed text-navy-900">{message}</p>
+
+            {isQuestionOnly ? (
+              <>
+                <Link href="/solve">
+                  <Button className="mt-4 w-full">
+                    Solve it with me <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </Link>
+                <Link href="/scan">
+                  <Button variant="ghost" className="mt-2 w-full">
+                    I&apos;ll try it first, then check my work
+                  </Button>
+                </Link>
+              </>
+            ) : (
+              <Link href="/scan">
+                <Button className="mt-4 w-full">Try again</Button>
+              </Link>
+            )}
           </Card>
         </div>
       </div>
