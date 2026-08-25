@@ -1,50 +1,60 @@
 import type { Config } from "tailwindcss";
 
+/**
+ * Colours resolve through CSS variables (see src/app/theme.css) so a theme or
+ * accent change is a variable swap rather than a per-component rewrite. The
+ * `<alpha-value>` placeholder keeps Tailwind's opacity modifiers working —
+ * `bg-navy-900/40` still does what it looks like.
+ */
+const v = (name: string) => `rgb(var(--c-${name}) / <alpha-value>)`;
+
 const config: Config = {
-  darkMode: ["class"],
+  darkMode: ["class", '[data-theme="dark"]'],
   content: ["./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
         navy: {
-          DEFAULT: "#151833",
-          50: "#EDEEF5",
-          100: "#D3D5E6",
-          400: "#4A4F79",
-          700: "#20244A",
-          900: "#151833",
-          950: "#0E1026",
+          DEFAULT: v("navy-900"),
+          50: v("navy-50"),
+          100: v("navy-100"),
+          400: v("navy-400"),
+          700: v("navy-700"),
+          900: v("navy-900"),
+          950: v("navy-950"),
         },
         lavender: {
-          50: "#F6F4FE",
-          100: "#EDE9FD",
-          200: "#DCD4FB",
-          300: "#C3B4F7",
-          400: "#A78BFA",
-          500: "#8B5CF6",
-          600: "#7C4DEF",
+          50: v("lavender-50"),
+          100: v("lavender-100"),
+          200: v("lavender-200"),
+          300: v("lavender-300"),
+          400: v("lavender-400"),
+          500: v("lavender-500"),
+          600: v("lavender-600"),
         },
         peach: {
-          50: "#FFF6EF",
-          100: "#FFEBDD",
-          200: "#FFD3B0",
-          300: "#FFB27A",
-          400: "#FF9857",
-          500: "#FB8A3C",
+          50: v("peach-50"),
+          100: v("peach-100"),
+          200: v("peach-200"),
+          300: v("peach-300"),
+          400: v("peach-400"),
+          500: v("peach-500"),
         },
-        success: { DEFAULT: "#2FBF71", 50: "#E7F9EF" },
-        warning: { DEFAULT: "#F5A623", 50: "#FFF6E5" },
-        danger: { DEFAULT: "#EF5A5A", 50: "#FDECEC" },
+        success: { DEFAULT: v("success"), 50: v("success-50") },
+        warning: { DEFAULT: v("warning"), 50: v("warning-50") },
+        danger: { DEFAULT: v("danger"), 50: v("danger-50") },
         surface: {
-          DEFAULT: "#FFFFFF",
-          muted: "#F7F6FB",
-          card: "#FFFFFF",
+          DEFAULT: v("surface"),
+          muted: v("surface-muted"),
+          card: v("surface-card"),
         },
         ink: {
-          DEFAULT: "#151833",
-          soft: "#6B6E8A",
-          faint: "#A0A3BD",
+          DEFAULT: v("ink"),
+          soft: v("ink-soft"),
+          faint: v("ink-faint"),
         },
+        /** Sits on top of a navy-900 surface — flips with the theme. */
+        "on-strong": v("on-strong"),
       },
       fontFamily: {
         display: ["var(--font-display)", "system-ui", "sans-serif"],
@@ -57,14 +67,14 @@ const config: Config = {
         pill: "999px",
       },
       boxShadow: {
-        soft: "0 8px 24px -8px rgba(21, 24, 51, 0.12)",
-        card: "0 4px 20px -6px rgba(21, 24, 51, 0.10)",
-        floating: "0 12px 32px -8px rgba(21, 24, 51, 0.18)",
+        soft: "var(--shadow-soft)",
+        card: "var(--shadow-card)",
+        floating: "var(--shadow-floating)",
       },
       backgroundImage: {
         "gradient-brand": "linear-gradient(135deg, #C3B4F7 0%, #FFB27A 100%)",
-        "gradient-lavender": "linear-gradient(135deg, #EDE9FD 0%, #DCD4FB 100%)",
-        "gradient-peach": "linear-gradient(135deg, #FFF6EF 0%, #FFD3B0 100%)",
+        "gradient-lavender": "linear-gradient(135deg, rgb(var(--c-lavender-100)) 0%, rgb(var(--c-lavender-200)) 100%)",
+        "gradient-peach": "linear-gradient(135deg, rgb(var(--c-peach-50)) 0%, rgb(var(--c-peach-200)) 100%)",
       },
       keyframes: {
         "fade-up": {
