@@ -8,7 +8,8 @@ import { Chip } from "@/components/ui/Chip";
 import { Button } from "@/components/ui/Button";
 import { useAppStore } from "@/store/useAppStore";
 import { cn } from "@/lib/cn";
-import { SUBJECTS, getSubject } from "@/lib/subjects";
+import { SUBJECTS } from "@/lib/subjects";
+import { SubjectCapability } from "@/components/ui/SubjectCapability";
 
 const MAX_FILE_BYTES = 6 * 1024 * 1024;
 
@@ -261,22 +262,14 @@ export default function ScanPage() {
           {SUBJECTS.map((s) => (
             <Chip key={s.name} active={subject === s.name} onClick={() => setSubject(s.name)} className="shrink-0">
               {s.name}
-              {s.level === "partial" && <span className="ml-1 text-[10px] opacity-60">partial</span>}
             </Chip>
           ))}
         </div>
 
-        {/* Says what will actually be verified for the chosen subject, so a
-            student is never told their chemistry is right when all we checked
-            was the algebra inside it. */}
-        <p
-          className={cn(
-            "mt-2 px-1 text-[11px] leading-relaxed",
-            getSubject(subject).level === "partial" ? "text-warning" : "text-ink-faint"
-          )}
-        >
-          {getSubject(subject).note}
-        </p>
+        {/* Exactly what will be proved versus reviewed for the chosen subject.
+            A student should never be told their chemistry is right when all we
+            confirmed was the algebra inside it. */}
+        <SubjectCapability subject={subject} className="mt-3" />
 
         {error && (
           <p role="alert" className="mt-3 rounded-2xl bg-danger-50 px-4 py-3 text-sm text-danger">
