@@ -7,6 +7,9 @@ import { DistributiveAreaVisual } from "./DistributiveAreaVisual";
 import { FactorTreeVisual } from "./FactorTreeVisual";
 import { FractionModelVisual } from "./FractionModelVisual";
 import { CoordinatePlaneVisual } from "./CoordinatePlaneVisual";
+import { AtomBalanceVisual } from "./AtomBalanceVisual";
+import { PunnettSquareVisual } from "./PunnettSquareVisual";
+import { ProcessFlowVisual } from "./ProcessFlowVisual";
 
 /**
  * Renders the deterministic visual module chosen by selectConceptVisual().
@@ -42,6 +45,28 @@ export function ConceptVisual({ visual }: { visual: VisualModule }) {
       );
     case "coordinate-plane":
       return <CoordinatePlaneVisual points={visual.points} range={visual.range} caption={visual.caption} />;
+    case "atom-balance":
+      return <AtomBalanceVisual left={visual.left} right={visual.right} caption={visual.caption} />;
+    case "punnett":
+      return (
+        <PunnettSquareVisual
+          parentA={visual.parentA}
+          parentB={visual.parentB}
+          dominant={visual.dominant}
+          caption={visual.caption}
+        />
+      );
+    case "process-flow":
+      return (
+        <ProcessFlowVisual
+          inputs={visual.inputs}
+          process={visual.process}
+          location={visual.location}
+          outputs={visual.outputs}
+          energy={visual.energy}
+          caption={visual.caption}
+        />
+      );
     case "none":
     default:
       return null;
