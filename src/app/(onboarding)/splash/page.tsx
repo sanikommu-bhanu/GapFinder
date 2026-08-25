@@ -53,7 +53,7 @@ export default function SplashPage() {
         <Link
           href="/register"
           aria-label="Get started"
-          className="mt-5 flex h-14 w-14 items-center justify-center rounded-full bg-navy-900 text-white shadow-floating transition-transform active:scale-95"
+          className="mt-5 flex h-14 w-14 items-center justify-center rounded-full bg-navy-900 text-on-strong shadow-floating transition-transform active:scale-95"
         >
           <ArrowRight className="h-5 w-5" />
         </Link>
