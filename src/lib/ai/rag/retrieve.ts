@@ -23,7 +23,21 @@ export interface RetrievedChunk {
 export async function retrieveKnowledge(
   conceptId: string,
   query: string,
-  opts: { kinds?: string[]; limit?: number } = {}
+  opts: {
+    kinds?: string[];
+    limit?: number;
+    /**
+     * Return the concept's chunks even when none of them match the query.
+     *
+     * Scoring is meant to *order* results, but the zero-score filter below also
+     * gates them — fine when we are citing material against a specific student
+     * error, and wrong when the student has simply asked about the concept
+     * itself. "Explain quadratics" shares no distinctive term with a chunk
+     * titled "Completing the square", so a whole concept's teaching was being
+     * withheld on a vocabulary mismatch.
+     */
+    fallbackToAll?: boolean;
+  } = {}
 ): Promise<RetrievedChunk[]> {
   const chunks = await prisma.knowledgeChunk.findMany({
     where: {
@@ -58,10 +72,22 @@ export async function retrieveKnowledge(
     return { id: chunk.id, title: chunk.title, content: chunk.content, kind: chunk.kind, score };
   });
 
-  return scored
-    .filter((s) => s.score > 0)
-    .sort((a, b) => b.score - a.score)
+  const relevant = scored.filter((s) => s.score > 0).sort((a, b) => b.score - a.score);
+  if (relevant.length > 0 || !opts.fallbackToAll) return relevant.slice(0, opts.limit ?? 4);
+
+  // Nothing matched by wording, but every chunk here belongs to the concept the
+  // student asked about. Order by what teaches best rather than by a score of
+  // zero: the explanation first, then a worked example, then the misconception.
+  return [...scored]
+    .sort((a, b) => kindRank(a.kind) - kindRank(b.kind))
     .slice(0, opts.limit ?? 4);
+}
+
+const KIND_ORDER = ["explanation", "worked_example", "misconception", "teaching_strategy", "practice_pattern"];
+
+function kindRank(kind: string): number {
+  const index = KIND_ORDER.indexOf(kind);
+  return index === -1 ? KIND_ORDER.length : index;
 }
 
 /**
