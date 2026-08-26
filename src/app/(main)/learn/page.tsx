@@ -1,7 +1,18 @@
 "use client";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Sparkles, Send, AlertTriangle, GraduationCap, BookOpen, Mic } from "lucide-react";
+import {
+  Sparkles,
+  Send,
+  AlertTriangle,
+  GraduationCap,
+  BookOpen,
+  Mic,
+  Bot,
+  ShieldCheck,
+  Check,
+  X,
+} from "lucide-react";
 import { TopBar } from "@/components/nav/TopBar";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
@@ -15,14 +26,25 @@ import type { VisualModule } from "@/lib/ai/visuals/select-visual";
 import type { LessonLine } from "@/lib/teaching/build-lesson";
 import { cn } from "@/lib/cn";
 
+interface GeneratedQuestion {
+  prompt: string;
+  correct: string;
+  wrong: string[];
+}
+
 interface ExplainResponse {
   matched: boolean;
+  /** True when the topic was outside the curated library and AI wrote it. */
+  generated?: boolean;
   message?: string;
+  /** Why nothing came back: quota, an unrecognised topic, or no provider. */
+  reason?: "unavailable" | "not-a-topic" | "no-provider";
   suggestions?: { slug: string; name: string; subject: string }[];
   routedBy?: "keyword" | "model" | null;
+  quiz?: GeneratedQuestion[];
   concept?: {
-    id: string;
-    slug: string;
+    id: string | null;
+    slug: string | null;
     name: string;
     subject: string;
     description: string;
@@ -109,8 +131,7 @@ function LearnView() {
 
       <div className="px-5">
         <p className="text-center text-[13px] leading-relaxed text-ink-soft">
-          Ask about anything in the library. You get a diagram, an explanation read aloud, and a check
-          that it landed.
+          Ask anything. You get a diagram, an explanation read aloud, and a check that it landed.
         </p>
 
         <div className="-mx-5 mt-4 flex gap-2 overflow-x-auto px-5 scrollbar-none">
@@ -199,7 +220,8 @@ function LearnView() {
         {result && !result.matched && (
           <Card className="mt-4 bg-surface-muted shadow-none">
             <p className="flex items-center gap-1.5 text-sm font-semibold text-navy-900">
-              <AlertTriangle className="h-4 w-4 text-warning" /> Not in the library yet
+              <AlertTriangle className="h-4 w-4 text-warning" />
+              {result.reason === "unavailable" ? "Couldn't write that one up" : "Not in the library yet"}
             </p>
             <p className="mt-1.5 text-[13px] leading-relaxed text-ink-soft">{result.message}</p>
             {result.suggestions && result.suggestions.length > 0 && (
@@ -236,6 +258,22 @@ function LearnView() {
                     {concept.subject}
                   </p>
                   <h2 className="mt-0.5 font-display text-xl font-bold text-navy-900">{concept.name}</h2>
+                  <span
+                    className={cn(
+                      "mt-1.5 inline-flex items-center gap-1 rounded-pill px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+                      result.generated ? "bg-warning-50 text-warning" : "bg-success-50 text-success"
+                    )}
+                  >
+                    {result.generated ? (
+                      <>
+                        <Bot className="h-2.5 w-2.5" /> AI-generated
+                      </>
+                    ) : (
+                      <>
+                        <ShieldCheck className="h-2.5 w-2.5" /> Verified library
+                      </>
+                    )}
+                  </span>
                 </div>
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-lavender-50">
                   <Sparkles className="h-4 w-4 text-lavender-600" />
@@ -243,6 +281,20 @@ function LearnView() {
               </div>
               <p className="mt-2 text-[13px] leading-relaxed text-navy-900">{concept.description}</p>
             </Card>
+
+            {/* Said plainly, and said before the explanation rather than after
+                it. A student deciding whether to trust something needs to know
+                where it came from while they are reading it. */}
+            {result.generated && (
+              <div className="flex items-start gap-2 rounded-2xl bg-warning-50 p-3">
+                <Bot className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
+                <p className="text-[11px] leading-relaxed text-navy-900">
+                  This topic isn&apos;t in our verified library, so the explanation below was written by
+                  AI. It carries no citations or figures on purpose, and it isn&apos;t recorded against
+                  your learning history. Everything in the library is checked material instead.
+                </p>
+              </div>
+            )}
 
             {/* The diagram is computed from a curated worked example by the same
                 selector that draws a student's own verified working. */}
@@ -271,14 +323,20 @@ function LearnView() {
               </Card>
             )}
 
-            <Button onClick={() => router.push(`/exam?concept=${concept.slug}`)} className="w-full">
-              <GraduationCap className="h-4 w-4" /> Check that it landed
-            </Button>
-            <p className="-mt-1 px-1 text-center text-[11px] leading-relaxed text-ink-faint">
-              Three questions. Every wrong option is a real misconception, not filler.
-            </p>
+            {concept.slug ? (
+              <>
+                <Button onClick={() => router.push(`/exam?concept=${concept.slug}`)} className="w-full">
+                  <GraduationCap className="h-4 w-4" /> Check that it landed
+                </Button>
+                <p className="-mt-1 px-1 text-center text-[11px] leading-relaxed text-ink-faint">
+                  Three questions. Every wrong option is a real misconception, not filler.
+                </p>
+              </>
+            ) : (
+              result.quiz && result.quiz.length > 0 && <InlineQuiz questions={result.quiz} />
+            )}
 
-            <ResourcePanel conceptSlug={concept.slug} className="mt-1" />
+            {concept.slug && <ResourcePanel conceptSlug={concept.slug} className="mt-1" />}
 
             {result.sources && result.sources.length > 0 && (
               <div className="flex items-start gap-2 rounded-2xl bg-surface-muted p-3">
@@ -298,6 +356,108 @@ function LearnView() {
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * The check for a topic outside the curated library.
+ *
+ * It runs in the browser and is never written to the learning history. That is
+ * the honest handling: the exam tables record a verdict against a concept, and
+ * a generated topic has no concept behind it — recording one would put a
+ * mastery claim on evidence the rest of the app would refuse to accept.
+ *
+ * Options are shuffled once per question so the correct answer is not always
+ * first, and feedback arrives only after every question is answered, for the
+ * same reason Exam Mode withholds it.
+ */
+function InlineQuiz({ questions }: { questions: GeneratedQuestion[] }) {
+  const [chosen, setChosen] = useState<Record<number, string>>({});
+  const [submitted, setSubmitted] = useState(false);
+
+  // Built once, so tapping an option never rearranges the list underneath.
+  const [options] = useState(() =>
+    questions.map((q, i) => {
+      const all = [q.correct, ...q.wrong];
+      // Deterministic rotation rather than Math.random, so a re-render can't
+      // reshuffle mid-question.
+      const offset = i % all.length;
+      return [...all.slice(offset), ...all.slice(0, offset)];
+    })
+  );
+
+  const answeredAll = questions.every((_, i) => chosen[i]);
+  const correctCount = questions.filter((q, i) => chosen[i] === q.correct).length;
+
+  return (
+    <Card className="mt-1">
+      <p className="flex items-center gap-1.5 text-sm font-semibold text-navy-900">
+        <GraduationCap className="h-4 w-4 text-lavender-600" /> Check that it landed
+      </p>
+      <p className="mt-1 text-[11px] leading-relaxed text-ink-faint">
+        {questions.length} questions. Not recorded against your history — this topic isn&apos;t in the
+        verified library.
+      </p>
+
+      <div className="mt-3 flex flex-col gap-4">
+        {questions.map((q, i) => (
+          <div key={i}>
+            <p className="text-[13px] font-medium leading-relaxed text-navy-900">
+              {i + 1}. {q.prompt}
+            </p>
+            <div className="mt-2 flex flex-col gap-1.5">
+              {(options[i] ?? []).map((option) => {
+                const picked = chosen[i] === option;
+                const isRight = option === q.correct;
+                return (
+                  <button
+                    key={option}
+                    disabled={submitted}
+                    onClick={() => setChosen((c) => ({ ...c, [i]: option }))}
+                    aria-pressed={picked}
+                    className={cn(
+                      "flex items-start gap-2 rounded-2xl border p-3 text-left text-[12px] leading-relaxed transition-colors",
+                      submitted && isRight && "border-success bg-success-50 text-navy-900",
+                      submitted && picked && !isRight && "border-danger bg-danger-50 text-navy-900",
+                      submitted && !picked && !isRight && "border-navy-50 bg-surface-muted text-ink-soft",
+                      !submitted && picked && "border-navy-900 bg-navy-900 text-on-strong",
+                      !submitted && !picked && "border-navy-50 bg-surface-muted text-navy-900"
+                    )}
+                  >
+                    {submitted && isRight && <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" />}
+                    {submitted && picked && !isRight && (
+                      <X className="mt-0.5 h-3.5 w-3.5 shrink-0 text-danger" />
+                    )}
+                    <span>{option}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {!submitted ? (
+        <Button
+          onClick={() => setSubmitted(true)}
+          disabled={!answeredAll}
+          className="mt-4 w-full"
+        >
+          {answeredAll ? "See how you did" : "Answer every question first"}
+        </Button>
+      ) : (
+        <div className="mt-4 rounded-2xl bg-surface-muted p-3">
+          <p className="text-sm font-semibold text-navy-900">
+            {correctCount} of {questions.length}
+          </p>
+          <p className="mt-1 text-[11px] leading-relaxed text-ink-soft">
+            {correctCount === questions.length
+              ? "All correct. Worth re-checking against your textbook too — this topic was explained by AI, not from our verified library."
+              : "Read back through the explanation, then ask again in your own words. Recognising an explanation is not the same as being able to reproduce it."}
+          </p>
+        </div>
+      )}
+    </Card>
   );
 }
 
