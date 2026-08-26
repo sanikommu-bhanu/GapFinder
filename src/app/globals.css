@@ -19,7 +19,10 @@ html {
 
 html,
 body {
-  height: 100%;
+  /* min-height, not height: the document is the scrolling element, so the body
+     has to be free to grow past the viewport. Pinning it to exactly 100% is
+     what stops a long screen from scrolling at all. */
+  min-height: 100%;
   background: rgb(var(--page-bg));
   color: rgb(var(--c-ink));
   -webkit-font-smoothing: antialiased;
