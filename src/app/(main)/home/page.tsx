@@ -126,14 +126,17 @@ export default function HomePage() {
       </div>
 
       <div className="mt-3 grid grid-cols-2 gap-3">
-        <Link href="/coach">
+        {/* Two tiles both offering to "ask anything" taught nobody where to
+            go. This is the one with the diagram, the voice and the check;
+            the coach stays a tap away in the menu. */}
+        <Link href="/learn">
           <Card className="flex h-full flex-col gap-2 active:scale-[0.99]">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-lavender-50">
               <Sparkles className="h-4 w-4 text-lavender-600" />
             </span>
             <div>
-              <p className="text-sm font-semibold text-navy-900">AI Coach</p>
-              <p className="text-[11px] text-ink-soft">Ask anything</p>
+              <p className="text-sm font-semibold text-navy-900">Ask a Concept</p>
+              <p className="text-[11px] text-ink-soft">Explain any topic</p>
             </div>
           </Card>
         </Link>
