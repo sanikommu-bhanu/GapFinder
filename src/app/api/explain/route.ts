@@ -8,6 +8,7 @@ import type { MatchableConcept } from "@/lib/concepts/match-concept";
 import { retrieveKnowledge } from "@/lib/ai/rag/retrieve";
 import { buildConceptLesson } from "@/lib/teaching/build-concept-lesson";
 import { selectConceptVisual } from "@/lib/ai/visuals/select-visual";
+import { toVisual } from "@/lib/ai/visuals/from-generated";
 import { exampleFor } from "@/lib/concepts/canonical-examples";
 import { MISCONCEPTIONS } from "@/lib/diagnosis/misconceptions";
 import { explainUnknownConcept } from "@/lib/ai/pipeline/explain-concept";
@@ -108,18 +109,10 @@ export async function POST(req: NextRequest) {
           { role: "avoid", label: "Check yourself", text: generated.checkYourself },
         ];
 
-        const diagram = generated.diagram;
-        const visual =
-          diagram.kind === "process-flow" && diagram.inputs.length > 0 && diagram.outputs.length > 0
-            ? {
-                kind: "process-flow" as const,
-                inputs: diagram.inputs.slice(0, 4),
-                process: diagram.process || generated.topic,
-                location: diagram.location || "",
-                outputs: diagram.outputs.slice(0, 4),
-                caption: "Labels suggested by AI; the diagram itself is drawn by the app.",
-              }
-            : { kind: "none" as const };
+        // The model chose a shape and supplied the labels; the app draws it.
+        // Each branch checks it actually got what that shape needs, so a
+        // half-filled spec renders nothing rather than an empty frame.
+        const visual = toVisual(generated.diagram, generated.topic);
 
         return NextResponse.json({
           matched: true,
