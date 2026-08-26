@@ -40,12 +40,38 @@ const Generated = z.object({
   checkYourself: z.string().describe("A question the student can ask themselves to catch the mistake."),
   diagram: z
     .object({
-      /** "none" when the topic has no honest input-process-output shape. */
-      kind: z.enum(["process-flow", "none"]),
-      inputs: z.array(z.string()).describe("What goes in. Two to four short labels. Empty if kind is none."),
-      process: z.string().describe("The name of the process. Empty if kind is none."),
-      location: z.string().describe("Where it happens, or an empty string."),
-      outputs: z.array(z.string()).describe("What comes out. Two to four short labels."),
+      /**
+       * The shape that fits the topic. Four are offered because most school
+       * topics genuinely are one of these, and forcing a cycle into a
+       * left-to-right flow loses the fact that makes it a cycle.
+       */
+      kind: z
+        .enum(["process-flow", "cycle", "labelled-parts", "comparison", "none"])
+        .describe(
+          "process-flow for inputs->outputs; cycle for anything that returns to its start; " +
+            "labelled-parts for a structure and its components; comparison for two things " +
+            "contrasted; none only if the topic genuinely has no diagrammable structure."
+        ),
+      /** process-flow */
+      inputs: z.array(z.string()).describe("Short labels. Empty unless kind is process-flow."),
+      process: z.string().describe("The process name. Empty unless kind is process-flow."),
+      location: z.string().describe("Where it happens, or empty."),
+      outputs: z.array(z.string()).describe("Short labels. Empty unless kind is process-flow."),
+      /** cycle */
+      stages: z
+        .array(z.string())
+        .describe("Three to six stages in order, the last leading back to the first. Empty unless kind is cycle."),
+      /** labelled-parts */
+      subject: z.string().describe("What is being labelled. Empty unless kind is labelled-parts."),
+      parts: z
+        .array(z.object({ name: z.string(), role: z.string() }))
+        .describe("Two to six parts, each with the job it does. Empty unless kind is labelled-parts."),
+      /** comparison */
+      leftTitle: z.string().describe("Empty unless kind is comparison."),
+      rightTitle: z.string().describe("Empty unless kind is comparison."),
+      rows: z
+        .array(z.object({ aspect: z.string(), left: z.string(), right: z.string() }))
+        .describe("Two to five aligned contrasts. Empty unless kind is comparison."),
     })
     .describe("A diagram the app will draw. Labels only — never numbers that matter."),
   quiz: z
@@ -68,7 +94,10 @@ const SYSTEM = [
   "- Never mention the student's own work; you have not seen any.",
   "- If you are not confident the topic is a real school-curriculum concept, set inLibrary to false and leave the rest brief.",
   "- Write for a 14-to-17-year-old: plain, concrete, short sentences.",
-  "- The diagram is labels only. If the topic has no genuine inputs-and-outputs shape, set kind to none.",
+  "- Choose the diagram shape that genuinely fits: a cycle is a cycle, not a flow.",
+  "- Fill ONLY the fields for the shape you chose; leave the others empty.",
+  "- Diagram labels are two to four words each. Labels only, never numbers that carry meaning.",
+  "- Prefer a real shape over none. Most school topics have one.",
   "- Every wrong quiz option must be a mistake a student would really make, never a joke or an obvious filler.",
 ].join("\n");
 
