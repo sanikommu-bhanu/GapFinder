@@ -7,6 +7,7 @@ import { selectConceptVisual } from "@/lib/ai/visuals/select-visual";
 import { exampleFor, CANONICAL_EXAMPLES } from "@/lib/concepts/canonical-examples";
 import { MISCONCEPTIONS } from "@/lib/diagnosis/misconceptions";
 import { stripFabrications } from "@/lib/ai/pipeline/explain-concept";
+import { toVisual } from "@/lib/ai/visuals/from-generated";
 
 const CONCEPTS: MatchableConcept[] = [
   {
@@ -287,5 +288,84 @@ describe("stripFabrications", () => {
 
   it("tidies the spacing it leaves behind", () => {
     expect(stripFabrications("It works well (Smith, 2019).")).toBe("It works well.");
+  });
+});
+
+/**
+ * The generated diagram is the model choosing a shape and supplying labels; the
+ * app draws it. A spec that doesn't carry what its shape needs must render
+ * nothing — an empty frame reads as a broken feature, and a two-stage "cycle"
+ * is not a cycle whatever it was labelled.
+ */
+describe("generated diagram shapes", () => {
+  const base = {
+    kind: "none" as const,
+    inputs: [] as string[],
+    process: "",
+    location: "",
+    outputs: [] as string[],
+    stages: [] as string[],
+    subject: "",
+    parts: [] as { name: string; role: string }[],
+    leftTitle: "",
+    rightTitle: "",
+    rows: [] as { aspect: string; left: string; right: string }[],
+  };
+
+  it("draws a cycle when there are enough stages", () => {
+    const v = toVisual(
+      { ...base, kind: "cycle", stages: ["Evaporation", "Condensation", "Precipitation", "Collection"] },
+      "The Water Cycle"
+    );
+    expect(v.kind).toBe("cycle");
+    if (v.kind === "cycle") expect(v.stages).toHaveLength(4);
+  });
+
+  it("refuses a two-stage cycle", () => {
+    expect(toVisual({ ...base, kind: "cycle", stages: ["One", "Two"] }, "X").kind).toBe("none");
+  });
+
+  it("draws labelled parts, dropping unnamed ones", () => {
+    const v = toVisual(
+      {
+        ...base,
+        kind: "labelled-parts",
+        subject: "The heart",
+        parts: [
+          { name: "Left ventricle", role: "Pumps blood to the body" },
+          { name: "", role: "orphaned role" },
+          { name: "Right atrium", role: "Receives blood from the body" },
+        ],
+      },
+      "Heart"
+    );
+    expect(v.kind).toBe("labelled-parts");
+    if (v.kind === "labelled-parts") expect(v.parts).toHaveLength(2);
+  });
+
+  it("draws a comparison only when both sides are titled and filled", () => {
+    const rows = [
+      { aspect: "Cells produced", left: "Two", right: "Four" },
+      { aspect: "Genetic result", left: "Identical", right: "Varied" },
+    ];
+    expect(toVisual({ ...base, kind: "comparison", leftTitle: "Mitosis", rightTitle: "Meiosis", rows }, "X").kind)
+      .toBe("comparison");
+    // A missing title makes the columns meaningless.
+    expect(toVisual({ ...base, kind: "comparison", leftTitle: "", rightTitle: "Meiosis", rows }, "X").kind)
+      .toBe("none");
+  });
+
+  it("falls back to the topic name when the process is unnamed", () => {
+    const v = toVisual(
+      { ...base, kind: "process-flow", inputs: ["Light"], outputs: ["Sugar"], process: "" },
+      "Photosynthesis"
+    );
+    expect(v.kind).toBe("process-flow");
+    if (v.kind === "process-flow") expect(v.process).toBe("Photosynthesis");
+  });
+
+  it("renders nothing rather than an empty frame", () => {
+    expect(toVisual({ ...base, kind: "process-flow", inputs: [], outputs: [] }, "X").kind).toBe("none");
+    expect(toVisual({ ...base, kind: "none" }, "X").kind).toBe("none");
   });
 });
