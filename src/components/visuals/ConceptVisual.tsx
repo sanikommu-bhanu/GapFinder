@@ -12,6 +12,9 @@ import { PunnettSquareVisual } from "./PunnettSquareVisual";
 import { ProcessFlowVisual } from "./ProcessFlowVisual";
 import { AtomShellVisual } from "./AtomShellVisual";
 import { CellCompareVisual } from "./CellCompareVisual";
+import { CycleVisual } from "./CycleVisual";
+import { LabelledPartsVisual } from "./LabelledPartsVisual";
+import { ComparisonVisual } from "./ComparisonVisual";
 
 /**
  * Renders the deterministic visual module chosen by selectConceptVisual().
@@ -96,6 +99,21 @@ export function ConceptVisual({ visual }: { visual: VisualModule }) {
           shared={visual.shared}
           plantOnly={visual.plantOnly}
           animalOnly={visual.animalOnly}
+          caption={visual.caption}
+        />
+      );
+    case "cycle":
+      return <CycleVisual stages={visual.stages} centre={visual.centre} caption={visual.caption} />;
+    case "labelled-parts":
+      return (
+        <LabelledPartsVisual subject={visual.subject} parts={visual.parts} caption={visual.caption} />
+      );
+    case "comparison":
+      return (
+        <ComparisonVisual
+          leftTitle={visual.leftTitle}
+          rightTitle={visual.rightTitle}
+          rows={visual.rows}
           caption={visual.caption}
         />
       );
