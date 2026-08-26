@@ -6,6 +6,7 @@ import { buildConceptQuiz, misconceptionForAnswer } from "@/lib/quiz/build-conce
 import { selectConceptVisual } from "@/lib/ai/visuals/select-visual";
 import { exampleFor, CANONICAL_EXAMPLES } from "@/lib/concepts/canonical-examples";
 import { MISCONCEPTIONS } from "@/lib/diagnosis/misconceptions";
+import { stripFabrications } from "@/lib/ai/pipeline/explain-concept";
 
 const CONCEPTS: MatchableConcept[] = [
   {
@@ -253,5 +254,38 @@ describe("concept visuals from curated examples", () => {
     // its own — and a concept we ship no example for must render nothing.
     expect(exampleFor("this-concept-does-not-exist")).toBeNull();
     expect(selectConceptVisual({ conceptSlug: "this-concept-does-not-exist" }).kind).toBe("none");
+  });
+});
+
+/**
+ * The generated tier answers topics outside the curated library. What it must
+ * never do is manufacture something a student would repeat as fact — a citation
+ * or a figure that looks authoritative and does not exist.
+ */
+describe("stripFabrications", () => {
+  it("removes URLs and links", () => {
+    expect(stripFabrications("See https://example.com/paper for more.")).not.toMatch(/https?:/);
+    expect(stripFabrications("Read www.nature.com today.")).not.toMatch(/www\./);
+  });
+
+  it("removes author-year citations and DOIs", () => {
+    expect(stripFabrications("Photosynthesis is efficient (Smith, 2019).")).not.toMatch(/Smith, 2019/);
+    expect(stripFabrications("As shown by Patel et al. in their work.")).not.toMatch(/et al/i);
+    expect(stripFabrications("doi: 10.1038/nature12373 covers this.")).not.toMatch(/doi:/i);
+  });
+
+  it("removes statistics, which are the most quotable kind of invention", () => {
+    expect(stripFabrications("Around 70% of students get this wrong.")).not.toMatch(/70\s*%/);
+    expect(stripFabrications("Studies show that most learners struggle here.")).not.toMatch(/Studies show/i);
+    expect(stripFabrications("According to a study, recall drops fast.")).not.toMatch(/According to a study/i);
+  });
+
+  it("leaves ordinary teaching prose intact", () => {
+    const text = "Light is absorbed by chlorophyll, and the energy is stored in glucose.";
+    expect(stripFabrications(text)).toBe(text);
+  });
+
+  it("tidies the spacing it leaves behind", () => {
+    expect(stripFabrications("It works well (Smith, 2019).")).toBe("It works well.");
   });
 });
