@@ -10,6 +10,9 @@ import { buildConceptLesson } from "@/lib/teaching/build-concept-lesson";
 import { selectConceptVisual } from "@/lib/ai/visuals/select-visual";
 import { exampleFor } from "@/lib/concepts/canonical-examples";
 import { MISCONCEPTIONS } from "@/lib/diagnosis/misconceptions";
+import { explainUnknownConcept } from "@/lib/ai/pipeline/explain-concept";
+import { hasAnyProvider } from "@/lib/ai/ai-client";
+import type { LessonLine } from "@/lib/teaching/build-lesson";
 
 /** The model router is the only call here, and it is a short one. */
 export const maxDuration = 30;
@@ -69,14 +72,99 @@ export async function POST(req: NextRequest) {
     subjectHint: parsed.data.subject,
   });
 
+  // Outside the curated library. Generate an explanation rather than refusing —
+  // and mark it as generated everywhere it appears, because the guarantee that
+  // covers the 22 curated concepts does not extend to it.
   if (!routed.match) {
+    // Why the generated tier didn't answer, so the student is told the truth
+    // rather than a plausible-sounding stand-in for it.
+    let failure: "unavailable" | "not-a-topic" | null = null;
+
+    if (hasAnyProvider()) {
+      const generated = await explainUnknownConcept(topic).then(
+        (result) => {
+          if (!result) failure = "not-a-topic";
+          return result;
+        },
+        () => {
+          // Quota, network, or a provider outage — nothing to do with whether
+          // the topic is real.
+          failure = "unavailable";
+          return null;
+        }
+      );
+      if (generated) {
+        const lesson: LessonLine[] = [
+          { role: "concept", label: "What it is", text: `${generated.topic}. ${generated.whatItIs}` },
+          { role: "correct", label: "How it works", text: generated.howItWorks },
+          {
+            role: "why",
+            label: "Where it usually breaks",
+            text: `Most students who get this wrong are applying a rule that sounds right: ${lowerFirst(
+              generated.commonMistake
+            )}`,
+          },
+          { role: "why", label: "Why that fails", text: generated.whyThatFails },
+          { role: "avoid", label: "Check yourself", text: generated.checkYourself },
+        ];
+
+        const diagram = generated.diagram;
+        const visual =
+          diagram.kind === "process-flow" && diagram.inputs.length > 0 && diagram.outputs.length > 0
+            ? {
+                kind: "process-flow" as const,
+                inputs: diagram.inputs.slice(0, 4),
+                process: diagram.process || generated.topic,
+                location: diagram.location || "",
+                outputs: diagram.outputs.slice(0, 4),
+                caption: "Labels suggested by AI; the diagram itself is drawn by the app.",
+              }
+            : { kind: "none" as const };
+
+        return NextResponse.json({
+          matched: true,
+          generated: true,
+          routedBy: "model",
+          concept: {
+            id: null,
+            slug: null,
+            name: generated.topic,
+            subject: generated.subject,
+            description: generated.whatItIs,
+            commonErrors: [generated.commonMistake],
+          },
+          visual,
+          visualCaption: null,
+          lesson,
+          citedChunkIds: [],
+          sources: [],
+          misconceptions: [
+            {
+              code: "GENERATED",
+              name: "Commonly misunderstood as",
+              studentRule: generated.commonMistake,
+              whyItFails: generated.whyThatFails,
+            },
+          ],
+          // Answered in the browser and not recorded against the learning
+          // history — a topic with no concept row has nothing to record against.
+          quiz: generated.quiz,
+          alternatives: routed.alternatives.slice(0, 3).map((c) => ({ slug: c.slug, name: c.name })),
+        });
+      }
+    }
+
     return NextResponse.json(
       {
         matched: false,
-        // Said plainly, with the truth about why: the corpus is curated, and a
-        // curated corpus has edges.
+        reason: failure ?? "no-provider",
+        // The truth about why, which is not always the same reason. Telling a
+        // student their topic isn't real when in fact we hit a rate limit is a
+        // small lie that costs trust for no gain.
         message:
-          "That topic isn't in our verified library yet. Everything GapFinder explains is checked material, so we'd rather say so than improvise.",
+          failure === "unavailable"
+            ? "Our explanation service is rate-limited right now, so we couldn't write this one up. Everything in the verified library below still works."
+            : "That topic isn't in our verified library yet. Everything GapFinder explains is checked material, so we'd rather say so than improvise.",
         suggestions: (routed.alternatives.length > 0 ? routed.alternatives : concepts)
           .slice(0, 6)
           .map((c) => ({ slug: c.slug, name: c.name, subject: c.subject })),
@@ -87,7 +175,12 @@ export async function POST(req: NextRequest) {
 
   const concept = routed.match.concept;
 
-  const chunks = await retrieveKnowledge(concept.id, `${topic} ${concept.name}`, { limit: 6 });
+  // The student asked about this concept by name, so everything filed under it
+  // is relevant — scoring decides the order, not whether they see it at all.
+  const chunks = await retrieveKnowledge(concept.id, `${topic} ${concept.name}`, {
+    limit: 6,
+    fallbackToAll: true,
+  });
   const misconceptions = MISCONCEPTIONS.filter((m) => m.conceptSlug === concept.slug);
 
   const lesson = buildConceptLesson({
@@ -113,6 +206,7 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({
     matched: true,
+    generated: false,
     routedBy: routed.routedBy,
     concept: {
       id: concept.id,
@@ -135,6 +229,10 @@ export async function POST(req: NextRequest) {
     })),
     alternatives: routed.alternatives.slice(0, 3).map((c) => ({ slug: c.slug, name: c.name })),
   });
+}
+
+function lowerFirst(text: string): string {
+  return text.charAt(0).toLowerCase() + text.slice(1);
 }
 
 function safeList(raw: string): string[] {
