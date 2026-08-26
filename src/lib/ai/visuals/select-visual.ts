@@ -67,6 +67,20 @@ export type VisualModule =
       animalOnly: string[];
       caption: string;
     }
+  | { kind: "cycle"; stages: string[]; centre?: string; caption: string }
+  | {
+      kind: "labelled-parts";
+      subject: string;
+      parts: { name: string; role: string }[];
+      caption: string;
+    }
+  | {
+      kind: "comparison";
+      leftTitle: string;
+      rightTitle: string;
+      rows: { aspect: string; left: string; right: string }[];
+      caption: string;
+    }
   | { kind: "none" };
 
 /**
