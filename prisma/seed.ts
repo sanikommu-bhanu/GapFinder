@@ -711,6 +711,78 @@ const chunks: ChunkSeed[] = [
     keywords: ["check answer", "substitute", "verify"],
   },
   {
+    concept: "algebra",
+    kind: "explanation",
+    title: "A letter is a number you do not know yet",
+    content:
+      "A variable is not a mystery symbol with its own rules; it obeys exactly the arithmetic a number obeys. Everything allowed with 7 is allowed with x, and nothing else is. Most algebra that feels arbitrary stops feeling that way once the letter is read as a stand-in for a specific value you have not found.",
+    keywords: ["variable", "letter", "unknown", "algebra", "symbol", "stands for"],
+  },
+  {
+    concept: "algebra",
+    kind: "worked_example",
+    title: "Collecting like terms, and why unlike terms will not collect",
+    content:
+      "In 5x + 3 + 2x - 1, the x terms combine to 7x and the constants to 2, giving 7x + 2. The reason 7x + 2 cannot be simplified further is that x and 1 measure different things: seven of an unknown quantity plus two units is already as short as it goes. Terms combine only when the variable part is identical.",
+    keywords: ["like terms", "collect", "simplify", "combine", "unlike", "cannot"],
+  },
+  {
+    concept: "algebra",
+    kind: "misconception",
+    title: "Treating 2x as two-then-x rather than two times x",
+    content:
+      "Writing 2x means 2 multiplied by x, with the multiplication sign left out for brevity. Read as digits placed side by side, it produces errors that look random: substituting x = 3 gives 6, never 23. Whenever a substitution result surprises you, check that every implied multiplication was actually performed.",
+    keywords: ["2x", "implied", "multiplication", "substitute", "concatenate", "times"],
+  },
+  {
+    concept: "equations",
+    kind: "explanation",
+    title: "The equals sign is a claim of balance, not an instruction",
+    content:
+      "In arithmetic, = often reads as 'now write the answer'. In algebra it states that the two sides name the same value, and every legal step is one that keeps that true. This is why an operation must reach both sides: doing it to one makes the claim false, and every line after it describes a different problem.",
+    keywords: ["equals", "balance", "both sides", "same value", "claim", "true"],
+  },
+  {
+    concept: "equations",
+    kind: "worked_example",
+    title: "Solving 2x + 7 = 15, one operation at a time",
+    content:
+      "Subtract 7 from both sides: 2x = 8. Divide both sides by 2: x = 4. Undo the operations in reverse order to how they were applied to x — the constant was added last, so it comes off first. Substituting 4 back gives 2(4) + 7 = 15, which confirms it.",
+    keywords: ["solve", "2x + 7", "both sides", "reverse", "undo", "substitute back"],
+  },
+  {
+    concept: "chemical-equations",
+    kind: "explanation",
+    title: "What a chemical equation actually claims",
+    content:
+      "The arrow is not an equals sign; it means 'becomes'. What the equation claims is that the atoms on the left are the same atoms, rearranged, on the right. Formulae describe what each substance is, and the numbers in front say how many of each are involved. Those two carry completely different information.",
+    keywords: ["arrow", "becomes", "reactants", "products", "rearranged", "formula"],
+  },
+  {
+    concept: "chemical-equations",
+    kind: "worked_example",
+    title: "Reading 2H2 + O2 -> 2H2O",
+    content:
+      "Two hydrogen molecules react with one oxygen molecule to give two water molecules. Left: four hydrogen atoms and two oxygen atoms. Right: four hydrogen atoms and two oxygen atoms. Nothing appeared and nothing vanished — that is what makes the equation valid, and it is checkable by counting.",
+    keywords: ["water", "hydrogen", "oxygen", "count atoms", "read", "molecules"],
+  },
+  {
+    concept: "atomic-structure",
+    kind: "explanation",
+    title: "Three particles, and what each one decides",
+    content:
+      "Protons fix which element it is: change that number and it is a different element entirely. Neutrons change the mass but not the chemistry, which is what an isotope is. Electrons, and specifically the outermost ones, decide how the atom reacts. Almost every question about behaviour is a question about the outer shell.",
+    keywords: ["proton", "neutron", "electron", "isotope", "element", "outer shell"],
+  },
+  {
+    concept: "atomic-structure",
+    kind: "misconception",
+    title: "Assuming the mass number counts protons",
+    content:
+      "The mass number counts protons and neutrons together; the atomic number counts protons alone. Reading the larger number as the proton count identifies the wrong element and makes every prediction that follows wrong, even when the reasoning after it is sound.",
+    keywords: ["mass number", "atomic number", "protons", "neutrons", "confuse", "count"],
+  },
+  {
     concept: "fractions",
     kind: "explanation",
     title: "Why fractions need a common denominator to add",
