@@ -26,9 +26,6 @@ body {
   background: rgb(var(--page-bg));
   color: rgb(var(--c-ink));
   -webkit-font-smoothing: antialiased;
-  /* The app owns its own scrolling regions; the document itself never scrolls
-     sideways, which is what produces the "premium native" feel on a phone. */
-  overflow-x: hidden;
 }
 
 /**
@@ -49,6 +46,7 @@ body {
   /* Never clip vertically: the document is the scroller, and a shell that
      hid its own overflow would strand everything below the fold. */
   overflow-y: visible;
+  overflow-x: hidden;
   background: rgb(var(--page-bg));
   position: relative;
   display: flex;
