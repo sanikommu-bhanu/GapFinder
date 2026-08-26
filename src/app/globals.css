@@ -46,6 +46,9 @@ body {
   width: 100%;
   max-width: 430px;
   margin: 0 auto;
+  /* vh first, dvh second: an older in-app WebView that does not understand
+     dvh keeps a working value instead of dropping the declaration. */
+  min-height: 100vh;
   min-height: 100dvh;
   /* Never clip vertically: the document is the scroller, and a shell that
      hid its own overflow would strand everything below the fold. */

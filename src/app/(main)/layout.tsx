@@ -36,7 +36,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   }, [pathname]);
 
   return (
-    <div className="flex min-h-dvh flex-col">
+    <div className="flex min-h-screen flex-col [min-height:100dvh]">
       <div className="flex-1">{children}</div>
       {withTabs && <BottomNav />}
     </div>
