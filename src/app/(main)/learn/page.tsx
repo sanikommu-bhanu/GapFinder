@@ -18,6 +18,7 @@ import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { Button } from "@/components/ui/Button";
 import { ConceptVisual } from "@/components/visuals/ConceptVisual";
+import { ConceptImage } from "@/components/visuals/ConceptImage";
 import { TeachMe } from "@/components/analysis/TeachMe";
 import { ResourcePanel } from "@/components/analysis/ResourcePanel";
 import { useSpeechInput } from "@/hooks/useSpeechInput";
@@ -306,6 +307,11 @@ function LearnView() {
                 )}
               </div>
             )}
+
+            {/* The illustration loads on its own request, after the lesson and
+                the diagram are already readable. Gemini draws it; when Groq is
+                serving instead, this renders nothing and nothing is missed. */}
+            <ConceptImage topic={concept.name} subject={concept.subject} />
 
             {result.lesson && result.lesson.length > 0 && <TeachMe lines={result.lesson} />}
 
