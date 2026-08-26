@@ -1,8 +1,9 @@
 "use client";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { AppMenu } from "./AppMenu";
+import { parentOf } from "@/lib/nav/parents";
 
 /**
  * The screen header from the design reference: a centered title with an
@@ -14,6 +15,7 @@ export function TopBar({
   subtitle,
   back = true,
   onBack,
+  parentHref,
   right,
   className,
   tone = "light",
@@ -21,14 +23,30 @@ export function TopBar({
   title: string;
   subtitle?: string;
   back?: boolean;
-  /** Overrides history navigation — used by screens with internal steps. */
+  /** Overrides navigation entirely — used by screens with internal steps. */
   onBack?: () => void;
+  /** Overrides the structural parent for this one screen. */
+  parentHref?: string;
   right?: React.ReactNode;
   className?: string;
   tone?: "light" | "dark";
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const dark = tone === "dark";
+
+  /**
+   * Up, not back. Returns to this screen's parent rather than to whatever
+   * happened to precede it, so the button behaves the same on a fresh load as
+   * it does mid-session — and never lands on a screen that redirects forward.
+   */
+  function goBack() {
+    if (onBack) return onBack();
+    // Read at click time rather than through useSearchParams: the hook would
+    // force a Suspense boundary onto every screen that renders a header.
+    const search = typeof window === "undefined" ? null : window.location.search;
+    router.push(parentHref ?? parentOf(pathname, search));
+  }
 
   return (
     <header className={cn("flex items-center gap-1 px-2 pb-3 pt-3", className)}>
@@ -36,7 +54,7 @@ export function TopBar({
         {back && (
           <button
             type="button"
-            onClick={() => (onBack ? onBack() : router.back())}
+            onClick={goBack}
             aria-label="Go back"
             className={cn(
               "flex h-11 w-11 items-center justify-center rounded-full transition-colors active:bg-black/5",
