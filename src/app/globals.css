@@ -29,10 +29,6 @@ body {
   /* The app owns its own scrolling regions; the document itself never scrolls
      sideways, which is what produces the "premium native" feel on a phone. */
   overflow-x: hidden;
-  /* Vertical panning must always be available. Stating it explicitly means no
-     ancestor style, and no installed-PWA quirk, can leave a screen unscrollable. */
-  touch-action: pan-y;
-  overscroll-behavior-y: contain;
 }
 
 /**
@@ -67,6 +63,7 @@ body {
 .scrollbar-none::-webkit-scrollbar {
   display: none;
 }
+
 .scrollbar-none {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -87,6 +84,7 @@ select {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
