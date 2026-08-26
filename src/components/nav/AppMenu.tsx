@@ -78,10 +78,17 @@ export function AppMenu({ tone = "light" }: { tone?: "light" | "dark" }) {
       if (e.key === "Escape") setOpen(false);
     };
     document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
+
+    // The app scrolls inside a container, not the document, so locking <body>
+    // did nothing — the page kept scrolling behind the open panel. Lock the
+    // element that actually scrolls, and always hand it back.
+    const scroller = document.querySelector<HTMLElement>("[data-app-scroller]");
+    const previous = scroller?.style.overflow ?? "";
+    if (scroller) scroller.style.overflow = "hidden";
+
     return () => {
       document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
+      if (scroller) scroller.style.overflow = previous;
     };
   }, [open]);
 
