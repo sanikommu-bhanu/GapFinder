@@ -1,7 +1,17 @@
 "use client";
 import { Suspense, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Camera as CameraIcon, Image as ImageIcon, Lightbulb, X, Keyboard, ScanLine } from "lucide-react";
+import Link from "next/link";
+import {
+  Camera as CameraIcon,
+  Image as ImageIcon,
+  Lightbulb,
+  X,
+  Keyboard,
+  ScanLine,
+  Sparkles,
+  ArrowRight,
+} from "lucide-react";
 import { TopBar } from "@/components/nav/TopBar";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
@@ -162,6 +172,18 @@ function ScanView() {
         <p className="text-center text-[13px] leading-relaxed text-ink-soft">
           Photograph your handwritten working, or type it out — we check every line either way.
         </p>
+
+        {/* This screen checks work. Questions belong somewhere else, and a
+            student who doesn't know that just gets told to write more lines. */}
+        <Link href="/learn" className="mt-3 block">
+          <div className="flex items-center gap-2.5 rounded-2xl bg-lavender-50 p-3 active:scale-[0.99]">
+            <Sparkles className="h-4 w-4 shrink-0 text-lavender-600" />
+            <p className="flex-1 text-[12px] leading-relaxed text-navy-900">
+              Want something <span className="font-semibold">explained</span> instead? Ask a concept.
+            </p>
+            <ArrowRight className="h-3.5 w-3.5 shrink-0 text-lavender-600" />
+          </div>
+        </Link>
 
         <div className="mt-4 flex gap-1 rounded-pill bg-surface-muted p-1">
           {(
