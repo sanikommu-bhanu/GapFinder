@@ -26,11 +26,20 @@ function apiKey(): string {
 }
 
 function textModel(): string {
-  return process.env.GROQ_MODEL ?? "llama-3.3-70b-versatile";
+  return process.env.GROQ_MODEL ?? "openai/gpt-oss-120b";
 }
 
-function visionModel(): string {
-  return process.env.GROQ_VISION_MODEL ?? "meta-llama/llama-4-scout-17b-16e-instruct";
+/**
+ * There is no default here on purpose.
+ *
+ * Groq's catalogue rotates, and at the time of writing the text models it
+ * serves are not multimodal. Defaulting to one of them would mean sending a
+ * photograph to a model that cannot see it — a silent failure dressed up as a
+ * fallback. Set GROQ_VISION_MODEL explicitly if your key can reach a vision
+ * model, and vision stays off until you do.
+ */
+function visionModel(): string | null {
+  return process.env.GROQ_VISION_MODEL || null;
 }
 
 /**
@@ -39,7 +48,7 @@ function visionModel(): string {
  * reader would degrade the diagnosis without saying so.
  */
 function visionFallbackEnabled(): boolean {
-  return process.env.GROQ_ALLOW_VISION === "true";
+  return process.env.GROQ_ALLOW_VISION === "true" && visionModel() !== null;
 }
 
 export const groqProvider: AiProvider = {
@@ -49,7 +58,7 @@ export const groqProvider: AiProvider = {
 
   canHandle: ({ hasImage }) => (hasImage ? visionFallbackEnabled() : true),
 
-  modelFor: ({ hasImage }) => (hasImage ? visionModel() : textModel()),
+  modelFor: ({ hasImage }) => (hasImage ? visionModel() ?? textModel() : textModel()),
 
   async generate<T extends z.ZodTypeAny>(request: GenerateRequest<T>): Promise<z.infer<T>> {
     if (!apiKey()) {
@@ -60,7 +69,9 @@ export const groqProvider: AiProvider = {
     if (hasImage && !visionFallbackEnabled()) {
       throw new AiUnavailableError(
         "unsupported",
-        "Groq vision fallback is not enabled (set GROQ_ALLOW_VISION=true).",
+        visionModel() === null
+          ? "No Groq vision model is configured (set GROQ_VISION_MODEL to one your key can reach)."
+          : "Groq vision fallback is not enabled (set GROQ_ALLOW_VISION=true).",
         "groq"
       );
     }

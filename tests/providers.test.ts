@@ -66,14 +66,26 @@ describe("groq provider configuration", () => {
     expect(groqProvider.canHandle({ hasImage: false })).toBe(true);
   });
 
-  it("accepts images once vision fallback is opted into", () => {
+  it("will not do vision on opt-in alone, without a vision model named", () => {
     process.env.GROQ_API_KEY = "gsk_thisisalongenoughkeyvalue";
     process.env.GROQ_ALLOW_VISION = "true";
+    delete process.env.GROQ_VISION_MODEL;
+    // Groq's catalogue rotates and its text models are not multimodal. Sending
+    // a photograph to one would be a silent failure dressed as a fallback.
+    expect(groqProvider.canHandle({ hasImage: true })).toBe(false);
+  });
+
+  it("accepts images once a vision model is named and opted into", () => {
+    process.env.GROQ_API_KEY = "gsk_thisisalongenoughkeyvalue";
+    process.env.GROQ_ALLOW_VISION = "true";
+    process.env.GROQ_VISION_MODEL = "some/vision-capable-model";
     expect(groqProvider.canHandle({ hasImage: true })).toBe(true);
   });
 
   it("throws rather than silently doing nothing when asked for vision it can't do", async () => {
     process.env.GROQ_API_KEY = "gsk_thisisalongenoughkeyvalue";
+    delete process.env.GROQ_ALLOW_VISION;
+    delete process.env.GROQ_VISION_MODEL;
     await expect(
       groqProvider.generate({
         schema: (await import("zod")).z.object({ ok: (await import("zod")).z.boolean() }),
@@ -81,10 +93,13 @@ describe("groq provider configuration", () => {
         prompt: "p",
         imageBase64: "abc",
       })
-    ).rejects.toThrow(/vision fallback is not enabled/i);
+    ).rejects.toThrow(/vision/i);
   });
 
-  it("uses a distinct model for images and text", () => {
-    expect(groqProvider.modelFor({ hasImage: true })).not.toBe(groqProvider.modelFor({ hasImage: false }));
+  it("keeps the image model separate from the text model when both are set", () => {
+    process.env.GROQ_MODEL = "some/text-model";
+    process.env.GROQ_VISION_MODEL = "some/vision-capable-model";
+    expect(groqProvider.modelFor({ hasImage: true })).toBe("some/vision-capable-model");
+    expect(groqProvider.modelFor({ hasImage: false })).toBe("some/text-model");
   });
 });
