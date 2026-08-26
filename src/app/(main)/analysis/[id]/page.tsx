@@ -14,6 +14,7 @@ import { CorrectedSolution } from "@/components/analysis/CorrectedSolution";
 import { SocraticPrompt } from "@/components/analysis/SocraticPrompt";
 import { MisconceptionCard } from "@/components/analysis/MisconceptionCard";
 import { TeachMe } from "@/components/analysis/TeachMe";
+import { useVoiceSettings } from "@/hooks/useVoiceSettings";
 import { ResourcePanel } from "@/components/analysis/ResourcePanel";
 import { buildLesson } from "@/lib/teaching/build-lesson";
 import { getMisconception } from "@/lib/diagnosis/misconceptions";
@@ -68,6 +69,7 @@ type View = (typeof VIEWS)[number];
 export default function AnalysisDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const voice = useVoiceSettings();
   const setActiveGap = useAppStore((s) => s.setActiveGap);
 
   const [view, setView] = useState<View>("replay");
@@ -474,6 +476,7 @@ export default function AnalysisDetailPage() {
 
             <TeachMe
               className="mt-3"
+              rate={voice.voiceSpeed}
               lines={buildLesson({
                 studentExpression: firstGapStep.expression,
                 previousExpression: previousStep?.expression ?? null,

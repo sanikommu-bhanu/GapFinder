@@ -22,6 +22,7 @@ import { ConceptImage } from "@/components/visuals/ConceptImage";
 import { TeachMe } from "@/components/analysis/TeachMe";
 import { ResourcePanel } from "@/components/analysis/ResourcePanel";
 import { useSpeechInput } from "@/hooks/useSpeechInput";
+import { useVoiceSettings } from "@/hooks/useVoiceSettings";
 import { SUBJECTS } from "@/lib/subjects";
 import type { VisualModule } from "@/lib/ai/visuals/select-visual";
 import type { LessonLine } from "@/lib/teaching/build-lesson";
@@ -89,6 +90,7 @@ function LearnView() {
   const [error, setError] = useState<string | null>(null);
   const answered = useRef<string | null>(null);
 
+  const voice = useVoiceSettings();
   const speech = useSpeechInput({
     onTranscript: (text) => setQuery((current) => (current ? `${current} ${text}` : text)),
   });
@@ -160,7 +162,7 @@ function LearnView() {
               aria-label="What would you like explained?"
               className="h-14 w-full rounded-2xl border border-navy-50 bg-surface-muted pl-4 pr-12 text-[15px] text-navy-900 outline-none transition-colors placeholder:text-ink-faint focus:border-lavender-400 focus:bg-surface"
             />
-            {speech.supported && (
+            {speech.supported && voice.voiceEnabled && (
               <button
                 onClick={speech.toggle}
                 aria-label={speech.listening ? "Stop dictating" : "Dictate your question"}
@@ -313,7 +315,7 @@ function LearnView() {
                 serving instead, this renders nothing and nothing is missed. */}
             <ConceptImage topic={concept.name} subject={concept.subject} />
 
-            {result.lesson && result.lesson.length > 0 && <TeachMe lines={result.lesson} />}
+            {result.lesson && result.lesson.length > 0 && <TeachMe lines={result.lesson} rate={voice.voiceSpeed} />}
 
             {result.misconceptions && result.misconceptions.length > 0 && (
               <Card className="bg-warning-50 shadow-none">
@@ -342,7 +344,14 @@ function LearnView() {
               result.quiz && result.quiz.length > 0 && <InlineQuiz questions={result.quiz} />
             )}
 
-            {concept.slug && <ResourcePanel conceptSlug={concept.slug} className="mt-1" />}
+            {/* The library route sharpens its query with a documented
+                misconception; a generated topic has none, so it searches on the
+                topic itself. Either way the student gets something to watch. */}
+            {concept.slug ? (
+              <ResourcePanel conceptSlug={concept.slug} className="mt-1" />
+            ) : (
+              <ResourcePanel topic={concept.name} subject={concept.subject} className="mt-1" />
+            )}
 
             {result.sources && result.sources.length > 0 && (
               <div className="flex items-start gap-2 rounded-2xl bg-surface-muted p-3">

@@ -19,12 +19,17 @@ import { cn } from "@/lib/cn";
 export function ResourcePanel({
   gapId,
   conceptSlug,
+  topic,
+  subject,
   className,
 }: {
   /** Resources for a diagnosed gap — the misconception sharpens the query. */
   gapId?: string;
   /** Resources for a concept being explained, where there is no gap yet. */
   conceptSlug?: string;
+  /** Resources for a topic outside the library, which has no concept record. */
+  topic?: string;
+  subject?: string;
   className?: string;
 }) {
   const [bundle, setBundle] = useState<ResourceBundle | null>(null);
@@ -34,7 +39,9 @@ export function ResourcePanel({
     ? `/api/gaps/${gapId}/resources`
     : conceptSlug
       ? `/api/concepts/${conceptSlug}/resources`
-      : null;
+      : topic
+        ? `/api/resources?topic=${encodeURIComponent(topic)}&subject=${encodeURIComponent(subject ?? "Science")}`
+        : null;
 
   useEffect(() => {
     if (!endpoint) {
