@@ -1,4 +1,5 @@
 import type { LearningResource, ResourceQuery } from "../types";
+import { env, hasYouTubeKey } from "@/lib/env";
 
 /**
  * Video recommendations.
@@ -23,7 +24,7 @@ const YOUTUBE_VIDEOS = "https://www.googleapis.com/youtube/v3/videos";
 const TIMEOUT_MS = 6000;
 
 function hasKey(): boolean {
-  return Boolean(process.env.YOUTUBE_API_KEY && process.env.YOUTUBE_API_KEY.length > 10);
+  return hasYouTubeKey();
 }
 
 async function fetchWithTimeout(url: string): Promise<Response | null> {
@@ -78,7 +79,7 @@ export async function searchVideos(query: ResourceQuery, limit = 2): Promise<Lea
     videoEmbeddable: "true",
     safeSearch: "strict",
     relevanceLanguage: "en",
-    key: process.env.YOUTUBE_API_KEY!,
+    key: env.YOUTUBE_API_KEY,
   });
 
   const res = await fetchWithTimeout(`${YOUTUBE_SEARCH}?${searchParams}`);
@@ -112,7 +113,7 @@ export async function searchVideos(query: ResourceQuery, limit = 2): Promise<Lea
   const detailParams = new URLSearchParams({
     part: "status,statistics",
     id: ids.slice(0, limit * 3).join(","),
-    key: process.env.YOUTUBE_API_KEY!,
+    key: env.YOUTUBE_API_KEY,
   });
   const detailRes = await fetchWithTimeout(`${YOUTUBE_VIDEOS}?${detailParams}`);
   if (!detailRes?.ok) return [];

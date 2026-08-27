@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Play, FileText, ExternalLink, Search, Info } from "lucide-react";
+import { Play, FileText, ExternalLink, Search, Info, Code2 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import type { LearningResource, ResourceBundle } from "@/lib/resources/types";
 import { cn } from "@/lib/cn";
@@ -74,7 +74,9 @@ export function ResourcePanel({
 
   if (!bundle) return null;
 
-  const hasAnything = bundle.videos.length > 0 || bundle.papers.length > 0;
+  // Bundles cached before GitHub existed have no `code` key at all.
+  const code = bundle.code ?? [];
+  const hasAnything = bundle.videos.length > 0 || bundle.papers.length > 0 || code.length > 0;
   if (!hasAnything && bundle.unavailable.length === 0) return null;
 
   return (
@@ -103,7 +105,26 @@ export function ResourcePanel({
             ))}
           </div>
           <p className="mt-3 text-[10px] leading-relaxed text-ink-faint">
-            Retrieved live from Crossref and arXiv. Titles, authors and DOIs are theirs, not ours.
+            Retrieved live from OpenAlex, Crossref and arXiv. Titles, authors and DOIs are theirs,
+            not ours.
+          </p>
+        </Card>
+      )}
+
+      {/* Only ever populated for Computer Science and Engineering — a repository
+          makes an algorithms gap concrete and says nothing about photosynthesis. */}
+      {code.length > 0 && (
+        <Card>
+          <p className="flex items-center gap-1.5 text-xs font-semibold text-ink-soft">
+            <Code2 className="h-3.5 w-3.5" /> See it in the real world
+          </p>
+          <div className="mt-2.5 flex flex-col gap-2.5">
+            {code.map((r) => (
+              <ResourceRow key={r.id} resource={r} />
+            ))}
+          </div>
+          <p className="mt-3 text-[10px] leading-relaxed text-ink-faint">
+            Public repositories where this concept appears. We link to them — we haven&apos;t run them.
           </p>
         </Card>
       )}

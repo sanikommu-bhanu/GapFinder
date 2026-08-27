@@ -65,12 +65,12 @@ const CONCEPT_TERMS: Record<string, string[]> = {
   "genetics-inheritance": ["genetics", "inheritance", "biology education"],
 };
 
-function conceptTerms(query: ResourceQuery): string[] {
+export function conceptTerms(query: ResourceQuery): string[] {
   return CONCEPT_TERMS[query.conceptSlug] ?? [query.conceptName.toLowerCase()];
 }
 
 /** A concept with no distinctive term can't be matched, so nothing is shown. */
-function hasUsableAnchors(query: ResourceQuery): boolean {
+export function hasUsableAnchors(query: ResourceQuery): boolean {
   return conceptTerms(query)
     .flatMap((t) => t.split(" "))
     .some((w) => w.length > 4 && !GENERIC_ANCHORS.has(w));
@@ -141,7 +141,7 @@ function relevanceScore(resource: LearningResource, query: ResourceQuery): numbe
   return aboutTeaching ? 2 : 1;
 }
 
-function isRelevant(resource: LearningResource, query: ResourceQuery): boolean {
+export function isRelevant(resource: LearningResource, query: ResourceQuery): boolean {
   return relevanceScore(resource, query) >= 2;
 }
 

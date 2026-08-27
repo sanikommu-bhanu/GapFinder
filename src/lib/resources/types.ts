@@ -51,6 +51,12 @@ export interface ResourceQuery {
 export interface ResourceBundle {
   videos: LearningResource[];
   papers: LearningResource[];
+  /**
+   * Real-world code, for the subjects where reading a repository is genuinely
+   * the better explanation. Optional because bundles cached before this field
+   * existed will not have it — every consumer must treat it as possibly absent.
+   */
+  code?: LearningResource[];
   /** Providers that were asked but couldn't answer, with the reason. */
   unavailable: { provider: string; reason: string }[];
 }
