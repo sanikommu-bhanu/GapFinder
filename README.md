@@ -253,7 +253,10 @@ Each subject states plainly what is **proved** versus what is **reviewed**, and 
 | **Retrieval** | Local TF-IDF over a curated corpus — no paid vector database |
 | **Voice** | Web Speech API, in and out |
 | **Auth** | JWT sessions via `jose`, verified in middleware |
-| **Tests** | **201 passing** — unit, integration, and a deterministic eval harness |
+| **Research** | OpenAlex, Crossref, arXiv — free, keyless, never model-generated |
+| **Discovery** | YouTube and GitHub where configured; honest fallbacks where not |
+| **Focus** | Timer bound to the live gap; optional Spotify via server-side OAuth |
+| **Tests** | **219 passing** — unit, integration, and a deterministic eval harness |
 
 ### Resilience by design
 
@@ -294,7 +297,7 @@ npm run db:apply prisma/manual/001-exam-tables.sql
 ### Verification
 
 ```bash
-npm test          # 201 tests
+npm test          # 219 tests
 npm run lint
 npx tsc --noEmit
 npm run build
@@ -319,15 +322,33 @@ src/
 │   ├── quiz/            Concept checks built from the catalogue
 │   └── exam/            Exam construction and verdict rules
 ├── components/
-│   ├── visuals/         10 deterministic diagram renderers
-│   └── analysis/        Diagnosis presentation
+│   ├── visuals/         16 deterministic diagram renderers
+│   ├── analysis/        Diagnosis presentation
+│   └── focus/           Focus Mode music card
 prisma/
 ├── schema.prisma
 ├── seed.ts              Concepts, knowledge chunks, achievements
 └── manual/              HTTPS-applied migrations
-tests/                   201 tests
-docs/ARCHITECTURE.md     Deeper technical detail
+tests/                   219 tests
+docs/                    Architecture, API, integrations, security, demo
 ```
+
+---
+
+## Documentation
+
+| Document | Covers |
+| --- | --- |
+| [Architecture](docs/ARCHITECTURE.md) | System design and boundaries |
+| [AI pipeline](docs/AI_PIPELINE.md) | Provider cascade, caching, quota, fallbacks |
+| [Research pipeline](docs/RESEARCH_PIPELINE.md) | How papers are found, filtered, ranked |
+| [Integrations](docs/INTEGRATIONS.md) | Every external service, its limits and fallback |
+| [API](docs/API.md) | Every route and failure mode |
+| [Environment](docs/ENVIRONMENT.md) | Every variable, what breaks without it |
+| [Security](docs/SECURITY.md) | Secrets, auth, the client/server boundary |
+| [Testing](docs/TESTING.md) | What is verified — and what is not |
+| [Troubleshooting](docs/TROUBLESHOOTING.md) | Symptoms and their actual causes |
+| [Demo](docs/DEMO.md) | The demo path, and live failure recovery |
 
 ---
 

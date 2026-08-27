@@ -298,10 +298,59 @@ The eval harness is the one that matters most: fixed worked solutions with known
 
 ---
 
-## 12. Extension points
+## 12. The integration layer
+
+External services attach through one boundary each, and none of them is
+load-bearing.
+
+```mermaid
+flowchart TB
+    CORE["GapFinder core<br/>diagnose → teach → verify"]
+
+    CORE --> AI["AI cascade"]
+    CORE --> RES["Resource registry"]
+    CORE --> FOC["Focus Mode"]
+    CORE --> VOI["Voice"]
+
+    AI --> G["Gemini"] --> GR["Groq"] --> DET["Deterministic"]
+    RES --> OA["OpenAlex"] & CR["Crossref"] & AX["arXiv"] & YT["YouTube"] & GH["GitHub"]
+    FOC --> SP["Spotify (optional)"]
+    VOI --> WS["Web Speech API"]
+
+    style CORE fill:#151833,stroke:#151833,color:#FFFFFF
+    style DET fill:#EEF0F8,stroke:#151833,color:#151833
+```
+
+**The rule.** Remove any single service — or all of them — and the diagnosis
+still runs, the gap is still found, the explanation still appears, and practice
+still grades. Integrations enrich the learning loop; they are never inside it.
+
+Two registries express this:
+
+| Registry | Contract | Adding a source |
+| --- | --- | --- |
+| `lib/ai/providers/types.ts` | `AiProvider` | Implement, append to `PROVIDERS` |
+| `lib/resources/registry.ts` | `ResourceProvider` | Implement, append to `PROVIDERS` |
+
+`ResourceProvider` carries `supports(query)` so a provider can **decline a
+subject** rather than return weak results for it — GitHub answers for Computer
+Science and Engineering and stays silent elsewhere. A decline is not a failure
+and is not reported to the student; a *throw* is, with a reason.
+
+No provider-specific code appears in any component. `FocusMusicCard` knows
+about `/api/spotify/*` and nothing about Spotify's API; `ResourcePanel` renders
+`LearningResource` and has never heard of Crossref.
+
+Full detail: [`INTEGRATIONS.md`](INTEGRATIONS.md).
+
+---
+
+## 13. Extension points
 
 **A new subject** needs a verifier in `lib/verification/domains/`, a routing rule in `verify-step.ts`, an entry in `lib/subjects.ts` declaring what it proves versus reviews, catalogue entries in `lib/diagnosis/misconceptions.ts`, and knowledge chunks in the seed.
 
 **A new visual** needs a module variant in `select-visual.ts`, a renderer in `components/visuals/`, and a case in `ConceptVisual.tsx`. The renderer receives computed parameters and draws them — it never calculates.
 
-**A new provider** implements the `AiProvider` interface and joins the `PROVIDERS` array. The cascade, caching, logging and fallback behaviour come for free.
+**A new AI provider** implements the `AiProvider` interface and joins the `PROVIDERS` array in `ai-client.ts`. The cascade, caching, logging and fallback behaviour come for free.
+
+**A new resource provider** implements `ResourceProvider` (`lib/resources/registry.ts`) and joins the `PROVIDERS` array in `lib/resources/index.ts`. Concurrency, caching, deduplication, relevance filtering and the `unavailable` reporting come for free. Declare `supports()` honestly — declining a subject is better than answering it badly.
