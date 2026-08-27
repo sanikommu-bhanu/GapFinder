@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 import { AppMenu } from "@/components/nav/AppMenu";
+import { FocusMusicCard } from "@/components/focus/FocusMusicCard";
 import { useAppStore } from "@/store/useAppStore";
 import { SUBJECTS } from "@/lib/subjects";
 
@@ -124,6 +125,11 @@ export default function HomePage() {
           </Card>
         </Link>
       </div>
+
+      {/* Focus, with the student's own music when Spotify is linked.
+          Renders nothing at all when the server has no Spotify credentials, so
+          the homepage never advertises a service this deployment can't reach. */}
+      <FocusMusicCard className="mt-3" />
 
       <div className="mt-3 grid grid-cols-2 gap-3">
         {/* Two tiles both offering to "ask anything" taught nobody where to

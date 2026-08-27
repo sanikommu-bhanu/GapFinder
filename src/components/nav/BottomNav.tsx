@@ -1,19 +1,27 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Sparkles, ScanLine, Target, User } from "lucide-react";
+import { Home, History, ScanLine, Target, User } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 /**
  * Only the four places a student goes every day, plus the capture action.
  * Everything else lives in the header menu — a tab bar that tries to hold the
  * whole product ends up holding none of it well.
+ *
+ * "Ask a concept" is deliberately not here. It answers a topic directly, which
+ * is the one thing that makes GapFinder look like a general-purpose chatbot
+ * rather than a diagnostic. It stays a tap away in the menu; the tab bar is
+ * reserved for the diagnose → repair loop the product is actually about.
+ *
+ * Every href below must also appear in TAB_ROUTES in (main)/layout.tsx, or the
+ * tab bar disappears on arrival at its own tab.
  */
 const items = [
   { href: "/home", label: "Home", icon: Home },
-  { href: "/learn", label: "Learn", icon: Sparkles },
-  { href: "/scan", label: "Scan", icon: ScanLine, isAction: true },
   { href: "/gaps", label: "Gaps", icon: Target },
+  { href: "/scan", label: "Scan", icon: ScanLine, isAction: true },
+  { href: "/history", label: "History", icon: History },
   { href: "/profile", label: "Profile", icon: User },
 ];
 
