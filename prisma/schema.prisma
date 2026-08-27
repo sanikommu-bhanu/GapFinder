@@ -9,7 +9,8 @@
 // Any free Postgres works — Neon, Supabase, Vercel Postgres. Set DATABASE_URL.
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
@@ -22,67 +23,92 @@ datasource db {
 // =========================================================
 
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  passwordHash  String
-  name          String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  profile           Profile?
-  studyPreference   StudyPreference?
-  settings          UserSettings?
-  analyses          Analysis[]
-  sessions          Session[]
-  masteryRecords    MasteryRecord[]
-  learningMemory    LearningMemory?
-  roadmap           Roadmap?
-  achievements      UserAchievement[]
-  recommendations   Recommendation[]
-  learningEvents    LearningEvent[]
-  examSessions      ExamSession[]
+  profile         Profile?
+  studyPreference StudyPreference?
+  settings        UserSettings?
+  analyses        Analysis[]
+  sessions        Session[]
+  masteryRecords  MasteryRecord[]
+  learningMemory  LearningMemory?
+  roadmap         Roadmap?
+  achievements    UserAchievement[]
+  recommendations Recommendation[]
+  learningEvents  LearningEvent[]
+  examSessions    ExamSession[]
+  spotifyAccount  SpotifyAccount?
 }
 
 model Profile {
-  id          String   @id @default(cuid())
-  userId      String   @unique
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  avatarUrl   String?
-  gradeLevel  String? // "Middle School" | "High School" | "College"
-  subjects    String  // JSON-encoded string[] e.g. ["Math","Physics"]
-  isPremium   Boolean  @default(false)
-  streakDays  Int      @default(0)
+  id           String    @id @default(cuid())
+  userId       String    @unique
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  avatarUrl    String?
+  gradeLevel   String? // "Middle School" | "High School" | "College"
+  subjects     String // JSON-encoded string[] e.g. ["Math","Physics"]
+  isPremium    Boolean   @default(false)
+  streakDays   Int       @default(0)
   lastActiveAt DateTime?
-  createdAt   DateTime @default(now())
+  createdAt    DateTime  @default(now())
 }
 
 model StudyPreference {
-  id                String   @id @default(cuid())
-  userId            String   @unique
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  defaultSubject    String   @default("Math")
-  dailyGoalMinutes  Int      @default(15)
-  difficultyBias    String   @default("adaptive") // "easier" | "adaptive" | "harder"
-  preferredPace     String   @default("standard")  // "relaxed" | "standard" | "intense"
-  reminderTime      String?  // "HH:mm"
-  updatedAt         DateTime @updatedAt
-}
-
-model UserSettings {
   id               String   @id @default(cuid())
   userId           String   @unique
   user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  theme            String   @default("system") // "light" | "dark" | "system"
-  accentColor      String   @default("purple")
-  fontScale        Float    @default(1.0)
-  chatBackground   String   @default("default")
-  notificationsOn  Boolean  @default(true)
-  voiceEnabled     Boolean  @default(true)
-  voiceName        String   @default("default")
-  voiceSpeed       Float    @default(1.0)
-  focusMusic       String   @default("none")
-  focusAmbient     String   @default("none")
+  defaultSubject   String   @default("Math")
+  dailyGoalMinutes Int      @default(15)
+  difficultyBias   String   @default("adaptive") // "easier" | "adaptive" | "harder"
+  preferredPace    String   @default("standard") // "relaxed" | "standard" | "intense"
+  reminderTime     String? // "HH:mm"
   updatedAt        DateTime @updatedAt
+}
+
+model UserSettings {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  theme           String   @default("system") // "light" | "dark" | "system"
+  accentColor     String   @default("purple")
+  fontScale       Float    @default(1.0)
+  chatBackground  String   @default("default")
+  notificationsOn Boolean  @default(true)
+  voiceEnabled    Boolean  @default(true)
+  voiceName       String   @default("default")
+  voiceSpeed      Float    @default(1.0)
+  focusAmbient    String   @default("none") // "none" | "rain" | "cafe" | "waves"
+  updatedAt       DateTime @updatedAt
+}
+
+// A linked Spotify account.
+//
+// Tokens live here and only here: server-side, in a row keyed to the user,
+// never in localStorage, never in React state, never in an API response. The
+// browser is given a short-lived access token only when it needs one for the
+// Web Playback SDK, and never sees the refresh token or the client secret.
+//
+// Rows are deleted outright on disconnect rather than blanked, so "not
+// connected" is the absence of a row and there is no half-linked state.
+model SpotifyAccount {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken  String
+  refreshToken String
+  // When the access token dies. Refreshed lazily, on the call that needs it.
+  expiresAt    DateTime
+  scope        String
+  // "premium" | "free" | "unknown" - decides whether transport controls appear.
+  product      String   @default("unknown")
+  displayName  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 // =========================================================
@@ -90,44 +116,44 @@ model UserSettings {
 // =========================================================
 
 model Analysis {
-  id              String   @id @default(cuid())
-  userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  subject         String
-  status          String   @default("pending") // pending|reading|reconstructing|verifying|classifying|explaining|complete|failed|needs_confirmation
-  confidence      String?  // high|medium|low
+  id                String    @id @default(cuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject           String
+  status            String    @default("pending") // pending|reading|reconstructing|verifying|classifying|explaining|complete|failed|needs_confirmation
+  confidence        String? // high|medium|low
   // Student-facing reason when status is failed/needs_confirmation.
-  statusReason    String?
+  statusReason      String?
   // The full correct path derived from the student's opening line (JSON string[]).
   correctedSolution String?
-  isDemo          Boolean  @default(false)
-  createdAt       DateTime @default(now())
-  completedAt     DateTime?
+  isDemo            Boolean   @default(false)
+  createdAt         DateTime  @default(now())
+  completedAt       DateTime?
 
-  uploadedWork    UploadedWork?
-  extractedSteps  ExtractedStep[]
-  reasoningSteps  ReasoningStep[]
-  gaps            Gap[]
-  session         Session?
-  report          Report?
-  learningEvents  LearningEvent[]
+  uploadedWork   UploadedWork?
+  extractedSteps ExtractedStep[]
+  reasoningSteps ReasoningStep[]
+  gaps           Gap[]
+  session        Session?
+  report         Report?
+  learningEvents LearningEvent[]
 }
 
 model UploadedWork {
-  id           String   @id @default(cuid())
-  analysisId   String   @unique
-  analysis     Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  id          String   @id @default(cuid())
+  analysisId  String   @unique
+  analysis    Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
   // Path the client fetches: /api/uploads/{analysisId}. Empty for typed work.
-  imageUrl     String
+  imageUrl    String
   // The compressed image itself, base64. Stored here rather than on disk
   // because a serverless host has no persistent filesystem to write to.
-  imageData    String?
-  sourceType   String   // "camera" | "gallery" | "typed"
-  rawText      String?  // typed/OCR fallback text
-  textContext  String?  // optional student-provided context
-  width        Int?
-  height       Int?
-  createdAt    DateTime @default(now())
+  imageData   String?
+  sourceType  String // "camera" | "gallery" | "typed"
+  rawText     String? // typed/OCR fallback text
+  textContext String? // optional student-provided context
+  width       Int?
+  height      Int?
+  createdAt   DateTime @default(now())
 }
 
 model ExtractedStep {
@@ -135,30 +161,30 @@ model ExtractedStep {
   analysisId   String
   analysis     Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
   order        Int
-  rawLine      String   // as read from handwriting/OCR
-  interpreted  String   // normalized math/text expression
-  confidence   String   // high|medium|low
+  rawLine      String // as read from handwriting/OCR
+  interpreted  String // normalized math/text expression
+  confidence   String // high|medium|low
   needsConfirm Boolean  @default(false)
   createdAt    DateTime @default(now())
 }
 
 model ReasoningStep {
-  id             String   @id @default(cuid())
-  analysisId     String
-  analysis       Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
-  order          Int
-  statement      String   // reconstructed reasoning in natural language + expression
-  expression     String
-  isValid        Boolean  // deterministically verified
-  isFirstGap     Boolean  @default(false)
-  verificationNote String?
+  id                  String   @id @default(cuid())
+  analysisId          String
+  analysis            Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  order               Int
+  statement           String // reconstructed reasoning in natural language + expression
+  expression          String
+  isValid             Boolean // deterministically verified
+  isFirstGap          Boolean  @default(false)
+  verificationNote    String?
   // What this step should have been, derived algebraically from the previous
   // verified step (see lib/math/solve-step.ts). Never model-generated.
   correctedExpression String?
   // Complete-audit verdict: correct | first_divergence | downstream_consequence
   // | independent_error | uncertain. See lib/verification/solution-audit.ts.
-  verdict          String   @default("correct")
-  createdAt      DateTime @default(now())
+  verdict             String   @default("correct")
+  createdAt           DateTime @default(now())
 }
 
 // =========================================================
@@ -166,55 +192,55 @@ model ReasoningStep {
 // =========================================================
 
 model Concept {
-  id            String   @id @default(cuid())
-  slug          String   @unique
-  name          String
-  subject       String
-  description   String
-  commonErrors  String   // JSON string[]
+  id             String  @id @default(cuid())
+  slug           String  @unique
+  name           String
+  subject        String
+  description    String
+  commonErrors   String // JSON string[]
   visualMetadata String? // JSON: {type, data} describing how to render the concept visual
 
-  gaps               Gap[]
-  fromRelationships  ConceptRelationship[] @relation("FromConcept")
-  toRelationships    ConceptRelationship[] @relation("ToConcept")
-  masteryRecords     MasteryRecord[]
-  practiceProblems   PracticeProblem[]
-  knowledgeChunks    KnowledgeChunk[]
-  examQuestions      ExamQuestion[]
+  gaps              Gap[]
+  fromRelationships ConceptRelationship[] @relation("FromConcept")
+  toRelationships   ConceptRelationship[] @relation("ToConcept")
+  masteryRecords    MasteryRecord[]
+  practiceProblems  PracticeProblem[]
+  knowledgeChunks   KnowledgeChunk[]
+  examQuestions     ExamQuestion[]
 }
 
 model ConceptRelationship {
-  id           String   @id @default(cuid())
+  id           String  @id @default(cuid())
   fromId       String
-  from         Concept  @relation("FromConcept", fields: [fromId], references: [id], onDelete: Cascade)
+  from         Concept @relation("FromConcept", fields: [fromId], references: [id], onDelete: Cascade)
   toId         String
-  to           Concept  @relation("ToConcept", fields: [toId], references: [id], onDelete: Cascade)
-  relationType String   // "prerequisite" | "related" | "builds-on" | "commonly-confused-with"
+  to           Concept @relation("ToConcept", fields: [toId], references: [id], onDelete: Cascade)
+  relationType String // "prerequisite" | "related" | "builds-on" | "commonly-confused-with"
 
   @@unique([fromId, toId, relationType])
 }
 
 model Gap {
-  id             String   @id @default(cuid())
-  analysisId     String
-  analysis       Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
-  conceptId      String
-  concept        Concept  @relation(fields: [conceptId], references: [id])
-  classification String   // e.g. "sign-error", "inverse-operation-misapplied"
-  surfaceError   String   // what the student literally did
-  underlyingGap  String   // the conceptual root cause
-  evidence       String   // JSON: array of evidence pointers {stepId, note}
-  confidence     String   // high|medium|low
-  explanationText String?
+  id                    String   @id @default(cuid())
+  analysisId            String
+  analysis              Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  conceptId             String
+  concept               Concept  @relation(fields: [conceptId], references: [id])
+  classification        String // e.g. "sign-error", "inverse-operation-misapplied"
+  surfaceError          String // what the student literally did
+  underlyingGap         String // the conceptual root cause
+  evidence              String // JSON: array of evidence pointers {stepId, note}
+  confidence            String // high|medium|low
+  explanationText       String?
   // Stable code from the documented misconception catalogue
   // (lib/diagnosis/misconceptions.ts). Countable across students, unlike a
   // model-authored label.
-  misconceptionCode String?
+  misconceptionCode     String?
   // "proved" (algebraic signature) or "matched" (model chose from the catalogue).
-  misconceptionBasis String?
+  misconceptionBasis    String?
   misconceptionEvidence String?
-  status         String   @default("open") // open|repaired|closed
-  createdAt      DateTime @default(now())
+  status                String   @default("open") // open|repaired|closed
+  createdAt             DateTime @default(now())
 
   practiceAttempts  PracticeAttempt[]
   transferAttempts  TransferAttempt[]
@@ -223,14 +249,14 @@ model Gap {
 
 // Curated educational knowledge layer (genuine local RAG, no paid vector DB)
 model KnowledgeChunk {
-  id          String   @id @default(cuid())
-  conceptId   String
-  concept     Concept  @relation(fields: [conceptId], references: [id], onDelete: Cascade)
-  kind        String   // "explanation"|"worked_example"|"misconception"|"teaching_strategy"|"practice_pattern"
-  title       String
-  content     String
-  keywords    String   // JSON string[] used for local keyword/TF-IDF retrieval
-  createdAt   DateTime @default(now())
+  id        String   @id @default(cuid())
+  conceptId String
+  concept   Concept  @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+  kind      String // "explanation"|"worked_example"|"misconception"|"teaching_strategy"|"practice_pattern"
+  title     String
+  content   String
+  keywords  String // JSON string[] used for local keyword/TF-IDF retrieval
+  createdAt DateTime @default(now())
 }
 
 // =========================================================
@@ -238,55 +264,55 @@ model KnowledgeChunk {
 // =========================================================
 
 model PracticeProblem {
-  id           String   @id @default(cuid())
-  conceptId    String
-  concept      Concept  @relation(fields: [conceptId], references: [id])
-  difficulty   String   // "warmup"|"repair"|"challenge"|"transfer"|"mastery"
-  prompt       String
-  correctAnswer String  // canonical answer/expression for deterministic verification
-  variantOf    String?  // problem template id, for regeneration/dedup
-  isGenerated  Boolean  @default(true)
-  createdAt    DateTime @default(now())
+  id            String   @id @default(cuid())
+  conceptId     String
+  concept       Concept  @relation(fields: [conceptId], references: [id])
+  difficulty    String // "warmup"|"repair"|"challenge"|"transfer"|"mastery"
+  prompt        String
+  correctAnswer String // canonical answer/expression for deterministic verification
+  variantOf     String? // problem template id, for regeneration/dedup
+  isGenerated   Boolean  @default(true)
+  createdAt     DateTime @default(now())
 
   practiceAttempts PracticeAttempt[]
   transferAttempts TransferAttempt[]
 }
 
 model PracticeAttempt {
-  id           String   @id @default(cuid())
+  id           String          @id @default(cuid())
   gapId        String
-  gap          Gap      @relation(fields: [gapId], references: [id], onDelete: Cascade)
+  gap          Gap             @relation(fields: [gapId], references: [id], onDelete: Cascade)
   problemId    String
   problem      PracticeProblem @relation(fields: [problemId], references: [id])
-  studentSteps String   // student's submitted work
+  studentSteps String // student's submitted work
   isCorrect    Boolean
-  verifiedBy   String   // "deterministic" | "ai_assisted"
+  verifiedBy   String // "deterministic" | "ai_assisted"
   feedback     String?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime        @default(now())
 }
 
 model TransferAttempt {
-  id           String   @id @default(cuid())
+  id           String          @id @default(cuid())
   gapId        String
-  gap          Gap      @relation(fields: [gapId], references: [id], onDelete: Cascade)
+  gap          Gap             @relation(fields: [gapId], references: [id], onDelete: Cascade)
   problemId    String
   problem      PracticeProblem @relation(fields: [problemId], references: [id])
   studentSteps String
   isCorrect    Boolean
   verifiedBy   String
   feedback     String?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime        @default(now())
 }
 
 model TeachBackAttempt {
-  id            String   @id @default(cuid())
-  gapId         String
-  gap           Gap      @relation(fields: [gapId], references: [id], onDelete: Cascade)
+  id                 String   @id @default(cuid())
+  gapId              String
+  gap                Gap      @relation(fields: [gapId], references: [id], onDelete: Cascade)
   studentExplanation String // transcript (typed or voice-to-text)
-  inputMode     String   // "voice" | "text"
-  rubricScore   Int      // 0-100
-  rubricNotes   String   // JSON: which rubric criteria were met
-  createdAt     DateTime @default(now())
+  inputMode          String // "voice" | "text"
+  rubricScore        Int // 0-100
+  rubricNotes        String // JSON: which rubric criteria were met
+  createdAt          DateTime @default(now())
 }
 
 // =========================================================
@@ -294,15 +320,15 @@ model TeachBackAttempt {
 // =========================================================
 
 model MasteryRecord {
-  id           String   @id @default(cuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  conceptId    String
-  concept      Concept  @relation(fields: [conceptId], references: [id])
-  masteryScore Int      @default(0) // 0-100, EMA-updated from evidence
-  trend        String   @default("stable") // "up"|"down"|"stable"
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conceptId     String
+  concept       Concept  @relation(fields: [conceptId], references: [id])
+  masteryScore  Int      @default(0) // 0-100, EMA-updated from evidence
+  trend         String   @default("stable") // "up"|"down"|"stable"
   lastUpdatedAt DateTime @updatedAt
-  history      String   @default("[]") // JSON: [{date, score}]
+  history       String   @default("[]") // JSON: [{date, score}]
 
   @@unique([userId, conceptId])
 }
@@ -321,26 +347,26 @@ model LearningMemory {
 }
 
 model Roadmap {
-  id         String   @id @default(cuid())
-  userId     String   @unique
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  nodes      String   // JSON: [{conceptId, status: locked|active|mastered, masteryScore}]
-  updatedAt  DateTime @updatedAt
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nodes     String // JSON: [{conceptId, status: locked|active|mastered, masteryScore}]
+  updatedAt DateTime @updatedAt
 
   recommendations Recommendation[]
 }
 
 model Recommendation {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  roadmapId   String?
-  roadmap     Roadmap? @relation(fields: [roadmapId], references: [id])
-  conceptId   String
-  reason      String   // human-readable justification grounded in evidence
-  priority    Int      @default(0)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roadmapId String?
+  roadmap   Roadmap? @relation(fields: [roadmapId], references: [id])
+  conceptId String
+  reason    String // human-readable justification grounded in evidence
+  priority  Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
 }
 
 // =========================================================
@@ -352,18 +378,18 @@ model Recommendation {
 // than a correct exam answer without it.
 
 model ExamSession {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  status      String   @default("in_progress") // in_progress|complete|abandoned
-  startedAt   DateTime @default(now())
-  completedAt DateTime?
+  id               String    @id @default(cuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status           String    @default("in_progress") // in_progress|complete|abandoned
+  startedAt        DateTime  @default(now())
+  completedAt      DateTime?
   // Null means untimed.
   timeLimitSeconds Int?
   // JSON: per-concept verdicts, written once on completion.
-  verdicts    String?
+  verdicts         String?
 
-  questions   ExamQuestion[]
+  questions ExamQuestion[]
 }
 
 model ExamQuestion {
@@ -383,28 +409,28 @@ model ExamQuestion {
   // JSON string[] — present only for choice questions.
   options       String?
 
-  studentAnswer String?
+  studentAnswer     String?
   // Did they reach the right answer?
-  isCorrect     Boolean?
+  isCorrect         Boolean?
   // Did every line follow? A right answer via a broken step is not mastery.
-  reasoningValid Boolean?
-  firstErrorLine Int?
+  reasoningValid    Boolean?
+  firstErrorLine    Int?
   misconceptionCode String?
   timeSpentSeconds  Int?
-  answeredAt    DateTime?
+  answeredAt        DateTime?
 
   @@unique([examId, order])
 }
 
 model LearningEvent {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   analysisId String?
   analysis   Analysis? @relation(fields: [analysisId], references: [id])
-  type       String   // "gap_found"|"gap_repaired"|"transfer_success"|"teach_back"|"mastery_change"|...
-  payload    String   // JSON details
-  createdAt  DateTime @default(now())
+  type       String // "gap_found"|"gap_repaired"|"transfer_success"|"teach_back"|"mastery_change"|...
+  payload    String // JSON details
+  createdAt  DateTime  @default(now())
 }
 
 // =========================================================
@@ -412,52 +438,52 @@ model LearningEvent {
 // =========================================================
 
 model Session {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  analysisId  String?  @unique
-  analysis    Analysis? @relation(fields: [analysisId], references: [id])
-  startedAt   DateTime @default(now())
-  endedAt     DateTime?
-  gapsFound   Int      @default(0)
-  gapsRepaired Int     @default(0)
-  gapsTransferred Int  @default(0)
-  scorePercent Int?
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  analysisId      String?   @unique
+  analysis        Analysis? @relation(fields: [analysisId], references: [id])
+  startedAt       DateTime  @default(now())
+  endedAt         DateTime?
+  gapsFound       Int       @default(0)
+  gapsRepaired    Int       @default(0)
+  gapsTransferred Int       @default(0)
+  scorePercent    Int?
 
-  report      Report?
+  report Report?
 }
 
 model Report {
-  id          String   @id @default(cuid())
-  sessionId   String?  @unique
-  session     Session? @relation(fields: [sessionId], references: [id])
-  analysisId  String?  @unique
-  analysis    Analysis? @relation(fields: [analysisId], references: [id])
-  scorePercent Int
-  mastered    String   // JSON string[]
-  improved    String   // JSON string[]
+  id              String    @id @default(cuid())
+  sessionId       String?   @unique
+  session         Session?  @relation(fields: [sessionId], references: [id])
+  analysisId      String?   @unique
+  analysis        Analysis? @relation(fields: [analysisId], references: [id])
+  scorePercent    Int
+  mastered        String // JSON string[]
+  improved        String // JSON string[]
   recommendations String // JSON string[]
-  createdAt   DateTime @default(now())
+  createdAt       DateTime  @default(now())
 }
 
 model Achievement {
-  id          String   @id @default(cuid())
-  slug        String   @unique
+  id          String @id @default(cuid())
+  slug        String @unique
   title       String
   description String
   icon        String
-  criteria    String   // JSON: machine-checkable criteria description
+  criteria    String // JSON: machine-checkable criteria description
 
   userAchievements UserAchievement[]
 }
 
 model UserAchievement {
-  id            String   @id @default(cuid())
+  id            String      @id @default(cuid())
   userId        String
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   achievementId String
   achievement   Achievement @relation(fields: [achievementId], references: [id])
-  unlockedAt    DateTime @default(now())
+  unlockedAt    DateTime    @default(now())
 
   @@unique([userId, achievementId])
 }
@@ -467,25 +493,25 @@ model UserAchievement {
 // =========================================================
 
 model AiCallCache {
-  id           String   @id @default(cuid())
-  cacheKey     String   @unique // hash of {stage, normalized input}
+  id           String    @id @default(cuid())
+  cacheKey     String    @unique // hash of {stage, normalized input}
   stage        String
   responseJson String
-  createdAt    DateTime @default(now())
+  createdAt    DateTime  @default(now())
   expiresAt    DateTime?
 }
 
 model AiUsageLog {
-  id         String   @id @default(cuid())
-  stage      String
-  model      String
-  succeeded  Boolean
-  cached     Boolean  @default(false)
-  errorText  String?
-  analysisId String? // links a call back to the analysis it served, when known
-  latencyMs  Int? // wall-clock time for this call, for the observability view
+  id                String   @id @default(cuid())
+  stage             String
+  model             String
+  succeeded         Boolean
+  cached            Boolean  @default(false)
+  errorText         String?
+  analysisId        String? // links a call back to the analysis it served, when known
+  latencyMs         Int? // wall-clock time for this call, for the observability view
   retrievedChunkIds String? // JSON string[] — which KnowledgeChunk ids fed this call, if any (RAG traceability)
-  createdAt  DateTime @default(now())
+  createdAt         DateTime @default(now())
 
   @@index([analysisId])
 }

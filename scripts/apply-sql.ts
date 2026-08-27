@@ -1,7 +1,23 @@
 import "dotenv/config";
+import dns from "node:dns";
 import { neon } from "@neondatabase/serverless";
 import fs from "node:fs";
 import path from "node:path";
+
+/**
+ * Prefer IPv4 when resolving the database host.
+ *
+ * Neon publishes both A and AAAA records. Node 18+ defaults to whatever the
+ * resolver returns first, which on many home and campus networks means an IPv6
+ * address that then has no working route — the connection hangs for the full
+ * 10-second timeout and surfaces as a bare `TypeError: fetch failed`, or as
+ * Prisma's `P1001: Can't reach database server`.
+ *
+ * The tell is that it is *intermittent*: retrying sometimes picks the IPv4
+ * record and succeeds, which makes it look like a flaky database rather than a
+ * routing problem. Pinning the order makes it deterministic.
+ */
+dns.setDefaultResultOrder("ipv4first");
 
 /**
  * Applies a SQL file to the database over HTTPS.
@@ -72,7 +88,9 @@ function splitStatements(script: string): string[] {
   for (const statement of statements) {
     const label = statement.split("\n")[0]!.slice(0, 60);
     try {
-      await sql.query(statement);
+      // v0.10 exposes the plain-string form as a direct call; `sql.query`
+      // only exists on the 1.x client, which the Prisma adapter pins away from.
+      await sql(statement);
       console.log(`  OK   ${label}`);
       applied += 1;
     } catch (error) {

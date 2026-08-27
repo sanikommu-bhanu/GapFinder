@@ -18,6 +18,21 @@ const SESSION_COOKIE = "gf_session";
 const PUBLIC_PAGES = ["/splash", "/login", "/register"];
 const PUBLIC_API = ["/api/auth/login", "/api/auth/register", "/api/auth/me", "/api/auth/logout"];
 
+/**
+ * The Spotify redirect URIs are exempt from the session gate — but only so the
+ * handler itself can run, not because they are unauthenticated endpoints.
+ *
+ * Blocking them here would have middleware redirect an expired session to
+ * /splash before the route ever executes, leaving both single-use PKCE cookies
+ * behind and giving the student no explanation. Letting the handler run means
+ * it checks the session itself, spends the cookies, and redirects with an
+ * outcome the Focus card can explain.
+ *
+ * This exposes nothing: handleSpotifyCallback links an account to a session,
+ * and without a session it does exactly nothing.
+ */
+const SPOTIFY_CALLBACKS = ["/spotify/callback", "/api/spotify/callback"];
+
 function isPublicAsset(pathname: string): boolean {
   return (
     pathname.startsWith("/_next") ||
@@ -49,6 +64,7 @@ export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if (isPublicAsset(pathname) || pathname === "/") return NextResponse.next();
+  if (SPOTIFY_CALLBACKS.includes(pathname)) return NextResponse.next();
   if (PUBLIC_API.some((p) => pathname === p)) return NextResponse.next();
   if (PUBLIC_PAGES.some((p) => pathname === p || pathname.startsWith(`${p}/`))) return NextResponse.next();
 
