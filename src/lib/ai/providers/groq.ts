@@ -1,6 +1,7 @@
 import type { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { AiUnavailableError, type AiProvider, type GenerateRequest } from "./types";
+import { env } from "@/lib/env";
 
 /**
  * Groq — the fallback provider.
@@ -22,11 +23,11 @@ const ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 const TIMEOUT_MS = 30_000;
 
 function apiKey(): string {
-  return process.env.GROQ_API_KEY ?? "";
+  return env.GROQ_API_KEY;
 }
 
 function textModel(): string {
-  return process.env.GROQ_MODEL ?? "openai/gpt-oss-120b";
+  return env.GROQ_MODEL;
 }
 
 /**
@@ -39,7 +40,7 @@ function textModel(): string {
  * model, and vision stays off until you do.
  */
 function visionModel(): string | null {
-  return process.env.GROQ_VISION_MODEL || null;
+  return env.GROQ_VISION_MODEL || null;
 }
 
 /**
@@ -48,7 +49,7 @@ function visionModel(): string | null {
  * reader would degrade the diagnosis without saying so.
  */
 function visionFallbackEnabled(): boolean {
-  return process.env.GROQ_ALLOW_VISION === "true" && visionModel() !== null;
+  return env.GROQ_ALLOW_VISION && visionModel() !== null;
 }
 
 export const groqProvider: AiProvider = {

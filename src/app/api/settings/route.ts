@@ -11,7 +11,9 @@ const Body = z.object({
   voiceEnabled: z.boolean().optional(),
   voiceName: z.string().max(60).optional(),
   voiceSpeed: z.number().min(0.5).max(2).optional(),
-  focusMusic: z.enum(["none", "lofi", "piano", "ambient"]).optional(),
+  // focusMusic was a leftover from a removed feature that saved a preference
+  // and played nothing. Focus music is now the student's own Spotify account,
+  // which stores no preference here — there is nothing left to persist.
   focusAmbient: z.enum(["none", "rain", "cafe", "waves"]).optional(),
   // Study preferences (separate table but exposed via same endpoint for UI simplicity)
   defaultSubject: z.enum(["Math", "Physics", "Chemistry", "Biology"]).optional(),

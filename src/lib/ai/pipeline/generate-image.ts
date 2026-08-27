@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db/prisma";
+import { env } from "@/lib/env";
 
 /**
  * An illustration of the topic a student asked about.
@@ -15,7 +16,7 @@ import { prisma } from "@/lib/db/prisma";
  * renders exactly as it otherwise would.
  */
 
-const IMAGE_MODEL = process.env.GEMINI_IMAGE_MODEL ?? "gemini-2.5-flash-image";
+const IMAGE_MODEL = env.GEMINI_IMAGE_MODEL;
 const ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models";
 
 /** An illustration of a school concept does not change; keep it for a month. */
@@ -51,7 +52,7 @@ export async function generateConceptImage(
   topic: string,
   subject: string
 ): Promise<ConceptImage | null> {
-  const key = process.env.GEMINI_API_KEY;
+  const key = env.GEMINI_API_KEY;
   if (!key) return null;
 
   const cached = await readCache(topic);
