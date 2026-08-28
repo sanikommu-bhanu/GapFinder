@@ -1,0 +1,104 @@
+<link rel="stylesheet" href="diagram.css">
+<style>
+.canvas{width:2400px;min-height:100px;padding:66px 80px}
+.hdr{display:flex;justify-content:space-between;align-items:flex-end}
+.hdr h1{font-size:50px}
+.hdr .d-sub{font-size:22px;max-width:720px;text-align:right;line-height:1.5}
+.rule{width:190px;margin:24px 0 40px}
+
+.quads{display:grid;grid-template-columns:1fr 1fr;gap:26px}
+.q{border-radius:24px;padding:30px 32px;border:1.5px solid var(--navy-50);background:#fff}
+.q.lav{background:var(--lav-50);border-color:var(--lav-200)}
+.q.warn{background:var(--warning-50);border-color:#F2DDAE}
+.q.ok{background:var(--success-50);border-color:#B6E9CC}
+.q.peach{background:var(--peach-50);border-color:var(--peach-200)}
+.q .qh{display:flex;align-items:baseline;gap:16px;margin-bottom:6px}
+.q .qn{font-family:'Sora';font-size:15px;font-weight:700;letter-spacing:.12em;color:var(--ink-faint)}
+.q h3{font-family:'Sora';font-size:31px;font-weight:700;color:var(--navy-900);letter-spacing:-.01em}
+.q .qs{font-size:17.5px;color:var(--ink-soft);line-height:1.5;margin-bottom:22px;max-width:900px}
+.feats{display:flex;flex-direction:column;gap:12px}
+.f{background:#fff;border-radius:15px;padding:16px 20px;border:1px solid rgba(21,24,51,.07);display:flex;gap:18px;align-items:flex-start}
+.f .fn{font-family:'Sora';font-size:19px;font-weight:700;color:var(--navy-900);width:236px;flex:none;line-height:1.25}
+.f .fd{font-size:16px;color:var(--ink-soft);line-height:1.48;flex:1}
+.f .rt{font-family:'SFMono-Regular',Consolas,monospace;font-size:13.5px;color:var(--lav-600);width:190px;flex:none;text-align:right;padding-top:2px}
+
+.spine{
+  margin:26px 0;border-radius:20px;background:var(--navy-900);color:#fff;
+  padding:24px 34px;display:flex;align-items:center;gap:34px;
+}
+.spine h4{font-family:'Sora';font-size:24px;font-weight:700;flex:none;width:290px;line-height:1.2}
+.spine p{font-size:17px;color:#C9CBE0;line-height:1.5;flex:1}
+.spine .tags{display:flex;gap:10px;flex-wrap:wrap;flex:none;width:520px;justify-content:flex-end}
+.spine .tags span{background:rgba(255,255,255,.1);color:#DCD4FB;border-radius:99px;padding:7px 15px;font-size:14.5px;font-weight:600}
+.foot{display:flex;justify-content:space-between;align-items:center;margin-top:22px}
+</style>
+
+<div class="canvas">
+  <div class="hdr">
+    <div>
+      <div class="eyebrow" style="font-size:16px">Product ecosystem</div>
+      <h1 class="d-title" style="margin-top:11px">Fourteen surfaces, one loop</h1>
+    </div>
+    <div class="d-sub">Every feature listed is implemented and reachable in the running app.
+      They are grouped by the job they do in the loop, not by where they sit in the menu.</div>
+  </div>
+  <div class="rule"></div>
+
+  <div class="quads">
+    <div class="q warn">
+      <div class="qh"><span class="qn">01</span><h3>Diagnosis</h3></div>
+      <div class="qs">Turn an attempt into a named, evidenced gap.</div>
+      <div class="feats">
+        <div class="f"><div class="fn">Check My Work</div><div class="fd">Photograph or type working. The pipeline reads it, verifies every line, and locates the first divergence.</div><div class="rt">/scan</div></div>
+        <div class="f"><div class="fn">My Learning Gaps</div><div class="fd">Open gaps, an error fingerprint of recurring misconceptions, and per-concept mastery.</div><div class="rt">/gaps</div></div>
+        <div class="f"><div class="fn">Analysis &amp; confirm</div><div class="fd">Step-by-step verdicts, plus a confirmation screen when handwriting was ambiguous.</div><div class="rt">/analysis/[id]</div></div>
+      </div>
+    </div>
+
+    <div class="q lav">
+      <div class="qh"><span class="qn">02</span><h3>Learning</h3></div>
+      <div class="qs">Teach the one thing that broke — or help before anything breaks.</div>
+      <div class="feats">
+        <div class="f"><div class="fn">Ask a Concept</div><div class="fd">Any question routed to a curated concept, answered with a computed diagram, a read-aloud lesson and cited sources.</div><div class="rt">/learn</div></div>
+        <div class="f"><div class="fn">Solve With Me</div><div class="fd">For a blank page. Names the next move and why — the app never writes the line for you.</div><div class="rt">/solve</div></div>
+        <div class="f"><div class="fn">AI Coach</div><div class="fd">Retrieval-grounded, and can see your own record. Says so honestly when the context doesn't cover a question.</div><div class="rt">/coach</div></div>
+      </div>
+    </div>
+
+    <div class="q ok">
+      <div class="qh"><span class="qn">03</span><h3>Mastery</h3></div>
+      <div class="qs">Prove the repair holds when the help is taken away.</div>
+      <div class="feats">
+        <div class="f"><div class="fn">Practice &amp; Teach-back</div><div class="fd">Targeted problems, then explaining the idea back in your own words against a rubric.</div><div class="rt">/gaps/[id]/…</div></div>
+        <div class="f"><div class="fn">Transfer</div><div class="fd">The same concept in an unfamiliar problem — weighted double in mastery scoring.</div><div class="rt">/gaps/[id]/transfer</div></div>
+        <div class="f"><div class="fn">Exam Mode</div><div class="fd">No hints, no feedback. Never claims mastery from one question; thin evidence returns “uncertain”.</div><div class="rt">/exam</div></div>
+        <div class="f"><div class="fn">Focus Mode</div><div class="fd">A timed block around one problem, with optional Spotify playback.</div><div class="rt">/focus</div></div>
+      </div>
+    </div>
+
+    <div class="q peach">
+      <div class="qh"><span class="qn">04</span><h3>Progress &amp; trust</h3></div>
+      <div class="qs">Make the learner's own trajectory — and the system's reasoning — visible.</div>
+      <div class="feats">
+        <div class="f"><div class="fn">Learning Roadmap</div><div class="fd">What to learn next, ordered by what your own work showed, with prerequisites locked.</div><div class="rt">/roadmap</div></div>
+        <div class="f"><div class="fn">History &amp; Full Report</div><div class="fd">Every analysis by day with its outcome, and a consolidated report across all work.</div><div class="rt">/history · /reports/full</div></div>
+        <div class="f"><div class="fn">Achievements</div><div class="fd">Five milestones tied to real evidence — gaps found, repaired, transferred, taught back.</div><div class="rt">/achievements</div></div>
+        <div class="f"><div class="fn">AI Observability</div><div class="fd">Every model call for your analyses: stage, provider, cache status, latency, errors.</div><div class="rt">/dev/observability</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="spine">
+    <h4>The shared spine</h4>
+    <p>All fourteen surfaces read and write the same learner state, so a gap found in Check My Work
+      is the gap the Roadmap orders, the Coach can see, Exam Mode re-tests, and the next analysis already knows about.</p>
+    <div class="tags">
+      <span>Gap</span><span>MasteryRecord</span><span>LearningEvent</span><span>Roadmap</span><span>Analysis</span><span>misconception code</span>
+    </div>
+  </div>
+
+  <div class="foot">
+    <div class="legend"><strong style="color:var(--navy-900);font-family:'Sora'">GapFinder</strong></div>
+    <div style="color:var(--ink-faint);font-size:17px">Diagram 04 — Product ecosystem</div>
+  </div>
+</div>

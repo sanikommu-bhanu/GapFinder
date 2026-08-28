@@ -1,0 +1,55 @@
+/* GapFinder documentation — diagram design system.
+   Palette and type taken directly from src/app/theme.css + tailwind.config.ts */
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Inter:wght@400;500;600&display=swap');
+
+:root{
+  --navy-900:#151833; --navy-700:#20244A; --navy-400:#4A4F79; --navy-100:#D3D5E6; --navy-50:#EDEEF5;
+  --lav-600:#7C4DEF; --lav-500:#8B5CF6; --lav-400:#A78BFA; --lav-300:#C3B4F7; --lav-200:#DCD4FB; --lav-100:#EDE9FD; --lav-50:#F6F4FE;
+  --peach-500:#FB8A3C; --peach-400:#FF9857; --peach-300:#FFB27A; --peach-200:#FFD3B0; --peach-100:#FFEBDD; --peach-50:#FFF6EF;
+  --success:#2FBF71; --success-50:#E7F9EF;
+  --warning:#D99114; --warning-50:#FFF6E5;
+  --danger:#E24A4A; --danger-50:#FDECEC;
+  --ink:#151833; --ink-soft:#6B6E8A; --ink-faint:#A0A3BD;
+  --surface:#FFFFFF; --muted:#F7F6FB;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:'Inter',system-ui,sans-serif;
+  background:var(--surface);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+}
+.canvas{position:relative;background:var(--surface);overflow:hidden}
+
+/* ---- shared diagram furniture ---- */
+.d-title{font-family:'Sora',sans-serif;font-weight:700;letter-spacing:-.02em;color:var(--navy-900)}
+.d-sub{color:var(--ink-soft);font-weight:400}
+.eyebrow{
+  font-family:'Inter',sans-serif;font-weight:600;text-transform:uppercase;
+  letter-spacing:.14em;color:var(--lav-600);
+}
+.rule{height:3px;background:linear-gradient(90deg,#C3B4F7 0%,#FFB27A 100%);border-radius:99px}
+
+.card{
+  background:var(--surface);border:1.5px solid var(--navy-50);
+  border-radius:20px;box-shadow:0 2px 10px rgba(21,24,51,.05);
+}
+.card.lav{background:var(--lav-50);border-color:var(--lav-200)}
+.card.peach{background:var(--peach-50);border-color:var(--peach-200)}
+.card.navy{background:var(--navy-900);border-color:var(--navy-900);color:#fff}
+.card.ok{background:var(--success-50);border-color:#B6E9CC}
+.card.warn{background:var(--warning-50);border-color:#F2DDAE}
+
+.chip{
+  display:inline-flex;align-items:center;gap:8px;border-radius:99px;
+  padding:7px 16px;font-size:16px;font-weight:600;
+  background:var(--lav-100);color:var(--lav-600);
+}
+.chip.peach{background:var(--peach-100);color:#B4581B}
+.chip.ok{background:var(--success-50);color:#1B7F49}
+.chip.gray{background:var(--navy-50);color:var(--navy-400)}
+
+.mono{font-family:'SFMono-Regular',Consolas,'Liberation Mono',monospace}
+.legend{display:flex;gap:28px;align-items:center;color:var(--ink-soft);font-size:17px}
+.dot{width:13px;height:13px;border-radius:99px;display:inline-block;margin-right:9px;vertical-align:-1px}

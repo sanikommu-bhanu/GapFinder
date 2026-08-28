@@ -1,0 +1,125 @@
+<link rel="stylesheet" href="diagram.css">
+<style>
+.canvas{width:2400px;min-height:100px;padding:70px 80px}
+.hdr{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8px}
+.hdr h1{font-size:52px}
+.hdr .d-sub{font-size:23px;max-width:760px;text-align:right;line-height:1.5}
+.rule{width:190px;margin:26px 0 54px}
+
+.flow{display:flex;align-items:stretch;gap:0;position:relative}
+.node{width:236px;border-radius:22px;padding:26px 22px 24px;position:relative;flex:none}
+.node .n{font-family:'Sora';font-size:15px;font-weight:700;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:12px}
+.node h3{font-family:'Sora';font-size:25px;font-weight:700;line-height:1.2;letter-spacing:-.01em;margin-bottom:11px}
+.node p{font-size:17px;line-height:1.5;color:var(--ink-soft)}
+.node.navy p{color:#C9CBE0}
+.node.navy .n{color:#7E82A8}
+.arrow{flex:1;min-width:34px;display:flex;align-items:center;justify-content:center;padding-top:52px}
+.arrow svg{display:block}
+
+.nrow{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.node .n{margin-bottom:0}
+.atag{font-family:'Sora';font-size:12.5px;font-weight:700;letter-spacing:.09em;border-radius:6px;padding:4px 8px;white-space:nowrap}
+.atag.ai{background:var(--lav-200);color:#5B32C4}
+.atag.code{background:var(--navy-700);color:#fff}
+.atag.both{background:var(--navy-700);color:#fff}
+.atag.in{background:var(--navy-50);color:var(--navy-400)}
+.node.navy .atag.code{background:#fff;color:var(--navy-900)}
+.node.navy .atag.ai{background:var(--lav-300);color:#3C1D8F}
+
+.band{display:flex;gap:34px;margin-top:26px;padding:18px 24px;border-radius:14px;background:var(--muted);align-items:center;flex-wrap:wrap}
+.band .seg{font-size:18px;font-weight:600;display:flex;align-items:center;gap:11px;color:var(--ink-soft)}
+.band .seg b{font-family:'Sora';font-weight:700}
+.seg.a b{color:var(--lav-600)}
+.seg.b b{color:var(--navy-900)}
+.seg.c b{color:#B4581B}
+
+.loopback{position:relative;height:150px;margin-top:6px}
+.loopback svg{position:absolute;left:0;top:0}
+.loopback .lbl{
+  position:absolute;left:50%;transform:translateX(-50%);top:88px;
+  background:#fff;padding:0 22px;font-size:20px;font-weight:600;color:var(--lav-600);
+  font-family:'Sora';
+}
+.foot{display:flex;justify-content:space-between;align-items:center;margin-top:4px}
+</style>
+
+<div class="canvas">
+  <div class="hdr">
+    <div>
+      <div class="eyebrow" style="font-size:17px">The GapFinder loop</div>
+      <h1 class="d-title" style="margin-top:12px">One mistake becomes a map</h1>
+    </div>
+    <div class="d-sub">Traditional tools end at step&nbsp;3. GapFinder treats a wrong answer as the
+      <em>start</em> of the loop — and closes it only when the repair survives without help.</div>
+  </div>
+  <div class="rule"></div>
+
+  <div class="flow">
+    <div class="node card" >
+      <div class="nrow"><span class="n">01</span><span class="atag in">INPUT</span></div><h3>Work</h3>
+      <p>A photo of handwriting, or typed lines. The whole attempt — not just the answer.</p>
+    </div>
+    <div class="arrow"><svg width="30" height="18"><path d="M0 9h22M17 3l6 6-6 6" stroke="#C3B4F7" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+    <div class="node card lav">
+      <div class="nrow"><span class="n">02</span><span class="atag ai">AI</span></div><h3>Reasoning</h3>
+      <p>Each line is restated as a claim, so the working becomes a chain of steps.</p>
+    </div>
+    <div class="arrow"><svg width="30" height="18"><path d="M0 9h22M17 3l6 6-6 6" stroke="#C3B4F7" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+    <div class="node card warn">
+      <div class="nrow"><span class="n">03</span><span class="atag code">CODE</span></div><h3>Verification</h3>
+      <p>Every line is checked against the one above it — by algebra, not opinion.</p>
+    </div>
+    <div class="arrow"><svg width="30" height="18"><path d="M0 9h22M17 3l6 6-6 6" stroke="#FFB27A" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+    <div class="node card navy">
+      <div class="nrow"><span class="n">04</span><span class="atag code">CODE</span></div><h3>The gap</h3>
+      <p>The <em>first</em> line that stopped following. Everything after it is a consequence.</p>
+    </div>
+    <div class="arrow"><svg width="30" height="18"><path d="M0 9h22M17 3l6 6-6 6" stroke="#8B5CF6" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+    <div class="node card">
+      <div class="nrow"><span class="n">05</span><span class="atag code">CODE · AI</span></div><h3>Misconception</h3>
+      <p>Named from a catalogue of 17 codes, so the same habit is countable across weeks.</p>
+    </div>
+    <div class="arrow"><svg width="30" height="18"><path d="M0 9h22M17 3l6 6-6 6" stroke="#C3B4F7" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+    <div class="node card lav">
+      <div class="nrow"><span class="n">06</span><span class="atag ai">AI</span></div><h3>Teaching</h3>
+      <p>A grounded explanation, a computed diagram, and the repair worked through.</p>
+    </div>
+    <div class="arrow"><svg width="30" height="18"><path d="M0 9h22M17 3l6 6-6 6" stroke="#C3B4F7" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+    <div class="node card">
+      <div class="nrow"><span class="n">07</span><span class="atag code">AI · CODE</span></div><h3>Practice</h3>
+      <p>Problems built for that misconception — every wrong option is a real error.</p>
+    </div>
+    <div class="arrow"><svg width="30" height="18"><path d="M0 9h22M17 3l6 6-6 6" stroke="#2FBF71" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+    <div class="node card ok">
+      <div class="nrow"><span class="n">08</span><span class="atag code">CODE</span></div><h3>Verified mastery</h3>
+      <p>Transfer and Exam Mode re-test with no hints. Two questions minimum, or the verdict is “uncertain”.</p>
+    </div>
+  </div>
+
+  <div class="band">
+    <div class="seg a"><span class="dot" style="background:var(--lav-500)"></span><b>AI</b>&nbsp;— reads, narrates and phrases. Never decides.</div>
+    <div class="seg b"><span class="dot" style="background:var(--navy-700)"></span><b>CODE</b>&nbsp;— algebra decides what is true, and what mastery is worth.</div>
+    <div class="seg c"><span class="dot" style="background:var(--peach-400)"></span><b>DATA</b>&nbsp;— every stage persists its own artefact as it is computed.</div>
+  </div>
+
+  <div class="loopback">
+    <svg width="2240" height="120">
+      <path d="M2120 6 L2120 58 Q2120 82 2096 82 L144 82 Q120 82 120 58 L120 12"
+            stroke="#C3B4F7" stroke-width="2.6" fill="none" stroke-dasharray="9 8" stroke-linecap="round"/>
+      <path d="M114 22 L120 8 L126 22" stroke="#C3B4F7" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="lbl">The next attempt starts already knowing what broke last time</div>
+  </div>
+
+  <div class="foot">
+    <div class="legend"><strong style="color:var(--navy-900);font-family:'Sora'">GapFinder</strong></div>
+    <div style="color:var(--ink-faint);font-size:17px">Diagram 02 — Core learning loop</div>
+  </div>
+</div>

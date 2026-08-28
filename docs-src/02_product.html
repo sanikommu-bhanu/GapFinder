@@ -1,0 +1,336 @@
+<meta charset="utf-8"><title>GapFinder — Product</title>
+<link rel="stylesheet" href="doc.css"><link rel="stylesheet" href="chapter.css">
+<style>
+.jstrip{display:flex;align-items:stretch;gap:0}
+.jstrip .s{flex:1;text-align:center;padding:0 1mm}
+.jstrip .s .n{font-family:'Sora';font-size:7pt;font-weight:700;letter-spacing:.1em;color:var(--ink-faint)}
+.jstrip .s .t{font-size:8.6pt;font-weight:600;color:var(--navy-900);margin-top:1.6mm;line-height:1.25}
+.jstrip .ar{flex:none;width:5mm;display:flex;align-items:center;justify-content:center;color:var(--lav-300);font-size:10pt;padding-top:4mm}
+.spine{display:flex;gap:4mm}
+.spine .n{flex:1;border-radius:4mm;padding:3.6mm 4mm;background:var(--lav-50);border:1.2px solid var(--lav-200);text-align:center}
+.spine .n .k{font-family:'SFMono-Regular',Consolas,monospace;font-size:8.4pt;font-weight:600;color:var(--lav-600)}
+.spine .n p{font-size:8.1pt;margin-top:1.6mm;line-height:1.4}
+</style>
+
+<!-- ============ P1 — chapter cover ============ -->
+<div class="page chcover">
+  <div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div class="no">DOCUMENT 02 OF 06 &middot; THE PRODUCT</div>
+      <div class="chips"><span class="chip">31 screens</span><span class="chip peach">14 surfaces</span><span class="chip gray">Mobile-first, 390&times;844</span></div>
+    </div>
+    <div class="rule" style="width:78px;margin-top:8mm"></div>
+    <h1>The experience,<br>end to end</h1>
+    <div class="thesis">Fourteen product surfaces, grouped by the job they do in one learning loop — not by
+      where they sit in a menu. Every screen named here is implemented and reachable in the deployed application.</div>
+  </div>
+
+  <div class="jstrip">
+    <div class="s"><div class="n">01</div><div class="t">Start</div></div><div class="ar">&rarr;</div>
+    <div class="s"><div class="n">02</div><div class="t">Learn / solve</div></div><div class="ar">&rarr;</div>
+    <div class="s"><div class="n">03</div><div class="t">Submit work</div></div><div class="ar">&rarr;</div>
+    <div class="s"><div class="n">04</div><div class="t">Analyse</div></div><div class="ar">&rarr;</div>
+    <div class="s"><div class="n">05</div><div class="t">Discover gap</div></div><div class="ar">&rarr;</div>
+    <div class="s"><div class="n">06</div><div class="t">Repair</div></div><div class="ar">&rarr;</div>
+    <div class="s"><div class="n">07</div><div class="t">Practise</div></div><div class="ar">&rarr;</div>
+    <div class="s"><div class="n">08</div><div class="t">Verify</div></div><div class="ar">&rarr;</div>
+    <div class="s"><div class="n">09</div><div class="t">Track</div></div><div class="ar">&rarr;</div>
+    <div class="s"><div class="n">10</div><div class="t">Next action</div></div>
+  </div>
+
+  <div class="toc">
+    <div class="t"><div class="p">PAGES 2&ndash;3</div><h5>The journey</h5><p>The loop in one frame, and the two ways a student can enter it.</p></div>
+    <div class="t"><div class="p">PAGE 4</div><h5>Diagnosis</h5><p>Check My Work &middot; Analysis &amp; Confirm &middot; My Learning Gaps.</p></div>
+    <div class="t"><div class="p">PAGES 5&ndash;6</div><h5>Learning &amp; mastery</h5><p>Ask a Concept &middot; Solve With Me &middot; AI Coach &middot; Practice &middot; Transfer &middot; Exam &middot; Focus.</p></div>
+    <div class="t"><div class="p">PAGES 7&ndash;8</div><h5>Progress &amp; the spine</h5><p>Roadmap &middot; History &middot; Achievements &middot; Observability, and the state they all share.</p></div>
+  </div>
+</div>
+
+<!-- ============ P2 — the loop, full bleed ============ -->
+<div class="page">
+  <div class="phead slim">
+    <div class="eyebrow">The core learning loop</div>
+    <div class="side"><p>Traditional tools end at step&nbsp;3. Every stage below is a screen a student actually passes through.</p></div>
+  </div>
+  <div class="pbody"><div class="fig fit">
+    <img src="file:///C:/Users/bhanu/Downloads/gapfinder/GapFinder_Final_Documentation/diagrams/02_core_learning_loop.png" alt="Core learning loop">
+  </div></div>
+  <div class="pfoot"><b>GapFinder</b><span>02 — Product</span><span>Page 2</span></div>
+</div>
+
+<!-- ============ P3 — two entry points ============ -->
+<div class="page">
+  <div class="phead">
+    <div><div class="eyebrow">Entering the loop</div><h2>Two doors, one destination</h2><div class="rule"></div></div>
+    <div class="side"><p>A student who has not written anything yet has no reasoning to diagnose.
+      Telling them to go and make a mistake first would be a strange thing for a learning tool to do.</p></div>
+  </div>
+
+  <div class="pbody stack">
+    <div class="row" style="gap:5mm">
+      <div class="col card lav">
+        <div class="num" style="color:var(--lav-600)">DOOR 1 &middot; THEY ALREADY HAVE WORKING</div>
+        <h4>Check My Work</h4>
+        <p style="margin-top:2mm">Photograph the page, or type the lines. The pipeline reads it, restates every line as a claim,
+          verifies each against the one above it, and stops at the <strong>first</strong> line that stopped following.</p>
+        <div class="kv" style="margin-top:3mm"><span class="k">Ends at</span><span class="v">A located, named, evidenced gap</span></div>
+        <div class="kv"><span class="k">If unreadable</span><span class="v">The app says so and offers typed working — identical pipeline, no vision model</span></div>
+        <div class="kv"><span class="k">If it is only a question</span><span class="v">No attempt to diagnose; routed to guided solving instead</span></div>
+      </div>
+      <div class="col card peach">
+        <div class="num" style="color:#B4581B">DOOR 2 &middot; THEY HAVE A BLANK PAGE</div>
+        <h4>Ask a Concept &middot; Solve With Me</h4>
+        <p style="margin-top:2mm">A question is routed to one of 22 curated concepts and answered with a computed diagram,
+          a read-aloud lesson and cited sources. Or the student is walked forward one move at a time.</p>
+        <div class="kv" style="margin-top:3mm"><span class="k">Ends at</span><span class="v">A concept check built from catalogued distractors</span></div>
+        <div class="kv"><span class="k">Boundary</span><span class="v">Solve With Me names the next move and why — it never writes the line</span></div>
+        <div class="kv"><span class="k">Off-corpus</span><span class="v">Content outside the verified library is badged differently, before it is read</span></div>
+      </div>
+    </div>
+
+    <div class="card muted">
+      <h4>Both doors converge on the same proof</h4>
+      <div class="row" style="gap:4mm;margin-top:3mm">
+        <div class="col"><div class="num">A &middot; PRACTICE</div><p>Problems built for that misconception. Every wrong option is a documented error, so choosing one names the rule the student holds.</p></div>
+        <div class="col"><div class="num">B &middot; TEACH-BACK</div><p>Explaining the idea back in their own words, scored against a rubric rather than a keyword match.</p></div>
+        <div class="col"><div class="num">C &middot; TRANSFER</div><p>The same concept inside an unfamiliar problem. Weighted double in mastery scoring, and the only event that closes a gap.</p></div>
+        <div class="col"><div class="num">D &middot; EXAM MODE</div><p>No hints, no feedback. Two questions minimum before any verdict, and a returning misconception is decisive.</p></div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <p><strong>The design consequence of the governing rule.</strong> Because correctness is decided by algebra rather than
+        by a model, the interface can afford to be specific — it points at line&nbsp;2 by name. A product that was guessing
+        would have to hedge, and hedged feedback is the kind students learn to ignore.</p>
+    </div>
+  </div>
+
+  <div class="pfoot"><b>GapFinder</b><span>02 — Product</span><span>Page 3</span></div>
+</div>
+
+<!-- ============ P4 — DIAGNOSIS ============ -->
+<div class="page">
+  <div class="phead">
+    <div><div class="eyebrow">Group 01 &middot; Diagnosis</div><h2>Turning an attempt into a named gap</h2><div class="rule"></div></div>
+    <div class="side"><p>Three surfaces do the diagnostic work. Everything downstream in the product
+      depends on their output being trustworthy, so all three are built to say <em>&ldquo;I couldn't check that&rdquo;</em> out loud.</p></div>
+  </div>
+
+  <div class="pbody">
+    <div class="grid g3 featgrid">
+      <div class="feat">
+        <div class="top"><h4>Check My Work</h4><span class="route">/scan</span></div>
+        <div class="frow"><span class="fl">PURPOSE</span><span class="fv">Locate the first line whose reasoning stopped following.</span></div>
+        <div class="frow"><span class="fl">USER ACTION</span><span class="fv">Photograph handwritten working, or type the steps. Choose the subject.</span></div>
+        <div class="frow"><span class="fl">SYSTEM</span><span class="fv">Returns an analysis id immediately; the Analyzing screen polls <b>real pipeline position</b>, not a timer. One multimodal call reads the page; <span class="mono">mathjs</span> then verifies every transition and the audit locates the divergence.</span></div>
+        <div class="frow"><span class="fl">VALUE</span><span class="fv">The student stops arguing with a verdict and starts looking at a line.</span></div>
+      </div>
+
+      <div class="feat">
+        <div class="top"><h4>Analysis &amp; Confirm</h4><span class="route">/analysis/[id]</span></div>
+        <div class="frow"><span class="fl">PURPOSE</span><span class="fv">Show the complete audit, not a boolean.</span></div>
+        <div class="frow"><span class="fl">USER ACTION</span><span class="fv">Read the line-by-line verdicts; where handwriting was ambiguous, confirm what was written before anything is diagnosed.</span></div>
+        <div class="frow"><span class="fl">SYSTEM</span><span class="fv">Every line carries one of five states — <b>correct</b>, <b>first divergence</b>, <b>downstream consequence</b>, <b>independent error</b>, <b>uncertain</b> — plus the corrected path, derived once and shown identically everywhere.</span></div>
+        <div class="frow"><span class="fl">VALUE</span><span class="fv">Four wrong lines stop being four failures. They become the cost of one idea.</span></div>
+      </div>
+
+      <div class="feat">
+        <div class="top"><h4>My Learning Gaps</h4><span class="route">/gaps</span></div>
+        <div class="frow"><span class="fl">PURPOSE</span><span class="fv">Make a habit visible across weeks, not just within one worksheet.</span></div>
+        <div class="frow"><span class="fl">USER ACTION</span><span class="fv">Open the standing list of gaps and the error fingerprint of recurring misconception codes.</span></div>
+        <div class="frow"><span class="fl">SYSTEM</span><span class="fv">Each gap carries its catalogue code and the <b>basis</b> it was established on — <span class="mono">proved</span> from an algebraic signature, or <span class="mono">matched</span> by a model from the fixed catalogue. Status moves <span class="mono">open &rarr; repaired &rarr; closed</span>.</span></div>
+        <div class="frow"><span class="fl">VALUE</span><span class="fv">A stable code is countable. A model-authored label is not.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pfoot"><b>GapFinder</b><span>02 — Product</span><span>Page 4</span></div>
+</div>
+
+<!-- ============ P5 — LEARNING ============ -->
+<div class="page">
+  <div class="phead">
+    <div><div class="eyebrow">Group 02 &middot; Learning</div><h2>Teaching the one thing that broke</h2><div class="rule"></div></div>
+    <div class="side"><p>Every explanation is grounded in a curated corpus rather than composed freely, and each of
+      these three surfaces has a different rule about what it may say when the corpus does not cover the question.</p></div>
+  </div>
+
+  <div class="pbody">
+    <div class="grid g3 featgrid">
+      <div class="feat">
+        <div class="top"><h4>Ask a Concept</h4><span class="route">/learn</span></div>
+        <div class="frow"><span class="fl">PURPOSE</span><span class="fv">Answer a question directly, before there is any working to diagnose.</span></div>
+        <div class="frow"><span class="fl">USER ACTION</span><span class="fv">Ask in plain language — &ldquo;why does the minus flip both terms?&rdquo;</span></div>
+        <div class="frow"><span class="fl">SYSTEM</span><span class="fv">Intent detection routes the question to one of 22 fixed concept slugs. The lesson is assembled from retrieved chunks, a <b>computed</b> diagram, and a concept check whose distractors are catalogued misconceptions.</span></div>
+        <div class="frow"><span class="fl">VALUE</span><span class="fv">Choosing a wrong option is informative — it names the rule the student is holding.</span></div>
+      </div>
+
+      <div class="feat">
+        <div class="top"><h4>Solve With Me</h4><span class="route">/solve</span></div>
+        <div class="frow"><span class="fl">PURPOSE</span><span class="fv">Get a stuck student moving without handing them the answer.</span></div>
+        <div class="frow"><span class="fl">USER ACTION</span><span class="fv">Enter a problem and work forward one step at a time.</span></div>
+        <div class="frow"><span class="fl">SYSTEM</span><span class="fv">Names the next legal move and the reason for it, then checks the student's own line against it with the same verifier used in diagnosis. The app <b>never writes the line</b>.</span></div>
+        <div class="frow"><span class="fl">VALUE</span><span class="fv">The student still performs the step, so the attempt remains theirs — and remains diagnosable.</span></div>
+      </div>
+
+      <div class="feat">
+        <div class="top"><h4>AI Coach</h4><span class="route">/coach</span></div>
+        <div class="frow"><span class="fl">PURPOSE</span><span class="fv">Answer questions about the student's own record, not just about the subject.</span></div>
+        <div class="frow"><span class="fl">USER ACTION</span><span class="fv">&ldquo;What do I keep getting wrong?&rdquo;</span></div>
+        <div class="frow"><span class="fl">SYSTEM</span><span class="fv">Retrieval-grounded and given the learner's real state — recurring codes, mastery scores, open gaps. Where the retrieved context does not cover the question, it <b>says so</b> rather than filling the space.</span></div>
+        <div class="frow"><span class="fl">VALUE</span><span class="fv">Advice anchored to evidence the student can go and check for themselves.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pfoot"><b>GapFinder</b><span>02 — Product</span><span>Page 5</span></div>
+</div>
+
+<!-- ============ P6 — MASTERY ============ -->
+<div class="page">
+  <div class="phead">
+    <div><div class="eyebrow">Group 03 &middot; Mastery</div><h2>Proving the repair holds without help</h2><div class="rule"></div></div>
+    <div class="side"><p>This group exists because a student who has just been shown the answer can reproduce it.
+      Every surface here removes something — the hint, the familiar wording, the feedback — to find out what is left.</p></div>
+  </div>
+
+  <div class="pbody">
+    <div class="grid g2 featgrid">
+      <div class="feat">
+        <div class="top"><h4>Practice &amp; Teach-back</h4><span class="route">/gaps/[id]/practice &middot; /teach-back</span></div>
+        <div class="frow"><span class="fl">PURPOSE</span><span class="fv">Repair the specific misconception, then test whether it is understood or merely copied.</span></div>
+        <div class="frow"><span class="fl">SYSTEM</span><span class="fv">Generated problems are <b>solved independently before display</b> — an unverified problem is never shown. Teach-back is scored against a rubric. Both are graded by the same divergence engine that made the diagnosis.</span></div>
+        <div class="frow"><span class="fl">VALUE</span><span class="fv">Practice moves mastery by <b>+6</b>; explaining it back sets the target from the rubric score directly.</span></div>
+      </div>
+
+      <div class="feat">
+        <div class="top"><h4>Transfer</h4><span class="route">/gaps/[id]/transfer</span></div>
+        <div class="frow"><span class="fl">PURPOSE</span><span class="fv">Find out whether the idea survives outside the shape it was learned in.</span></div>
+        <div class="frow"><span class="fl">SYSTEM</span><span class="fv">The same concept placed inside an unfamiliar problem. Success is weighted <b>+12</b> against practice's <b>+6</b>, because solving an idea in a new setting is the stronger evidence.</span></div>
+        <div class="frow"><span class="fl">VALUE</span><span class="fv">Transfer is the <b>only</b> event that moves a gap to <span class="mono">closed</span>. Practice alone marks it <span class="mono">repaired</span>.</span></div>
+      </div>
+
+      <div class="feat">
+        <div class="top"><h4>Exam Mode</h4><span class="route">/exam</span></div>
+        <div class="frow"><span class="fl">PURPOSE</span><span class="fv">Decide mastery under conditions where nothing is helping.</span></div>
+        <div class="frow"><span class="fl">SYSTEM</span><span class="fv">No hints, no feedback. Three rules in code: one right answer is never mastery (<b>two-question minimum</b>); a right answer through invalid reasoning is never mastery; a <b>returning misconception is decisive</b>, whatever the score.</span></div>
+        <div class="frow"><span class="fl">VALUE</span><span class="fv">Where evidence is thin the verdict is <span class="mono">uncertain</span> — a refusal to over-claim is what makes the other verdicts worth reading.</span></div>
+      </div>
+
+      <div class="feat">
+        <div class="top"><h4>Focus Mode</h4><span class="route">/focus</span></div>
+        <div class="frow"><span class="fl">PURPOSE</span><span class="fv">Hold attention on one gap for a bounded block of time.</span></div>
+        <div class="frow"><span class="fl">SYSTEM</span><span class="fv">A timer bound to the live gap rather than a generic pomodoro, with optional Spotify playback through server-side OAuth (PKCE). Playback is entirely optional and never in the learning path.</span></div>
+        <div class="frow"><span class="fl">VALUE</span><span class="fv">The session has a subject. When it ends, there is a specific thing that was worked on.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pfoot"><b>GapFinder</b><span>02 — Product</span><span>Page 6</span></div>
+</div>
+
+<!-- ============ P7 — PROGRESS ============ -->
+<div class="page">
+  <div class="phead">
+    <div><div class="eyebrow">Group 04 &middot; Progress &amp; trust</div><h2>Making the trajectory — and the system — visible</h2><div class="rule"></div></div>
+    <div class="side"><p>Three of these show the student their own path. The fourth shows anyone
+      what the system actually did, which is the same commitment pointed inward.</p></div>
+  </div>
+
+  <div class="pbody">
+    <div class="grid g4 featgrid">
+      <div class="feat stk">
+        <div class="top"><h4>Learning Roadmap</h4><span class="route">/roadmap</span></div>
+        <div class="frow"><span class="fl">PURPOSE</span><span class="fv">Answer &ldquo;what should I do next?&rdquo; from evidence rather than a syllabus.</span></div>
+        <div class="frow"><span class="fl">SYSTEM</span><span class="fv">Ordered from the seeded concept graph — 22 concepts, 29 prerequisite relationships — against current mastery, with prerequisites gated.</span></div>
+        <div class="frow"><span class="fl">VALUE</span><span class="fv">The order comes from what this student's own work showed.</span></div>
+      </div>
+
+      <div class="feat stk">
+        <div class="top"><h4>History</h4><span class="route">/history</span></div>
+        <div class="frow"><span class="fl">PURPOSE</span><span class="fv">Let a student return to any past analysis intact.</span></div>
+        <div class="frow"><span class="fl">SYSTEM</span><span class="fv">Every analysis by day with its outcome. Artefacts are persisted as they are computed, so <b>reopening a page never regenerates anything</b> — last week's diagnosis is the one shown today.</span></div>
+        <div class="frow"><span class="fl">VALUE</span><span class="fv">Teaching that silently changes underneath a learner cannot be trusted.</span></div>
+      </div>
+
+      <div class="feat stk">
+        <div class="top"><h4>Full Report</h4><span class="route">/reports/full</span></div>
+        <div class="frow"><span class="fl">PURPOSE</span><span class="fv">Consolidate everything into one readable picture.</span></div>
+        <div class="frow"><span class="fl">SYSTEM</span><span class="fv">Mastery per concept with trend and a trimmed 30-point history, recurring misconception codes, gaps by status, and outcomes across practice, transfer, teach-back and exam.</span></div>
+        <div class="frow"><span class="fl">VALUE</span><span class="fv">The one screen to show a parent or a teacher.</span></div>
+      </div>
+
+      <div class="feat stk">
+        <div class="top"><h4>AI Observability</h4><span class="route">/dev/observability</span></div>
+        <div class="frow"><span class="fl">PURPOSE</span><span class="fv">Answer &ldquo;what did the AI actually do here?&rdquo; for any analysis.</span></div>
+        <div class="frow"><span class="fl">SYSTEM</span><span class="fv">Every model call logged with stage, <span class="mono">provider:model</span>, cache status, latency, error text and the retrieved chunk ids that fed the prompt — then replayed as a per-analysis trace.</span></div>
+        <div class="frow"><span class="fl">VALUE</span><span class="fv">A failover to Groq, or a fall back to deterministic logic, is visible rather than silent.</span></div>
+      </div>
+    </div>
+
+    <div class="row" style="gap:5mm;margin-top:4mm">
+      <div class="col card peach" style="flex:1">
+        <div class="num" style="color:#B4581B">ACHIEVEMENTS &middot; <span class="mono">/achievements</span></div>
+        <p>Five seeded milestones, each with a <b>machine-checkable</b> criterion evaluated against counted evidence rather than engagement —
+          gaps found, gaps repaired, concepts transferred, teach-backs, a seven-day streak. Nothing unlocks for opening the app.</p>
+      </div>
+      <div class="col card muted" style="flex:1.5">
+        <div class="num">THE FULL ROSTER &mdash; FOURTEEN SURFACES, ALL IMPLEMENTED</div>
+        <div class="chips">
+          <span class="chip">Check My Work</span><span class="chip">Analysis &amp; Confirm</span><span class="chip">My Learning Gaps</span>
+          <span class="chip peach">Ask a Concept</span><span class="chip peach">Solve With Me</span><span class="chip peach">AI Coach</span>
+          <span class="chip ok">Practice &amp; Teach-back</span><span class="chip ok">Transfer</span><span class="chip ok">Exam Mode</span><span class="chip ok">Focus Mode</span>
+          <span class="chip gray">Roadmap</span><span class="chip gray">History &amp; Full Report</span><span class="chip gray">Achievements</span><span class="chip gray">AI Observability</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pfoot"><b>GapFinder</b><span>02 — Product</span><span>Page 7</span></div>
+</div>
+
+<!-- ============ P8 — the spine ============ -->
+<div class="page">
+  <div class="phead">
+    <div><div class="eyebrow">How the surfaces connect</div><h2>Fourteen surfaces, one learner state</h2><div class="rule"></div></div>
+    <div class="side"><p>The features are not fourteen tools that happen to share a login. Each one reads and
+      writes the same records, which is what makes a gap found on Monday the gap the roadmap orders on Tuesday.</p></div>
+  </div>
+
+  <div class="pbody stack">
+    <div class="card navy">
+      <h3 style="font-size:13.5pt">One gap, followed through every surface that touches it</h3>
+      <p style="margin-top:2.5mm">A single <span class="mono">Gap</span> row is created by <strong style="color:#fff">Check My Work</strong>, listed by
+        <strong style="color:#fff">My Learning Gaps</strong>, explained on the analysis screen, drilled by <strong style="color:#fff">Practice</strong>,
+        re-tested by <strong style="color:#fff">Transfer</strong>, timed by <strong style="color:#fff">Focus Mode</strong>, weighted by the
+        <strong style="color:#fff">Roadmap</strong>, quoted by the <strong style="color:#fff">Coach</strong>, counted toward
+        <strong style="color:#fff">Achievements</strong>, and — if its misconception code reappears — held against the verdict in
+        <strong style="color:#fff">Exam Mode</strong>. No surface keeps a private copy.</p>
+    </div>
+
+    <div class="spine">
+      <div class="n"><div class="k">Gap</div><p>The diagnosis, its code, and the basis it was established on</p></div>
+      <div class="n"><div class="k">MasteryRecord</div><p>0&ndash;100 EMA per concept, with trend and history</p></div>
+      <div class="n"><div class="k">LearningEvent</div><p>An append-only record of what happened, and when</p></div>
+      <div class="n"><div class="k">LearningMemory</div><p>Recurring gaps, successful and failed repairs, transfer results</p></div>
+      <div class="n"><div class="k">Roadmap</div><p>The next-action ordering, built from the two above</p></div>
+    </div>
+
+    <div class="row" style="gap:5mm">
+      <div class="col card ok">
+        <div class="num" style="color:#1B7F49">WHAT THIS BUYS THE STUDENT</div>
+        <p>Nothing has to be re-explained to the app. Exam Mode already knows which habit to watch for; the Coach can cite
+          a specific past analysis; the Roadmap reorders without being asked. The product gets more useful the longer it is used,
+          because the evidence accumulates in one place.</p>
+      </div>
+      <div class="col card warn">
+        <div class="num" style="color:#8A5C0C">WHAT IT COSTS</div>
+        <p>Every screen depends on the diagnosis being right, so a false accusation would propagate — into the roadmap, the exam,
+          the mastery score. That is the reason correctness is decided by algebra rather than by a model, and the reason
+          <span class="mono">uncertain</span> is a first-class outcome rather than a failure state.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="pfoot"><b>GapFinder</b><span>02 — Product</span><span>Page 8</span></div>
+</div>

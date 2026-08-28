@@ -1,0 +1,161 @@
+<link rel="stylesheet" href="diagram.css">
+<style>
+.canvas{width:2400px;min-height:100px;padding:66px 80px}
+.hdr{display:flex;justify-content:space-between;align-items:flex-end}
+.hdr h1{font-size:50px}
+.hdr .d-sub{font-size:22px;max-width:720px;text-align:right;line-height:1.5}
+.rule{width:190px;margin:24px 0 40px}
+
+.layer{display:flex;align-items:stretch;gap:26px;margin-bottom:20px}
+.lname{
+  width:238px;flex:none;border-radius:18px;padding:20px 22px;
+  background:var(--muted);border:1.5px solid var(--navy-50);
+}
+.lname .k{font-family:'Sora';font-size:14px;font-weight:700;letter-spacing:.12em;color:var(--ink-faint)}
+.lname h3{font-family:'Sora';font-size:24px;font-weight:700;color:var(--navy-900);margin-top:8px;line-height:1.15}
+.lname p{font-size:15px;color:var(--ink-soft);margin-top:8px;line-height:1.45}
+
+.lbody{flex:1;display:flex;gap:16px;align-items:stretch}
+.box{
+  flex:1;border-radius:18px;padding:19px 20px;background:#fff;
+  border:1.5px solid var(--navy-50);box-shadow:0 2px 8px rgba(21,24,51,.04);
+}
+.box h4{font-family:'Sora';font-size:20px;font-weight:700;color:var(--navy-900);margin-bottom:9px;line-height:1.2}
+.box p{font-size:15.5px;color:var(--ink-soft);line-height:1.48}
+.box .path{font-family:'SFMono-Regular',Consolas,monospace;font-size:13.5px;color:var(--lav-600);margin-top:9px;display:block;word-break:break-all}
+.box.lav{background:var(--lav-50);border-color:var(--lav-200)}
+.box.peach{background:var(--peach-50);border-color:var(--peach-200)}
+.box.navy{background:var(--navy-900);border-color:var(--navy-900)}
+.box.navy h4{color:#fff}.box.navy p{color:#C9CBE0}.box.navy .path{color:var(--lav-300)}
+.box.ok{background:var(--success-50);border-color:#B6E9CC}
+
+.vsep{display:flex;justify-content:center;margin:2px 0 20px}
+.vsep svg{display:block}
+.foot{display:flex;justify-content:space-between;align-items:center;margin-top:20px}
+.ext{display:flex;gap:12px;flex-wrap:wrap}
+.ext .chip{font-size:15px;padding:6px 14px}
+</style>
+
+<div class="canvas">
+  <div class="hdr">
+    <div>
+      <div class="eyebrow" style="font-size:16px">System architecture</div>
+      <h1 class="d-title" style="margin-top:11px">One Next.js application, eight honest layers</h1>
+    </div>
+    <div class="d-sub">Every box below exists in the repository. Arrows show request direction;
+      the verification layer is deliberately placed <em>after</em> the model and before persistence.</div>
+  </div>
+  <div class="rule"></div>
+
+  <!-- CLIENT -->
+  <div class="layer">
+    <div class="lname">
+      <div class="k">LAYER 01</div><h3>Client</h3>
+      <p>Mobile-first React UI, 31 pages under the App Router.</p>
+    </div>
+    <div class="lbody">
+      <div class="box"><h4>Learning screens</h4><p>Scan, Solve, Learn, Gaps, Practice, Teach-back, Transfer, Exam, Focus.</p><span class="path">src/app/(main)/…</span></div>
+      <div class="box"><h4>Onboarding</h4><p>Splash, register, login, personalize.</p><span class="path">src/app/(onboarding)/…</span></div>
+      <div class="box"><h4>Design system</h4><p>Tailwind tokens resolved through CSS variables; themeable accent + text scale.</p><span class="path">tailwind.config.ts · theme.css</span></div>
+    </div>
+  </div>
+  <div class="vsep"><svg width="26" height="26"><path d="M13 0v18M7 13l6 6 6-6" stroke="#C3B4F7" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+  <!-- EDGE -->
+  <div class="layer">
+    <div class="lname">
+      <div class="k">LAYER 02</div><h3>Edge middleware</h3>
+      <p>The outer gate, running before any route.</p>
+    </div>
+    <div class="lbody">
+      <div class="box lav"><h4>Session verification</h4><p>JWT signature actually verified at the edge with <span class="mono">jose</span> — not a "cookie exists" check.</p><span class="path">src/middleware.ts</span></div>
+      <div class="box lav"><h4>Route gating</h4><p>Public pages and public APIs are allow-listed; everything else redirects to /splash.</p></div>
+      <div class="box lav"><h4>OAuth exemption</h4><p>Spotify callbacks bypass the redirect so the handler can spend its single-use PKCE cookies and explain the outcome.</p></div>
+    </div>
+  </div>
+  <div class="vsep"><svg width="26" height="26"><path d="M13 0v18M7 13l6 6 6-6" stroke="#C3B4F7" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+  <!-- API -->
+  <div class="layer">
+    <div class="lname">
+      <div class="k">LAYER 03</div><h3>API routes</h3>
+      <p>40 route handlers. Each re-checks the session itself.</p>
+    </div>
+    <div class="lbody">
+      <div class="box"><h4>Diagnosis</h4><p>analyses · uploads · solve · explain</p></div>
+      <div class="box"><h4>Repair &amp; mastery</h4><p>gaps · practice-attempts · teach-back · transfer-attempts · exam</p></div>
+      <div class="box"><h4>State</h4><p>roadmap · history · knowledge · settings · achievements · reports</p></div>
+      <div class="box"><h4>Integrations</h4><p>resources · concept-image · spotify/*</p></div>
+    </div>
+  </div>
+  <div class="vsep"><svg width="26" height="26"><path d="M13 0v18M7 13l6 6 6-6" stroke="#8B5CF6" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+  <!-- AI -->
+  <div class="layer">
+    <div class="lname">
+      <div class="k">LAYER 04</div><h3>AI orchestration</h3>
+      <p>Interpretation only. Never the final authority.</p>
+    </div>
+    <div class="lbody">
+      <div class="box lav"><h4>Provider cascade</h4><p>cache → Gemini → Groq → caller's deterministic fallback. Every attempt logged with the provider that made it.</p><span class="path">lib/ai/ai-client.ts</span></div>
+      <div class="box lav"><h4>Pipeline stages</h4><p>analyze-work · reconstruct-reasoning · classify-gap · explain-gap · generate-practice · evaluate-teachback</p><span class="path">lib/ai/pipeline/</span></div>
+      <div class="box lav"><h4>RAG retrieval</h4><p>Local TF-IDF-style keyword scoring over 58 curated chunks. No vector database.</p><span class="path">lib/ai/rag/retrieve.ts</span></div>
+    </div>
+  </div>
+  <div class="vsep"><svg width="26" height="26"><path d="M13 0v18M7 13l6 6 6-6" stroke="#D99114" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+  <!-- VERIFY -->
+  <div class="layer">
+    <div class="lname" style="background:var(--warning-50);border-color:#F2DDAE">
+      <div class="k" style="color:#B4791B">LAYER 05</div><h3>Verification</h3>
+      <p>The layer that decides what is <em>true</em>. Zero AI.</p>
+    </div>
+    <div class="lbody">
+      <div class="box navy"><h4>Algebra verifier</h4><p>mathjs proportionality check: does the transformation preserve the solution set?</p><span class="path">verification/math-verifier.ts</span></div>
+      <div class="box navy"><h4>Domain routing</h4><p>Per-step-pair: algebra, quantitative, or chemical — chosen from the shape of the lines, not the subject.</p><span class="path">verification/verify-step.ts</span></div>
+      <div class="box navy"><h4>Misconception catalogue</h4><p>17 codes plus UNCLASSIFIED. Where the signature is unambiguous the code is proved outright — no model involved.</p><span class="path">diagnosis/misconceptions.ts</span></div>
+      <div class="box navy"><h4>“Uncertain” is a result</h4><p>Unparseable lines are never reported as errors. Silence beats a false accusation.</p></div>
+    </div>
+  </div>
+  <div class="vsep"><svg width="26" height="26"><path d="M13 0v18M7 13l6 6 6-6" stroke="#FFB27A" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+  <!-- PERSIST -->
+  <div class="layer">
+    <div class="lname">
+      <div class="k">LAYER 06</div><h3>Persistence</h3>
+      <p>Prisma 5 over serverless Postgres.</p>
+    </div>
+    <div class="lbody">
+      <div class="box peach"><h4>30 models</h4><p>Analysis → ExtractedStep → ReasoningStep → Gap, plus MasteryRecord, LearningEvent, Roadmap, ExamSession.</p><span class="path">prisma/schema.prisma</span></div>
+      <div class="box peach"><h4>Neon Postgres</h4><p>Reached over the WebSocket driver adapter on 443, so networks that block 5432 still work.</p><span class="path">lib/db/prisma.ts</span></div>
+      <div class="box peach"><h4>Seeded knowledge</h4><p>22 concepts · 29 relationships · 58 knowledge chunks · 5 achievements.</p></div>
+    </div>
+  </div>
+  <div class="vsep"><svg width="26" height="26"><path d="M13 0v18M7 13l6 6 6-6" stroke="#C3B4F7" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+  <!-- OBS + DEPLOY -->
+  <div class="layer" style="margin-bottom:6px">
+    <div class="lname">
+      <div class="k">LAYER 07 · 08</div><h3>Observability<br>&amp; delivery</h3>
+      <p>Every model call is inspectable after the fact.</p>
+    </div>
+    <div class="lbody">
+      <div class="box ok"><h4>AiUsageLog</h4><p>Stage, <span class="mono">provider:model</span>, cached, succeeded, latency, error text, retrieved chunk ids — per call.</p></div>
+      <div class="box ok"><h4>AiCallCache</h4><p>Content-hashed responses with TTL; a cache hit is logged as its own provider.</p></div>
+      <div class="box ok"><h4>Trace UI</h4><p>Per-analysis pipeline view of what ran, who answered and why the first choice didn't.</p><span class="path">/dev/observability</span></div>
+      <div class="box ok"><h4>Vercel</h4><p>Next.js framework preset in <span class="mono">vercel.json</span>; AI-bearing routes declare their own <span class="mono">maxDuration</span> (30–60s).</p><span class="path">app/api/**/route.ts</span></div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <div class="ext">
+      <span class="chip">Gemini — reasoning + vision</span>
+      <span class="chip">Groq — text fallback</span>
+      <span class="chip peach">YouTube Data API</span>
+      <span class="chip peach">OpenAlex · arXiv</span>
+      <span class="chip peach">GitHub</span>
+      <span class="chip gray">Spotify OAuth (PKCE)</span>
+    </div>
+    <div style="color:var(--ink-faint);font-size:17px">Diagram 01 — System architecture</div>
+  </div>
+</div>

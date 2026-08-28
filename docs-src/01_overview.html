@@ -1,0 +1,312 @@
+<meta charset="utf-8"><title>GapFinder — Overview</title>
+<link rel="stylesheet" href="doc.css">
+<style>
+.pis{display:flex;align-items:stretch;gap:0}
+.pis .b{flex:1;border-radius:5mm;padding:5mm 5.5mm}
+.pis .b .l{font-family:'Sora';font-size:8pt;font-weight:700;letter-spacing:.14em;margin-bottom:2.5mm}
+.pis .b h4{font-size:12pt;font-weight:700;line-height:1.2;margin-bottom:2.2mm}
+.pis .b p{font-size:8.8pt;line-height:1.5}
+.pis .ar{flex:none;width:11mm;display:flex;align-items:center;justify-content:center;color:var(--lav-300);font-size:15pt}
+.vs{display:flex;gap:5mm;flex:1;min-height:0}
+.vs .side{flex:1;border-radius:5mm;padding:5.5mm 6mm}
+.vs .old{background:var(--muted);border:1.2px solid var(--navy-50)}
+.vs .new{background:var(--navy-900)}
+.step{display:flex;align-items:center;gap:2.5mm;padding:3.1mm 0;border-bottom:1px dashed rgba(21,24,51,.09)}
+.step:last-child{border-bottom:none}
+.vs .new .step{border-bottom-color:rgba(255,255,255,.11)}
+.step .i{font-family:'Sora';font-size:7.6pt;font-weight:700;width:6mm;flex:none;color:var(--ink-faint)}
+.vs .new .step .i{color:#767BA6}
+.step .t{font-size:9.4pt;font-weight:600;color:var(--navy-900)}
+.vs .new .step .t{color:#fff}
+.step .d{font-size:8.4pt;color:var(--ink-faint);margin-left:auto;text-align:right}
+.vs .new .step .d{color:#9498BE}
+.deadend{margin-top:3mm;font-size:8.6pt;color:#B33A3A;font-weight:600}
+.summary-grid{display:grid;grid-template-columns:1.15fr 1fr 1fr;gap:4mm;flex:1}
+.sbox{border-radius:4.5mm;padding:4.5mm 5mm;border:1.2px solid var(--navy-50)}
+.sbox .h{font-family:'Sora';font-size:8pt;font-weight:700;letter-spacing:.13em;color:var(--lav-600);margin-bottom:3mm}
+.sline{display:flex;gap:2.5mm;font-size:8.8pt;line-height:1.45;color:var(--ink-soft);padding:1.6mm 0}
+.sline b{color:var(--navy-900);font-weight:600}
+.dotmark{width:4px;height:4px;border-radius:99px;background:var(--lav-400);margin-top:5px;flex:none}
+.dense .stack{gap:3.4mm}
+.dense .card{padding:4.2mm 5mm}
+.dense .card p{font-size:8.9pt;line-height:1.5}
+.dense .card h4{font-size:10.2pt}
+.dense .callout{padding:3.4mm 5mm}
+.dense .callout p{font-size:9pt}
+</style>
+
+<!-- ============ COVER ============ -->
+<div class="page cover">
+  <div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div class="eyebrow">Project dossier · Document 01 of 06</div>
+      <div class="chips">
+        <span class="chip">Next.js 14</span><span class="chip">Gemini + Groq</span>
+        <span class="chip peach">Neon Postgres</span><span class="chip gray">Deployed on Vercel</span>
+      </div>
+    </div>
+    <div class="rule" style="width:78px;margin-top:9mm"></div>
+    <h1 class="big" style="margin-top:8mm">GapFinder</h1>
+    <div class="kicker">
+      Don't just find the wrong answer — find the exact line where the student's reasoning
+      stopped following, name the misconception behind it, and teach that one thing until it holds without help.
+    </div>
+  </div>
+
+  <div class="pis">
+    <div class="b" style="background:var(--danger-50);border:1.2px solid var(--danger-br)">
+      <div class="l" style="color:#B33A3A">THE PROBLEM</div>
+      <h4>Grading the destination</h4>
+      <p>Every homework tool marks the final answer. A student already knew they got it wrong. Being shown a correct solution to compare against does not tell them which of their own moves was the bad one.</p>
+    </div>
+    <div class="ar">→</div>
+    <div class="b" style="background:var(--warning-50);border:1.2px solid var(--warning-br)">
+      <div class="l" style="color:#8A5C0C">THE INSIGHT</div>
+      <h4>Most wrong lines aren't mistakes</h4>
+      <p>A student who errs at line two and writes six lines has five wrong lines. Four are faithful consequences of one broken idea. Marking all five teaches them they are bad at algebra. Finding the one teaches them algebra.</p>
+    </div>
+    <div class="ar">→</div>
+    <div class="b" style="background:var(--lav-50);border:1.2px solid var(--lav-200)">
+      <div class="l" style="color:var(--lav-600)">THE SOLUTION</div>
+      <h4>Locate it, name it, close it</h4>
+      <p>GapFinder verifies every line against the one above it, isolates the <em>first</em> divergence, names the misconception from a fixed catalogue, teaches it — then re-tests with the help taken away.</p>
+    </div>
+  </div>
+
+  <div class="meta">
+    <div class="metaitem"><div class="l">Live application</div><div class="v">gap-finder-green.vercel.app</div></div>
+    <div class="metaitem"><div class="l">Repository</div><div class="v">github.com/sanikommu-bhanu/GapFinder</div></div>
+    <div class="metaitem"><div class="l">Scope</div><div class="v">31 pages · 40 API routes · 30 data models</div></div>
+    <div class="metaitem"><div class="l">Verification</div><div class="v">228 tests · 15-case reasoning eval</div></div>
+  </div>
+</div>
+
+<!-- ============ P2 — problem / insight / solution in depth ============ -->
+<div class="page dense">
+  <div class="phead">
+    <div><div class="eyebrow">Why this exists</div><h2>A wrong answer is a symptom.<br>The gap is the diagnosis.</h2><div class="rule"></div></div>
+    <div class="side"><p>GapFinder is built on one claim that can be checked rather than believed:
+      the useful unit of feedback is not the answer, it is <strong>the first line that stopped following from the one above it</strong>.</p></div>
+  </div>
+
+  <div class="pbody stack">
+    <div class="card muted" style="padding:5mm 5.5mm">
+      <div class="row" style="gap:7mm;align-items:center">
+        <div style="flex:none;width:82mm">
+          <h3 style="font-size:13pt">The worked example the product is built around</h3>
+          <p style="margin-top:2.5mm">A student expands two brackets and subtracts. Line&nbsp;2 drops the negative across the second bracket. Lines&nbsp;3–6 are then <em>correct algebra applied to a wrong line</em>.</p>
+        </div>
+        <div style="flex:1">
+          <div class="row" style="gap:4mm">
+            <div class="col card" style="border-color:var(--danger-br);background:var(--danger-50)">
+              <div class="num" style="color:#B33A3A">A CONVENTIONAL CHECKER SAYS</div>
+              <p style="color:#B33A3A;font-weight:600;font-size:10pt">“Incorrect. The answer is x&nbsp;=&nbsp;…”</p>
+              <p style="margin-top:2mm">Five lines are implicitly wrong. The student learns that the whole attempt failed.</p>
+            </div>
+            <div class="col card ok">
+              <div class="num" style="color:#1B7F49">GAPFINDER SAYS</div>
+              <p style="color:#1B7F49;font-weight:600;font-size:10pt">“Line 2 is where it broke — you distributed the minus to the first term only.”</p>
+              <p style="margin-top:2mm">One line is wrong. Four are consequences. One habit is named, and it is the habit that will reappear next week.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid g3">
+      <div class="card">
+        <div class="num">01 — WHO IT SERVES</div>
+        <h4>The student mid-attempt</h4>
+        <p>Designed for a secondary or early-undergraduate student working through Math, Physics, Chemistry or Biology problems on a phone — the moment between finishing an attempt and having no idea why it failed.</p>
+        <p style="margin-top:2.5mm">It also serves the blank page: <strong>Solve With Me</strong> runs the same engine forwards, naming the next move without ever writing the line.</p>
+      </div>
+      <div class="card">
+        <div class="num">02 — WHY IT MATTERS</div>
+        <h4>Misconceptions are durable</h4>
+        <p>An arithmetic slip is noise. A misconception is a rule the student is faithfully applying — it keeps producing errors across chapters until it is named and replaced.</p>
+        <p style="margin-top:2.5mm">A <strong>fixed catalogue code</strong> per error makes the same habit countable across weeks — which is what turns feedback into a trajectory.</p>
+      </div>
+      <div class="card lav">
+        <div class="num" style="color:var(--lav-600)">03 — WHAT HAS BEEN BUILT</div>
+        <h4>A complete, deployed loop</h4>
+        <p>Not a prototype of one screen. The full path — submit, verify, diagnose, teach, practise, transfer, re-test under exam conditions, and remember — is implemented and running.</p>
+        <div class="chips" style="margin-top:3mm">
+          <span class="chip">31 pages</span><span class="chip">40 API routes</span>
+          <span class="chip">30 models</span><span class="chip peach">22 concepts</span>
+          <span class="chip peach">58 knowledge chunks</span><span class="chip ok">228 tests</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <p><strong>The rule that governs the whole system:</strong> the AI interprets, the code verifies. A model reads the handwriting and phrases the teaching — but it is never the authority on whether a step is correct. That judgement is deterministic algebra, which is why the product can afford to be this specific.</p>
+    </div>
+  </div>
+
+  <div class="pfoot"><b>GapFinder</b><span>01 — Overview</span><span>Page 2</span></div>
+</div>
+
+<!-- ============ P3 — the difference ============ -->
+<div class="page">
+  <div class="phead">
+    <div><div class="eyebrow">The GapFinder difference</div><h2>Two loops, and only one of them closes</h2><div class="rule"></div></div>
+    <div class="side"><p>The conventional loop terminates at a verdict. GapFinder's loop terminates only when
+      the repair has survived a test with the help removed — and then feeds what it learned into the next attempt.</p></div>
+  </div>
+
+  <div class="pbody stack">
+    <div class="vs">
+      <div class="side old">
+        <div class="num">TRADITIONAL LEARNING TOOL</div>
+        <h3 style="font-size:13pt;margin-bottom:3mm">Question → verdict → next question</h3>
+        <div class="step"><span class="i">01</span><span class="t">Question</span><span class="d">given</span></div>
+        <div class="step"><span class="i">02</span><span class="t">Answer</span><span class="d">the destination only</span></div>
+        <div class="step"><span class="i">03</span><span class="t">Correct / wrong</span><span class="d">a binary verdict</span></div>
+        <div class="step"><span class="i">04</span><span class="t">Next question</span><span class="d">nothing carried forward</span></div>
+        <div class="deadend">↳ The reasoning is never inspected, so the same misconception survives intact.</div>
+      </div>
+      <div class="side new">
+        <div class="num" style="color:#767BA6">GAPFINDER</div>
+        <h3 style="font-size:13pt;margin-bottom:3mm;color:#fff">Work → gap → repair → proof → memory</h3>
+        <div class="step"><span class="i">01</span><span class="t">Work</span><span class="d">the whole attempt</span></div>
+        <div class="step"><span class="i">02</span><span class="t">Reasoning</span><span class="d">each line as a claim</span></div>
+        <div class="step"><span class="i">03</span><span class="t">Gap</span><span class="d">first divergence, proved</span></div>
+        <div class="step"><span class="i">04</span><span class="t">Explanation</span><span class="d">grounded in curated sources</span></div>
+        <div class="step"><span class="i">05</span><span class="t">Practice</span><span class="d">built for that misconception</span></div>
+        <div class="step"><span class="i">06</span><span class="t">Verification</span><span class="d">transfer + exam, no hints</span></div>
+        <div class="step"><span class="i">07</span><span class="t">Mastery</span><span class="d">scored from evidence</span></div>
+        <div class="step"><span class="i">08</span><span class="t">Next action</span><span class="d">roadmap reordered</span></div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <p><strong>The difference is not more feedback — it is feedback with a location.</strong>
+        “Wrong” tells a student to try harder. “Line&nbsp;2, and here is the rule you were applying” tells them
+        what to change. Only the second one can be practised, re-tested, and eventually closed.</p>
+    </div>
+  </div>
+
+  <div class="pfoot"><b>GapFinder</b><span>01 — Overview</span><span>Page 3</span></div>
+</div>
+
+<!-- ============ P4 — product at a glance ============ -->
+<div class="page">
+  <div class="phead slim">
+    <div class="eyebrow">Product at a glance</div>
+    <div class="side"><p>Every feature shown is a working screen in the deployed application. Document&nbsp;02 covers each in depth.</p></div>
+  </div>
+
+  <div class="pbody">
+    <div class="fig fit">
+      <img src="file:///C:/Users/bhanu/Downloads/gapfinder/GapFinder_Final_Documentation/diagrams/04_product_ecosystem.png" alt="Product ecosystem">
+    </div>
+  </div>
+
+  <div class="pfoot"><b>GapFinder</b><span>01 — Overview</span><span>Page 4</span></div>
+</div>
+
+<!-- ============ P5 — technically interesting ============ -->
+<div class="page">
+  <div class="phead">
+    <div><div class="eyebrow">Why it is technically interesting</div><h2>Six decisions that are not the obvious ones</h2><div class="rule"></div></div>
+    <div class="side"><p>Each of these is a place where the easy implementation would have been to ask a
+      language model, and the system deliberately does something else.</p></div>
+  </div>
+
+  <div class="pbody">
+    <div class="grid g3" style="height:100%;grid-template-rows:1fr 1fr">
+      <div class="card warn">
+        <div class="num" style="color:#8A5C0C">01 · REASONING ANALYSIS</div>
+        <h4>Correctness is decided by algebra, not by a model</h4>
+        <p>Each step-pair is tested with <span class="mono">mathjs</span>: move both sides to one expression and check the transformation preserves the solution set. An LLM asked “is this step right?” is confidently wrong often enough to be useless for accusation.</p>
+      </div>
+      <div class="card">
+        <div class="num">02 · LEARNING-GAP MODELLING</div>
+        <h4>A closed catalogue, not free text</h4>
+        <p>17 misconception codes across four subjects, plus an explicit UNCLASSIFIED outcome. Where the algebraic signature is unambiguous the code is <em>derived</em>, so the same student error always yields the same code — making errors countable rather than merely describable.</p>
+      </div>
+      <div class="card">
+        <div class="num">03 · GRACEFUL DEGRADATION</div>
+        <h4>The pipeline survives its own dependencies</h4>
+        <p>Provider cascade — cache → Gemini → Groq → deterministic fallback. A free-tier rate limit is treated as a certainty, not an edge case. Every stage after reading a photo has a local substitute.</p>
+      </div>
+      <div class="card lav">
+        <div class="num" style="color:var(--lav-600)">04 · GROUNDED GENERATION</div>
+        <h4>Retrieval without a vector database</h4>
+        <p>58 curated knowledge chunks scored by local keyword overlap. The corpus is small and hand-written, so the retrieval is free, local and auditable — and every explanation cites the chunk ids it used.</p>
+      </div>
+      <div class="card peach">
+        <div class="num" style="color:#B4581B">05 · PERSISTENT LEARNER STATE</div>
+        <h4>Mastery is evidence, computed</h4>
+        <p>A 0–100 EMA per concept (α&nbsp;=&nbsp;0.35). Transfer success is weighted +12 against practice's +6, because solving the same idea in an unfamiliar problem is the stronger evidence. No model votes on this.</p>
+      </div>
+      <div class="card ok">
+        <div class="num" style="color:#1B7F49">06 · OBSERVABILITY</div>
+        <h4>Every model call is inspectable</h4>
+        <p>Stage, <span class="mono">provider:model</span>, cache status, latency, error text and retrieved chunk ids are written per call, and surfaced in a per-analysis trace view — so “what did the AI actually do here?” has an answer.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="pfoot"><b>GapFinder</b><span>01 — Overview</span><span>Page 5</span></div>
+</div>
+
+<!-- ============ P6 — one screen summary ============ -->
+<div class="page">
+  <div class="phead">
+    <div><div class="eyebrow">The one-screen summary</div><h2>GapFinder in a single frame</h2><div class="rule"></div></div>
+    <div class="side"><p>If you read nothing else in this dossier, this page is the project.</p></div>
+  </div>
+
+  <div class="pbody">
+    <div class="summary-grid">
+      <div class="sbox" style="background:var(--navy-900);border-color:var(--navy-900)">
+        <div class="h" style="color:var(--lav-300)">THE CLAIM</div>
+        <h3 style="color:#fff;font-size:15pt;line-height:1.25">A mistake is not a score.<br>It is a location, a name,<br>and a next action.</h3>
+        <p style="color:#C4C7DC;margin-top:4mm;font-size:9.2pt">GapFinder finds the first line that stopped following, names the misconception behind it from a fixed catalogue, teaches that one thing, and refuses to call it mastered until the student can do it again with the help removed.</p>
+        <div style="margin-top:5mm;padding-top:4mm;border-top:1px solid rgba(255,255,255,.14)">
+          <div class="h" style="color:var(--lav-300)">THE GOVERNING RULE</div>
+          <p style="color:#fff;font-size:10.5pt;font-family:'Sora';font-weight:600;line-height:1.35">The AI interprets.<br>The code verifies.<br>The database remembers.</p>
+        </div>
+      </div>
+
+      <div class="sbox">
+        <div class="h">HOW IT WORKS</div>
+        <div class="sline"><span class="dotmark"></span><div><b>Read</b> — one multimodal call turns handwriting into lines, or the student types them.</div></div>
+        <div class="sline"><span class="dotmark"></span><div><b>Verify</b> — every transition checked by <span class="mono">mathjs</span>; algebra, quantitative and chemical domains routed per step.</div></div>
+        <div class="sline"><span class="dotmark"></span><div><b>Locate</b> — the <em>first</em> failure is the gap; later failures are its consequences.</div></div>
+        <div class="sline"><span class="dotmark"></span><div><b>Name</b> — one of 17 catalogue codes, proved where the signature is unambiguous.</div></div>
+        <div class="sline"><span class="dotmark"></span><div><b>Teach</b> — explanation grounded in curated chunks, with a computed diagram.</div></div>
+        <div class="sline"><span class="dotmark"></span><div><b>Prove</b> — practice, teach-back, transfer, then Exam Mode with no hints.</div></div>
+        <div class="sline"><span class="dotmark"></span><div><b>Remember</b> — mastery EMA, gap status, roadmap order, recurring codes.</div></div>
+        <div style="margin-top:4mm;padding-top:3.5mm;border-top:1px solid var(--navy-50)">
+          <div class="h">RESILIENCE BY DESIGN</div>
+          <p style="font-size:8.8pt">Classification and explanation both fall back to deterministic logic over the same verified algebra. Only photo-reading has no local substitute — and the app offers typed working, which runs the identical pipeline with no AI at all.</p>
+        </div>
+      </div>
+
+      <div class="sbox">
+        <div class="h">WHAT IS ACTUALLY BUILT</div>
+        <div class="row" style="gap:4mm;margin-bottom:4mm">
+          <div class="col"><div class="big-stat">31</div><div class="stat-l">pages</div></div>
+          <div class="col"><div class="big-stat">40</div><div class="stat-l">API routes</div></div>
+          <div class="col"><div class="big-stat">30</div><div class="stat-l">data models</div></div>
+        </div>
+        <div class="row" style="gap:4mm;margin-bottom:4mm">
+          <div class="col"><div class="big-stat lav">22</div><div class="stat-l">seeded concepts across 4 subjects</div></div>
+          <div class="col"><div class="big-stat lav">58</div><div class="stat-l">curated knowledge chunks</div></div>
+          <div class="col"><div class="big-stat lav">17</div><div class="stat-l">misconception codes</div></div>
+        </div>
+        <div style="padding-top:3.5mm;border-top:1px solid var(--navy-50)">
+          <div class="h">PROVEN, ON ANY MACHINE</div>
+          <div class="kv"><span class="k">Unit tests</span><span class="v"><b>228 passing</b> across 14 files</span></div>
+          <div class="kv"><span class="k">Reasoning eval</span><span class="v"><b>13 of 13</b> scored cases pass, 2 skipped &mdash; 100% divergence accuracy</span></div>
+          <div class="kv"><span class="k">Build</span><span class="v">Lint and typecheck clean; build succeeds</span></div>
+          <div class="kv"><span class="k">Deployment</span><span class="v">Live on Vercel, responding</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pfoot"><b>GapFinder</b><span>01 — Overview</span><span>Page 6</span></div>
+</div>

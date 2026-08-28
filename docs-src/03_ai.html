@@ -1,0 +1,292 @@
+<meta charset="utf-8"><title>GapFinder — AI</title>
+<link rel="stylesheet" href="doc.css"><link rel="stylesheet" href="chapter.css">
+<style>
+.authbar{display:flex;gap:0;align-items:stretch;border-radius:5mm;overflow:hidden;border:1.2px solid var(--navy-50);flex:none}
+.authbar .b{flex:1;padding:3.8mm 5mm}
+.authbar .b .l{font-family:'Sora';font-size:7.4pt;font-weight:700;letter-spacing:.13em;margin-bottom:2mm}
+.authbar .b h4{font-size:10.8pt;font-weight:700;line-height:1.2;margin-bottom:1.8mm}
+.authbar .b p{font-size:8.4pt;line-height:1.45}
+.stagecol{display:flex;flex-direction:column;gap:2.6mm}
+.stg{display:flex;gap:3mm;align-items:flex-start;padding:2.4mm 0;border-bottom:1px solid var(--navy-50)}
+.stg:last-child{border-bottom:none}
+.stg .tg{flex:none;width:16mm;padding-top:.6mm}
+.stg .bd{flex:1}
+.stg .bd h5{font-size:10pt;font-weight:700;margin-bottom:1.4mm}
+.stg .bd p{font-size:8.6pt;line-height:1.45}
+#authtbl td{padding:1.9mm 3mm;font-size:8.3pt}
+#authtbl th{padding-bottom:2mm}
+.stg .pth{font-family:'SFMono-Regular',Consolas,monospace;font-size:7.4pt;color:var(--lav-600);flex:none;width:44mm;text-align:right;padding-top:1.4mm}
+</style>
+
+<!-- ============ P1 — chapter cover ============ -->
+<div class="page chcover">
+  <div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div class="no">DOCUMENT 03 OF 06 &middot; THE AI</div>
+      <div class="chips"><span class="chip">Gemini &mdash; vision + reasoning</span><span class="chip">Groq &mdash; text fallback</span><span class="chip peach">Local RAG, 58 chunks</span><span class="chip gray">No vector database</span></div>
+    </div>
+    <div class="rule" style="width:78px;margin-top:8mm"></div>
+    <h1>The AI interprets.<br>The code decides.</h1>
+    <div class="thesis">A language model is the only thing that can read handwriting or infer what a student was attempting.
+      It is not a source of truth about whether one line follows from another. GapFinder separates those two capabilities
+      at the architectural level, not by prompt engineering — which is why the product can accuse a specific line by name.</div>
+  </div>
+
+  <div class="toc">
+    <div class="t"><div class="p">PAGE 2</div><h5>The pipeline</h5><p>Every stage, coloured by who holds authority over the output.</p></div>
+    <div class="t"><div class="p">PAGE 3</div><h5>The authority boundary</h5><p>Decision by decision: model, code, or stored evidence.</p></div>
+    <div class="t"><div class="p">PAGES 4&ndash;5</div><h5>Grounding &amp; personalisation</h5><p>Retrieval, citations that are never generated, and the learner state that shapes the next call.</p></div>
+    <div class="t"><div class="p">PAGES 6&ndash;7</div><h5>Failure &amp; observability</h5><p>What happens when every provider is gone, and how to see what actually ran.</p></div>
+  </div>
+</div>
+
+<!-- ============ P2 — the pipeline, full bleed ============ -->
+<div class="page">
+  <div class="phead slim">
+    <div class="eyebrow">The AI pipeline</div>
+    <div class="side"><p>Colour marks <strong>authority</strong>, not technology. Nothing a model says about correctness reaches the student before deterministic code has confirmed it.</p></div>
+  </div>
+  <div class="pbody"><div class="fig fit">
+    <img src="file:///C:/Users/bhanu/Downloads/gapfinder/GapFinder_Final_Documentation/diagrams/03_ai_pipeline.png" alt="AI pipeline and authority boundaries">
+  </div></div>
+  <div class="pfoot"><b>GapFinder</b><span>03 — AI</span><span>Page 2</span></div>
+</div>
+
+<!-- ============ P3 — authority boundary ============ -->
+<div class="page">
+  <div class="phead">
+    <div><div class="eyebrow">The authority boundary</div><h2>Who is allowed to decide what</h2><div class="rule"></div></div>
+    <div class="side"><p>The test applied to every feature: <em>if the model returned nonsense here, would a student
+      be told something false?</em> Where the answer is yes, the feature is built a different way.</p></div>
+  </div>
+
+  <div class="pbody stack">
+    <div class="authbar">
+      <div class="b" style="background:var(--lav-50)">
+        <div class="l" style="color:var(--lav-600)">AI-GENERATED INTERPRETATION</div>
+        <h4>Reads, narrates, names, phrases</h4>
+        <p>Reading, intent, concept slug, practice drafts, wording. Always <em>input</em> to the next stage &mdash; never a verdict.</p>
+      </div>
+      <div class="b" style="background:var(--navy-900)">
+        <div class="l" style="color:var(--lav-300)">DETERMINISTIC LOGIC</div>
+        <h4 style="color:#fff">Decides truth and eligibility</h4>
+        <p style="color:#C4C7DC">Whether a step follows, where the divergence is, what the correction reads, and whether mastery may be claimed.</p>
+      </div>
+      <div class="b" style="background:var(--peach-50)">
+        <div class="l" style="color:#B4581B">PERSISTENT LEARNER DATA</div>
+        <h4>Remembers across sessions</h4>
+        <p>Gaps, mastery EMAs, recurring codes, events, roadmap order. Written once at computation, read back thereafter.</p>
+      </div>
+    </div>
+
+    <table class="tight" id="authtbl">
+      <thead><tr><th style="width:38%">Decision</th><th style="width:22%">Owner</th><th>Why it sits there</th></tr></thead>
+      <tbody>
+        <tr><td><b>What do the marks say, and what was the student attempting?</b></td><td><span class="tag">GEMINI VISION</span></td><td>Only a model can read handwriting or infer intent from an incomplete attempt. Low confidence pauses the pipeline and asks the student rather than guessing.</td></tr>
+        <tr><td><b>Does step <i>n</i> follow from <i>n</i>&minus;1?</b></td><td><span class="tag code">MATHJS</span></td><td>Must be provable. A model asked &ldquo;is this step right?&rdquo; is confidently wrong often enough to be useless for an accusation.</td></tr>
+        <tr><td><b>Where is the first divergence, and which later lines are its consequences?</b></td><td><span class="tag code">SOLUTION-AUDIT.TS</span></td><td>The product's core claim, computed and measured by the eval harness. A line faithful to a wrong premise is not a new mistake.</td></tr>
+        <tr><td><b>What should that step have read?</b></td><td><span class="tag code">SOLVE-STEP.TS</span></td><td>Derived from the student's own opening line. Never generated — a generated &ldquo;correct&rdquo; line could be wrong.</td></tr>
+        <tr><td><b>Which misconception is it?</b></td><td><span class="tag code">SIGNATURE</span> <span class="dim">or</span> <span class="tag">CATALOGUE PICK</span></td><td>An unambiguous algebraic signature <b>proves</b> the code. Otherwise a model picks from the catalogue and it is labelled <b>matched</b>.</td></tr>
+        <tr><td><b>Which concept broke?</b></td><td><span class="tag">GEMINI</span> <span class="dim">→ structural fallback</span></td><td>Needs judgement. With no provider, the offline classifier picks from the shape of the verified error.</td></tr>
+        <tr><td><b>Is a generated practice problem valid?</b></td><td><span class="tag code">SOLVED INDEPENDENTLY</span></td><td>An unverified problem is never displayed.</td></tr>
+        <tr><td><b>Has the student mastered this?</b></td><td><span class="tag code">EXAM/VERDICT.TS</span></td><td>Rules, not opinion: two questions minimum, sound reasoning required, a returning code decisive.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pfoot"><b>GapFinder</b><span>03 — AI</span><span>Page 3</span></div>
+</div>
+
+<!-- ============ P4 — stages, context, output ============ -->
+<div class="page">
+  <div class="phead">
+    <div><div class="eyebrow">Inside one analysis</div><h2>What the model receives, and what it returns</h2><div class="rule"></div></div>
+    <div class="side"><p>Stage boundaries are written to <span class="mono">analysis.status</span> as they are entered.
+      The Analyzing screen polls that, so the progress a student watches is the real pipeline position rather than an animation on a timer.</p></div>
+  </div>
+
+  <div class="pbody stack">
+    <div class="row" style="gap:5mm">
+      <div class="col card">
+        <div class="num">WHAT IS SENT</div>
+        <h4>The prompt payload</h4>
+        <div class="kv"><span class="k">The work</span><span class="v">A client-side downscaled and compressed photograph, or the student's typed lines</span></div>
+        <div class="kv"><span class="k">Subject</span><span class="v">Chosen at capture; narrows the concept shortlist</span></div>
+        <div class="kv"><span class="k">Concept shortlist</span><span class="v">The seeded slugs for that subject, so the model selects rather than invents</span></div>
+        <div class="kv"><span class="k">Learner context</span><span class="v">Recurring misconception codes and mastery scores for the concepts in play</span></div>
+        <div class="kv"><span class="k">Output schema</span><span class="v">A Zod schema reduced to the subset Gemini's structured-output endpoint accepts</span></div>
+      </div>
+      <div class="col card lav">
+        <div class="num" style="color:var(--lav-600)">WHAT COMES BACK</div>
+        <h4>Structured, never prose to be parsed</h4>
+        <div class="kv"><span class="k">Extracted steps</span><span class="v">Each line as read, with a per-line confidence and a <span class="mono">needsConfirm</span> flag</span></div>
+        <div class="kv"><span class="k">Reasoning claims</span><span class="v">Each line restated as what the student was asserting</span></div>
+        <div class="kv"><span class="k">Proposed concept</span><span class="v">One slug from the shortlist — checked against the catalogue before use</span></div>
+        <div class="kv"><span class="k">Proposed code</span><span class="v">A misconception code, discarded if it is not in the catalogue</span></div>
+        <div class="kv"><span class="k">Explanation</span><span class="v">Grounded in retrieved chunks, with the chunk ids it used recorded</span></div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <p><strong>Three calls became one.</strong> Reading, narrating and classifying were once separate requests — three round trips
+        and three charges against a free-tier quota for a single photograph. They are now one multimodal call whose result is carried
+        forward, so later stages never re-ask what they were just told. This is only safe <em>because</em> nothing the model says about
+        correctness is trusted downstream.</p>
+    </div>
+  </div>
+
+  <div class="pfoot"><b>GapFinder</b><span>03 — AI</span><span>Page 4</span></div>
+</div>
+
+<!-- ============ P5 — grounding + personalisation ============ -->
+<div class="page">
+  <div class="phead">
+    <div><div class="eyebrow">Grounding &amp; personalisation</div><h2>Where the words come from, and why they are about <em>this</em> student</h2><div class="rule"></div></div>
+    <div class="side"><p>Two separate mechanisms, often conflated. Retrieval decides what is <em>said</em>;
+      the learner record decides what is <em>selected</em> and how the next call is framed.</p></div>
+  </div>
+
+  <div class="pbody stack">
+    <div class="row" style="gap:5mm">
+      <div class="col card">
+        <div class="num">01 &middot; RETRIEVAL WITHOUT A VECTOR DATABASE</div>
+        <h4>58 curated chunks, scored locally</h4>
+        <p>Explanations are grounded in <span class="mono">KnowledgeChunk</span> rows retrieved per concept and filtered by kind —
+          <span class="mono">explanation</span>, <span class="mono">misconception</span>, <span class="mono">teaching_strategy</span>,
+          <span class="mono">worked_example</span>, <span class="mono">practice_pattern</span>. Scoring is local TF-IDF-style keyword
+          overlap. No embedding API, no vector store, no recurring cost — and a corpus small enough for a human to read end to end.</p>
+        <div class="kv" style="margin-top:2.5mm"><span class="k">Asked by name</span><span class="v">Asked about by name with nothing scoring, <b>all</b> of that concept's chunks are returned — everything filed under it is relevant by construction</span></div>
+        <div class="kv"><span class="k">Cited for an error</span><span class="v">If nothing scores, <b>nothing</b> is cited. An unrelated chunk is worse than none</span></div>
+      </div>
+      <div class="col card peach">
+        <div class="num" style="color:#B4581B">02 &middot; RESEARCH SOURCES</div>
+        <h4>A model is never asked for a citation</h4>
+        <p>Titles, authors, DOIs and URLs come back from provider APIs — <strong>OpenAlex</strong>, <strong>Crossref</strong> and
+          <strong>arXiv</strong>, all free and keyless — and carry their provenance. The research layer contains no prompt at all.
+          A fabricated citation that looks correct is worse than no citation, because a student would cite it.</p>
+        <div class="kv" style="margin-top:2.5mm"><span class="k">Query mapping</span><span class="v">Each concept slug maps to terms the literature actually uses; a misconception's display name is prose and matches on filler words</span></div>
+        <div class="kv"><span class="k">Two gates</span><span class="v">A result must carry a <b>distinctive</b> on-concept anchor <em>and</em> an education signal, or it is discarded</span></div>
+        <div class="kv"><span class="k">Silence is named</span><span class="v">Timed out, nothing relevant, no anchors, subject unsupported — four messages, never a blank panel</span></div>
+      </div>
+    </div>
+
+    <div class="card lav">
+      <div class="num" style="color:var(--lav-600)">03 &middot; PERSONALISATION</div>
+      <h4>What makes the next analysis different from the first</h4>
+      <div class="row" style="gap:5mm;margin-top:2.5mm">
+        <div class="col"><p><b>Into the prompt.</b> Recurring misconception codes and mastery scores for the concepts in play are passed as context, so the model chooses against a background rather than from scratch.</p></div>
+        <div class="col"><p><b>Into the selection.</b> Which intervention is offered — more practice, transfer, teach-back — is decided in code from
+          the gap's status and the mastery record, not by asking a model what would be nice.</p></div>
+        <div class="col"><p><b>Into the verdict.</b> Exam Mode is given the codes this student held <em>before</em> the exam. A resurfacing code is decisive against mastery whatever the score.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pfoot"><b>GapFinder</b><span>03 — AI</span><span>Page 5</span></div>
+</div>
+
+<!-- ============ P6 — failure handling ============ -->
+<div class="page">
+  <div class="phead">
+    <div><div class="eyebrow">Failure handling</div><h2>The pipeline keeps working when its dependencies do not</h2><div class="rule"></div></div>
+    <div class="side"><p>Every stage after reading a photograph has a deterministic substitute, so a provider outage degrades confidence rather than breaking the product &mdash; and the interface says which it is.</p></div>
+  </div>
+
+  <div class="pbody row" style="gap:5mm">
+    <div class="col stack" style="gap:4mm">
+      <div class="card">
+        <div class="num">THE CASCADE</div>
+        <h4>cache &rarr; Gemini &rarr; Groq &rarr; deterministic</h4>
+        <p style="margin-top:2mm">Gemini stays first: its vision is the strongest available here and the prompts are tuned to it. Groq's free tier is
+          separate from Google's, so a Gemini quota exhaustion does not stop the product working.</p>
+        <table class="tight" style="margin-top:3mm">
+          <thead><tr><th style="width:31%">Failure</th><th>Behaviour</th></tr></thead>
+          <tbody>
+            <tr><td><span class="mono">quota</span></td><td><b>No retry</b> &mdash; a free-tier limit is not transient</td></tr>
+            <tr><td><span class="mono">no_key</span></td><td>No retry. Skip to the next provider</td></tr>
+            <tr><td><span class="mono">unsupported</span></td><td>No retry &mdash; e.g. vision from a text-only provider</td></tr>
+            <tr><td><span class="mono">network</span></td><td>Retry in-provider, backoff 300&nbsp;ms &times; attempt</td></tr>
+            <tr><td><span class="mono">invalid_response</span></td><td>Retry &mdash; schema validation may be transient</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card danger" style="padding:3.8mm 4.8mm">
+        <div class="num" style="color:#B33A3A">THE FAILURE THE PRODUCT REFUSES</div>
+        <p style="font-size:8.9pt"><b>&ldquo;Couldn't check&rdquo; is never reported as &ldquo;nothing wrong&rdquo;.</b> If every line came back <span class="mono">uncertain</span>, the analysis fails honestly. If only some did, the result says so: <em>&ldquo;2 lines couldn't be checked, but everything we could verify holds.&rdquo;</em></p>
+      </div>
+    </div>
+
+    <div class="col stack" style="gap:4mm">
+      <div class="card ok">
+        <div class="num" style="color:#1B7F49">WHEN BOTH PROVIDERS ARE GONE</div>
+        <div class="kv"><span class="k">Classification</span><span class="v">The offline classifier reads the same verified algebra and picks the concept from the shape of the error &mdash; reporting <b>low</b> confidence, out loud</span></div>
+        <div class="kv"><span class="k">Explanation</span><span class="v">Retrieved chunks are surfaced directly alongside the verifier's account of what changed</span></div>
+        <div class="kv"><span class="k">Practice</span><span class="v">Generated from templates, each solved independently before display</span></div>
+        <div class="kv"><span class="k">Verification</span><span class="v">Untouched. It never used a model in the first place</span></div>
+      </div>
+
+      <div class="card warn" style="padding:3.8mm 4.8mm">
+        <div class="num" style="color:#8A5C0C">THE ONE STAGE WITH NO SUBSTITUTE</div>
+        <p style="font-size:8.9pt"><b>Reading a photograph.</b> Nothing local turns pixels into equations. The failure returns a
+          <span class="mono">TYPE_INSTEAD:</span> prefix and the app offers typed working, which runs the <em>identical</em> pipeline with no AI involved at all.</p>
+      </div>
+
+      <div class="card" style="padding:3.8mm 4.8mm">
+        <div class="num">FAILURES NAME THE PATH THAT STILL WORKS</div>
+        <div class="kv"><span class="k"><span class="mono">QUESTION_ONLY:</span></span><span class="v">A photographed question with no attempt &mdash; routed to guided solving, not a dead end</span></div>
+        <div class="kv"><span class="k"><span class="mono">TYPE_INSTEAD:</span></span><span class="v">Image reading failed &mdash; typing gets the same diagnosis</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pfoot"><b>GapFinder</b><span>03 — AI</span><span>Page 6</span></div>
+</div>
+
+<!-- ============ P7 — observability + limitations ============ -->
+<div class="page">
+  <div class="phead">
+    <div><div class="eyebrow">Observability &amp; efficiency</div><h2>What actually ran, and what it cost</h2><div class="rule"></div></div>
+    <div class="side"><p>Every model call is recorded, so the pipeline can always account for itself &mdash; which provider served each stage, how long it took, and what it retrieved.</p></div>
+  </div>
+
+  <div class="pbody stack">
+    <div class="row" style="gap:5mm">
+      <div class="col card ok">
+        <div class="num" style="color:#1B7F49">AI OBSERVABILITY &middot; <span class="mono">/dev/observability</span></div>
+        <h4>Every model call is inspectable after the fact</h4>
+        <p><span class="mono">AiUsageLog</span> records, per call: the pipeline stage, <span class="mono">provider:model</span>,
+          whether it was served from cache, whether it succeeded, latency, the error text when it did not, and the RAG chunk ids
+          that fed the prompt. A per-analysis trace view replays the sequence.</p>
+        <p style="margin-top:2.5mm">This makes two things visible that are usually invisible: a <b>failover</b> — Gemini declined, Groq answered —
+          and a <b>fallback</b>, where no provider answered and deterministic logic produced the result. Retrieval becomes traceable rather than assumed.</p>
+      </div>
+      <div class="col card">
+        <div class="num">QUOTA MANAGEMENT</div>
+        <h4>Free tiers are the design constraint</h4>
+        <div class="kv"><span class="k">Response cache</span><span class="v"><span class="mono">AiCallCache</span>, keyed by a content hash, 7-day TTL. A hit is logged as its own provider</span></div>
+        <div class="kv"><span class="k">Small keys</span><span class="v">The key hashes the prompt, the system instruction and a <b>digest</b> of the image — not the image bytes</span></div>
+        <div class="kv"><span class="k">Request collapsing</span><span class="v">Three pipeline calls became one multimodal call</span></div>
+        <div class="kv"><span class="k">Structured output</span><span class="v">JSON schema on both providers — no reparse loops</span></div>
+        <div class="kv"><span class="k">Resource cache</span><span class="v">14 days; a concept's literature changes monthly, not hourly</span></div>
+        <div class="kv"><span class="k">No regeneration</span><span class="v">Opening a page again never re-runs an analysis</span></div>
+      </div>
+    </div>
+
+    <div class="card lav">
+      <div class="num" style="color:var(--lav-600)">WHAT THE EFFICIENCY WORK BOUGHT</div>
+      <div class="row" style="gap:5mm;margin-top:1.5mm">
+        <div class="col">
+          <div class="kv"><span class="k">Round trips</span><span class="v">Four sequential calls collapsed into <b>one</b> multimodal call, carried forward so no stage re-asks</span></div>
+          <div class="kv"><span class="k">Bytes on the wire</span><span class="v">Photographs are downscaled and compressed <b>in the browser</b> before transmission</span></div>
+        </div>
+        <div class="col">
+          <div class="kv"><span class="k">Perceived latency</span><span class="v"><span class="mono">waitUntil</span> returns the response before background persistence finishes; resources load after the diagnosis renders</span></div>
+          <div class="kv"><span class="k">Repeat cost</span><span class="v">Content-hashed caching, and a stored analysis is never regenerated &mdash; a revisited page costs nothing</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pfoot"><b>GapFinder</b><span>03 — AI</span><span>Page 7</span></div>
+</div>

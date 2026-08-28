@@ -1,0 +1,142 @@
+<link rel="stylesheet" href="diagram.css">
+<style>
+.canvas{width:2400px;min-height:100px;padding:66px 80px}
+.hdr{display:flex;justify-content:space-between;align-items:flex-end}
+.hdr h1{font-size:50px}
+.hdr .d-sub{font-size:22px;max-width:740px;text-align:right;line-height:1.5}
+.rule{width:190px;margin:24px 0 34px}
+
+.key{display:flex;gap:36px;margin-bottom:32px;padding:18px 26px;border-radius:14px;background:var(--muted);align-items:center;flex-wrap:wrap}
+.key div{font-size:18px;font-weight:600;color:var(--ink-soft);display:flex;align-items:center;gap:11px}
+.key div b{font-family:'Sora';font-weight:700}
+.key .sw{width:14px;height:14px;border-radius:4px;flex:none}
+.k1 b{color:var(--lav-600)}
+.k2 b{color:var(--navy-900)}
+.k3 b{color:#B4581B}
+
+.grid{display:flex;gap:0;align-items:stretch}
+.col{flex:1;display:flex;flex-direction:column;gap:14px}
+.arw{width:52px;flex:none;display:flex;align-items:center;justify-content:center}
+
+.st{border-radius:18px;padding:20px;border:1.5px solid var(--navy-50);background:#fff}
+.st .tag{font-family:'Sora';font-size:12.5px;font-weight:700;letter-spacing:.11em;margin-bottom:9px}
+.st h4{font-family:'Sora';font-size:21px;font-weight:700;line-height:1.18;margin-bottom:9px;color:var(--navy-900)}
+.st p{font-size:15.5px;line-height:1.5;color:var(--ink-soft)}
+.st .path{font-family:'SFMono-Regular',Consolas,monospace;font-size:13px;margin-top:9px;display:block;color:var(--lav-600)}
+
+.ai{background:var(--lav-50);border-color:var(--lav-200)}
+.ai .tag{color:var(--lav-600)}
+.det{background:var(--navy-900);border-color:var(--navy-900)}
+.det .tag{color:#8E93BC}.det h4{color:#fff}.det p{color:#C9CBE0}.det .path{color:var(--lav-300)}
+.dat{background:var(--peach-50);border-color:var(--peach-200)}
+.dat .tag{color:#B4581B}
+
+.gate{
+  margin:30px 0;border-radius:20px;padding:26px 30px;
+  background:var(--warning-50);border:1.5px solid #F2DDAE;display:flex;gap:30px;align-items:center;
+}
+.gate .lead{flex:none;width:400px}
+.gate .lead h3{font-family:'Sora';font-size:27px;font-weight:700;color:#8A5C0C;line-height:1.2}
+.gate .lead p{font-size:16.5px;color:#9A7024;margin-top:8px;line-height:1.45}
+.gate .cols{flex:1;display:flex;gap:16px}
+.gate .cols div{flex:1;background:#fff;border-radius:14px;padding:15px 18px;border:1px solid #F2DDAE}
+.gate .cols h5{font-family:'Sora';font-size:17px;font-weight:700;color:var(--navy-900);margin-bottom:6px}
+.gate .cols p{font-size:14.5px;color:var(--ink-soft);line-height:1.45}
+
+.foot{display:flex;justify-content:space-between;align-items:center;margin-top:26px}
+</style>
+
+<div class="canvas">
+  <div class="hdr">
+    <div>
+      <div class="eyebrow" style="font-size:16px">AI pipeline</div>
+      <h1 class="d-title" style="margin-top:11px">The model interprets. The code decides.</h1>
+    </div>
+    <div class="d-sub">Colour marks <em>authority</em>, not technology. Nothing the model says about correctness
+      reaches the student until deterministic code has confirmed it.</div>
+  </div>
+  <div class="rule"></div>
+
+  <div class="key">
+    <div class="k1"><span class="sw" style="background:var(--lav-200);border:1.5px solid var(--lav-400)"></span><b>AI-generated interpretation</b>&nbsp;— reads, narrates, names, phrases</div>
+    <div class="k2"><span class="sw" style="background:var(--navy-900)"></span><b>Deterministic logic</b>&nbsp;— decides truth, mastery and eligibility</div>
+    <div class="k3"><span class="sw" style="background:var(--peach-200);border:1.5px solid var(--peach-400)"></span><b>Persistent learner data</b>&nbsp;— remembered across sessions</div>
+  </div>
+
+  <div class="grid">
+    <div class="col">
+      <div class="st"><div class="tag" style="color:var(--ink-faint)">INPUT</div>
+        <h4>The student's work</h4>
+        <p>A photograph of handwriting, or lines typed directly. Typed working skips the vision stage entirely — the student has already told us what each line says.</p></div>
+      <div class="st dat"><div class="tag">CONTEXT</div>
+        <h4>What the model is given</h4>
+        <p>The subject's concept shortlist, prior extracted steps, and the student's own recurring gaps and mastery scores.</p></div>
+    </div>
+
+    <div class="arw"><svg width="28" height="18"><path d="M0 9h20M15 3l6 6-6 6" stroke="#C3B4F7" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+    <div class="col">
+      <div class="st ai"><div class="tag">AI · STAGE 1</div>
+        <h4>Read &amp; narrate</h4>
+        <p>One multimodal call reads the handwriting, restates each line as a claim, and proposes a concept and misconception. Combined from three calls to survive free-tier quotas.</p>
+        <span class="path">pipeline/analyze-work.ts</span></div>
+      <div class="st ai"><div class="tag">AI · CONFIDENCE</div>
+        <h4>Ask when unsure</h4>
+        <p>Low-confidence handwriting pauses the pipeline at <span class="mono">needs_confirmation</span> and asks the student to check the reading — rather than diagnosing a line it guessed.</p></div>
+    </div>
+
+    <div class="arw"><svg width="28" height="18"><path d="M0 9h20M15 3l6 6-6 6" stroke="#8B5CF6" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+    <div class="col">
+      <div class="st det"><div class="tag">CODE · THE GATE</div>
+        <h4>Verify every transition</h4>
+        <p>For each pair of lines, mathjs tests whether the transformation preserves the solution set. The <em>first</em> failure is the divergence; later failures are its consequences.</p>
+        <span class="path">verification/verify-step.ts</span></div>
+      <div class="st det"><div class="tag">CODE · NAMING</div>
+        <h4>Prove the misconception</h4>
+        <p>Where the algebraic signature is unambiguous, the catalogue code is derived — not asked for. The same student error always produces the same code.</p>
+        <span class="path">diagnosis/detect-misconception.ts</span></div>
+    </div>
+
+    <div class="arw"><svg width="28" height="18"><path d="M0 9h20M15 3l6 6-6 6" stroke="#8B5CF6" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+    <div class="col">
+      <div class="st ai"><div class="tag">AI · GROUNDED</div>
+        <h4>Explain the repair</h4>
+        <p>RAG retrieval pulls curated chunks for that concept; the model must ground its wording in them and cite the chunk ids it used. Without a provider, the chunks are surfaced directly.</p>
+        <span class="path">rag/retrieve.ts · explain-gap.ts</span></div>
+      <div class="st ai"><div class="tag">AI · TARGETED</div>
+        <h4>Build the intervention</h4>
+        <p>Practice problems whose wrong options are real documented misconceptions, and a teach-back rubric.</p></div>
+    </div>
+
+    <div class="arw"><svg width="28" height="18"><path d="M0 9h20M15 3l6 6-6 6" stroke="#FFB27A" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+    <div class="col">
+      <div class="st det"><div class="tag">CODE · EVIDENCE</div>
+        <h4>Score mastery</h4>
+        <p>A 0–100 EMA (α&nbsp;=&nbsp;0.35). Transfer success is weighted <strong>+12</strong> against practice's <strong>+6</strong>, because transfer is the stronger evidence. No model judges this.</p>
+        <span class="path">pipeline/update-mastery.ts</span></div>
+      <div class="st dat"><div class="tag">DATA · MEMORY</div>
+        <h4>Learner state</h4>
+        <p>MasteryRecord, LearningEvent, Gap status and misconception history — the context that feeds the <em>next</em> diagnosis.</p></div>
+    </div>
+  </div>
+
+  <div class="gate">
+    <div class="lead">
+      <h3>When the model is unavailable, the pipeline does not stop</h3>
+      <p>A free-tier rate limit is a certainty, not an edge case. Every stage after reading has a deterministic substitute.</p>
+    </div>
+    <div class="cols">
+      <div><h5>Classification</h5><p>The offline classifier reads the same verified algebra and picks the concept from the shape of the error — reporting low confidence, out loud.</p></div>
+      <div><h5>Explanation</h5><p>Retrieved chunks are surfaced directly alongside the verifier's account of what changed.</p></div>
+      <div><h5>Reading a photo</h5><p>The one stage with no local substitute. The app says so and offers typed working, which runs the identical pipeline with no AI at all.</p></div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <div class="legend"><strong style="color:var(--navy-900);font-family:'Sora'">GapFinder</strong></div>
+    <div style="color:var(--ink-faint);font-size:17px">Diagram 03 — AI pipeline &amp; authority boundaries</div>
+  </div>
+</div>

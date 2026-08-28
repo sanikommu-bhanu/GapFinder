@@ -21,3 +21,7 @@ prisma/*.db-journal
 npm-debug.log*
 .vercel
 *.tsbuildinfo
+
+# Documentation build output (regenerate with docs-src/build.sh)
+GapFinder_Final_Documentation/
+GapFinder_Final_Documentation.zip

@@ -1,0 +1,330 @@
+<meta charset="utf-8"><title>GapFinder — Evidence</title>
+<link rel="stylesheet" href="doc.css"><link rel="stylesheet" href="chapter.css">
+<style>
+.res{display:flex;gap:4mm}
+.res .r{flex:1;border-radius:4.5mm;padding:4mm 4.5mm;border:1.2px solid var(--success-br);background:var(--success-50);text-align:center}
+.res .r .v{font-family:'Sora';font-size:19pt;font-weight:800;color:#1B7F49;line-height:1;letter-spacing:-.02em}
+.res .r .l{font-size:8.2pt;color:var(--ink-soft);margin-top:2.2mm;line-height:1.35}
+.res .r.n{background:var(--muted);border-color:var(--navy-50)}
+.res .r.n .v{color:var(--navy-900)}
+td.st{white-space:nowrap;width:20mm}
+#evtbl td{padding:1.55mm 3mm;font-size:8.05pt;line-height:1.37}
+#pins td{padding:1.5mm 3mm;font-size:8.2pt;line-height:1.35}
+#pins th{padding-bottom:1.8mm}
+#evtbl th{padding-bottom:1.8mm}
+.lim h4{font-size:10.4pt;font-weight:700;margin-bottom:1.6mm}
+.lim p{font-size:8.6pt;line-height:1.47}
+</style>
+
+<!-- ============ P1 — chapter cover ============ -->
+<div class="page chcover">
+  <div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div class="no">DOCUMENT 05 OF 06 &middot; THE EVIDENCE</div>
+      <div class="chips"><span class="chip ok">228 tests passing</span><span class="chip ok">13/13 eval cases scored</span><span class="chip">Lint &amp; typecheck clean</span><span class="chip peach">Live on Vercel</span></div>
+    </div>
+    <div class="rule" style="width:78px;margin-top:8mm"></div>
+    <h1>Built, deployed,<br>and reproducible</h1>
+    <div class="thesis">Yes &mdash; and every number on the following pages was produced by running the command named beside it, on this repository. Every claim is paired with the way a judge can reproduce it in under a minute.
+      The final page sets out the scope the system covers today and the direction it extends in.</div>
+  </div>
+
+  <div class="toc">
+    <div class="t"><div class="p">PAGES 2&ndash;3</div><h5>Implementation</h5><p>Every feature, what was built, and where to verify it.</p></div>
+    <div class="t"><div class="p">PAGE 4</div><h5>Automated results</h5><p>Lint, typecheck, 228 unit tests, the deterministic eval, the build.</p></div>
+    <div class="t"><div class="p">PAGE 5</div><h5>The eval harness</h5><p>Case by case: input, expectation, observed result.</p></div>
+    <div class="t"><div class="p">PAGES 6&ndash;8</div><h5>Edge cases &amp; scope</h5><p>Failure handling, live and manual verification, and the roadmap.</p></div>
+  </div>
+</div>
+
+<!-- ============ P2 — implementation evidence, part 1 ============ -->
+<div class="page">
+  <div class="phead">
+    <div><div class="eyebrow">Implementation evidence &middot; 1 of 2</div><h2>Diagnosis and teaching</h2><div class="rule"></div></div>
+    <div class="side"><p>Routes are live paths in the deployed application; file paths are relative to the repository root.</p></div>
+  </div>
+
+  <div class="pbody">
+    <table class="tight" id="evtbl">
+      <thead><tr><th style="width:19%">Feature</th><th style="width:44%">What was implemented</th><th>How it can be verified</th></tr></thead>
+      <tbody>
+        <tr><td><b>Check My Work</b></td><td>Photo or typed capture, client-side compression, async pipeline returning an id immediately, status polled from real stage boundaries</td><td>Live at <span class="mono">/scan</span>; pipeline in <span class="mono">lib/ai/pipeline/orchestrator.ts</span></td></tr>
+        <tr><td><b>Step verification</b></td><td>Adjacent-pair checking routed by shape to algebraic, quantitative or chemical verifiers; free-variable guard returns &ldquo;could not verify&rdquo;</td><td><span class="mono">npm test</span> &mdash; <span class="mono">math-verifier</span>, <span class="mono">multi-subject</span>, <span class="mono">solve-step</span></td></tr>
+        <tr><td><b>Divergence audit</b></td><td>Five-state classification per line, downstream propagation, independent-error detection, derived corrected line</td><td><span class="mono">npm run eval:deterministic</span>; <span class="mono">divergence</span> &amp; <span class="mono">solution-audit</span> tests</td></tr>
+        <tr><td><b>Misconception catalogue</b></td><td>17 coded entries across four subjects plus an explicit <span class="mono">UNCLASSIFIED</span>; signature detection marks a code <span class="mono">proved</span> vs <span class="mono">matched</span></td><td><span class="mono">lib/diagnosis/misconceptions.ts</span>; basis shown on every gap in <span class="mono">/gaps</span></td></tr>
+        <tr><td><b>Grounded explanation</b></td><td>Local keyword retrieval over 58 curated chunks, filtered by kind; chunk ids recorded per call</td><td><span class="mono">lib/ai/rag/retrieve.ts</span>; ids visible in <span class="mono">/dev/observability</span></td></tr>
+        <tr><td><b>Computed diagrams</b></td><td>14 renderers selected deterministically; parameters computed from the student's own verified working, or a curated example on the explainer path only</td><td><span class="mono">components/visuals/</span>; a test asserts a diagnosis context never renders a curated example</td></tr>
+        <tr><td><b>Ask a Concept</b></td><td>Intent detection and routing to one of 22 fixed slugs, lesson assembly, concept check built from catalogued distractors</td><td>Live at <span class="mono">/learn</span>; <span class="mono">concept-explainer.test.ts</span></td></tr>
+        <tr><td><b>Solve With Me</b></td><td>Step-at-a-time guidance that names the next legal move without writing the line, checked by the same verifier</td><td>Live at <span class="mono">/solve</span>; <span class="mono">guided-solve.test.ts</span></td></tr>
+        <tr><td><b>AI Coach</b></td><td>Retrieval-grounded, with the learner's real record in context and an explicit refusal when that context does not cover the question</td><td>Live at <span class="mono">/coach</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pfoot"><b>GapFinder</b><span>05 — Evidence</span><span>Page 2</span></div>
+</div>
+
+<!-- ============ P3 — implementation evidence, part 2 ============ -->
+<div class="page">
+  <div class="phead">
+    <div><div class="eyebrow">Implementation evidence &middot; 2 of 2</div><h2>Mastery and platform</h2><div class="rule"></div></div>
+    <div class="side"><p>Every row names something that can be opened, run, or read &mdash; nothing here asks to be taken on trust.</p></div>
+  </div>
+
+  <div class="pbody">
+    <table class="tight" id="evtbl">
+      <thead><tr><th style="width:19%">Feature</th><th style="width:44%">What was implemented</th><th>How it can be verified</th></tr></thead>
+      <tbody>
+        <tr><td><b>Practice &amp; teach-back</b></td><td>Problems generated for the specific misconception and <b>solved independently before display</b>; teach-back scored against a rubric</td><td><span class="mono">practice-generation.test.ts</span> asserts every generated problem is independently solvable</td></tr>
+        <tr><td><b>Exam Mode</b></td><td>Two-question minimum, reasoning weighted separately from correctness, a returning code decisive, <span class="mono">uncertain</span> a real verdict</td><td><span class="mono">exam-verdict.test.ts</span>; rules in <span class="mono">lib/exam/verdict.ts</span></td></tr>
+        <tr><td><b>Mastery &amp; memory</b></td><td>0&ndash;100 EMA (&alpha;&nbsp;=&nbsp;0.35), transfer at +12 against practice's +6; LearningEvent and LearningMemory written alongside</td><td><span class="mono">prediction.test.ts</span>; <span class="mono">lib/ai/pipeline/update-mastery.ts</span></td></tr>
+        <tr><td><b>Roadmap &amp; achievements</b></td><td>Ordering over 22 concepts and 29 prerequisite edges; five milestones with machine-checkable criteria</td><td>Live at <span class="mono">/roadmap</span>, <span class="mono">/achievements</span>; criteria in <span class="mono">prisma/seed.ts</span></td></tr>
+        <tr><td><b>Provider cascade</b></td><td>cache &rarr; Gemini &rarr; Groq &rarr; deterministic, with a per-error-class retry policy and offline substitutes for every stage after vision</td><td><span class="mono">providers.test.ts</span>; fallbacks in <span class="mono">lib/ai/fallback/</span></td></tr>
+        <tr><td><b>Research sources</b></td><td>OpenAlex, Crossref and arXiv with two deterministic relevance gates; no prompt anywhere in the layer</td><td><span class="mono">resources-registry.test.ts</span> pins the <em>silences</em> as well as the hits</td></tr>
+        <tr><td><b>Observability</b></td><td>Per-call logging of stage, provider, cache status, latency, error text and chunk ids, replayed as a trace</td><td>Live at <span class="mono">/dev/observability</span>; <span class="mono">AiUsageLog</span> in the schema</td></tr>
+        <tr><td><b>Auth &amp; isolation</b></td><td>Edge JWT verification, per-route session re-check, <span class="mono">userId</span>-scoped queries, 404 on another user's record</td><td><span class="mono">src/middleware.ts</span>; verified live &mdash; see page 7</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pfoot"><b>GapFinder</b><span>05 — Evidence</span><span>Page 3</span></div>
+</div>
+
+<!-- ============ P3 — automated results ============ -->
+<div class="page">
+  <div class="phead">
+    <div><div class="eyebrow">Automated verification</div><h2>What running the suite actually produces</h2><div class="rule"></div></div>
+    <div class="side"><p><span class="mono">npm run verify</span> runs all four gates and <strong>passes with no API keys configured at all</strong> —
+      which is the point: the load-bearing claims of this product do not depend on a model being reachable.</p></div>
+  </div>
+
+  <div class="pbody stack">
+    <div class="res">
+      <div class="r"><div class="v">228</div><div class="l">unit tests passing<br>across 14 files</div></div>
+      <div class="r"><div class="v">13</div><div class="l">eval cases scored<br>0 failed, 2 skipped</div></div>
+      <div class="r"><div class="v">100%</div><div class="l">divergence accuracy<br>on scored cases</div></div>
+      <div class="r n"><div class="v">0</div><div class="l">lint warnings<br>and type errors</div></div>
+      <div class="r n"><div class="v">200</div><div class="l">live deployment<br>responding</div></div>
+    </div>
+
+    <div class="row" style="gap:5mm">
+      <div class="col card">
+        <div class="num">GATE BY GATE</div>
+        <table class="tight">
+          <thead><tr><th style="width:44%">Command</th><th>Result</th></tr></thead>
+          <tbody>
+            <tr><td><span class="mono">npm run lint</span></td><td class="ok-t">No ESLint warnings or errors</td></tr>
+            <tr><td><span class="mono">npx tsc --noEmit</span></td><td class="ok-t">Clean &mdash; strict, with <span class="mono">noUncheckedIndexedAccess</span></td></tr>
+            <tr><td><span class="mono">npm test</span></td><td class="ok-t">14 files, <b>228 passed (228)</b></td></tr>
+            <tr><td><span class="mono">npm run eval:deterministic</span></td><td class="ok-t"><b>13 passed &middot; 0 failed &middot; 2 skipped</b></td></tr>
+            <tr><td><span class="mono">npm run build</span></td><td class="ok-t">Succeeds &mdash; exit 0, 87.3 kB shared JS</td></tr>
+          </tbody>
+        </table>
+        <div class="callout" style="margin-top:5mm;padding:3.6mm 4.6mm">
+          <p style="font-size:8.8pt"><strong>Two guards worth calling out.</strong> <span class="mono">navigation.test.ts</span> parses the tab bar's
+            item list and the layout's route table <em>from source</em> and asserts they match both ways &mdash; this existed as a live bug, where a tab
+            navigated to a page with no tab bar. And <span class="mono">resources-registry.test.ts</span> pins the <em>silences</em>: a paper on
+            &ldquo;distributive lattices&rdquo; must be <em>rejected</em> for a distributive-property gap.</p>
+          <p style="font-size:8.8pt;margin-top:2.4mm">Tests that assert something does <em>not</em> happen are the ones that keep an honest product honest.</p>
+        </div>
+
+      </div>
+
+      <div class="col card">
+        <div class="num">WHAT EACH TEST FILE PINS</div>
+        <table class="tight" id="pins">
+          <thead><tr><th style="width:44%">File</th><th>Guards</th></tr></thead>
+          <tbody>
+            <tr><td><span class="mono">math-verifier</span></td><td>Step-to-step validity</td></tr>
+            <tr><td><span class="mono">divergence</span></td><td>First-divergence location</td></tr>
+            <tr><td><span class="mono">solution-audit</span></td><td>Root error vs. carried consequence</td></tr>
+            <tr><td><span class="mono">solve-step</span></td><td>Derived corrected lines</td></tr>
+            <tr><td><span class="mono">guided-solve</span></td><td>Step-at-a-time solving</td></tr>
+            <tr><td><span class="mono">practice-generation</span></td><td>Generated problems are solvable</td></tr>
+            <tr><td><span class="mono">prediction</span></td><td>Prediction and mastery scoring</td></tr>
+            <tr><td><span class="mono">exam-verdict</span></td><td>Exam grading, and refusal to over-claim</td></tr>
+            <tr><td><span class="mono">concept-explainer</span></td><td>Intent routing and lesson assembly</td></tr>
+            <tr><td><span class="mono">multi-subject</span></td><td>Chemistry and biology verifiers</td></tr>
+            <tr><td><span class="mono">providers</span></td><td>Provider config, vision opt-in, model choice</td></tr>
+            <tr><td><span class="mono">resources-registry</span></td><td>Subject gating and the relevance gate</td></tr>
+            <tr><td><span class="mono">navigation</span></td><td>Tab bar and route table agreement</td></tr>
+            <tr><td><span class="mono">spotify-pkce</span></td><td>PKCE challenge construction</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="pfoot"><b>GapFinder</b><span>05 — Evidence</span><span>Page 4</span></div>
+</div>
+
+<!-- ============ P4 — eval harness ============ -->
+<div class="page">
+  <div class="phead">
+    <div><div class="eyebrow">The eval harness</div><h2>The core claim, measured case by case</h2><div class="rule"></div></div>
+    <div class="side"><p>Fifteen fixed worked solutions with known error locations, run through the <em>real</em> verification and
+      divergence engine. It touches no model, no database and no network — so a regression in the deterministic core cannot hide behind a good day from an API.</p></div>
+  </div>
+
+  <div class="pbody stack">
+    <div class="card muted" style="padding:4mm 5mm">
+      <p><b>What each case asserts:</b> (1) the first divergence is found at the right step; (2) every later step is classified correctly as a
+        downstream consequence or an independent error; and (3) where a corrected line is derived, solving it yields the same answer as solving the
+        line it came from — so a &ldquo;correction&rdquo; can never quietly change the problem.</p>
+    </div>
+
+    <table class="tight">
+      <thead><tr><th style="width:26%">Case</th><th style="width:22%">Input shape</th><th style="width:22%">Expected</th><th style="width:22%">Observed</th><th class="st">Status</th></tr></thead>
+      <tbody>
+        <tr><td><span class="mono">correct-work-01</span></td><td>Valid working throughout</td><td>No divergence</td><td>No divergence</td><td class="st ok-t">PASS</td></tr>
+        <tr><td><span class="mono">sign-error-01</span></td><td>Sign lost at step 2, carried on</td><td>Step 2 + downstream</td><td>Step 2, +2 downstream</td><td class="st ok-t">PASS</td></tr>
+        <tr><td><span class="mono">wrong-final-answer-01</span></td><td>Error only at the last line</td><td>Step 3</td><td>Step 3</td><td class="st ok-t">PASS</td></tr>
+        <tr><td><span class="mono">multiple-errors-01</span></td><td>Two unrelated mistakes</td><td>Step 2 + 1 independent</td><td>Step 2, +1 independent</td><td class="st ok-t">PASS</td></tr>
+        <tr><td><span class="mono">negative-numbers-01</span></td><td>Correct work with negatives</td><td>No divergence</td><td>No divergence</td><td class="st ok-t">PASS</td></tr>
+        <tr><td><span class="mono">negative-numbers-sign-flip-01</span></td><td>Sign flipped on a negative</td><td>Step 2</td><td>Step 2</td><td class="st ok-t">PASS</td></tr>
+        <tr><td><span class="mono">distribution-correct-01</span></td><td>Brackets expanded correctly</td><td>No divergence</td><td>No divergence</td><td class="st ok-t">PASS</td></tr>
+        <tr><td><span class="mono">distribution-partial-01</span></td><td>Minus reached the first term only</td><td>Step 2 + downstream</td><td>Step 2, +1 downstream</td><td class="st ok-t">PASS</td></tr>
+        <tr><td><span class="mono">factoring-correct-01</span></td><td>Valid factoring</td><td>No divergence</td><td>No divergence</td><td class="st ok-t">PASS</td></tr>
+        <tr><td><span class="mono">fractions-01</span></td><td>Correct work with fractions</td><td>No divergence</td><td>No divergence</td><td class="st ok-t">PASS</td></tr>
+        <tr><td><span class="mono">fractions-common-denominator-error-01</span></td><td>Denominators mishandled</td><td>Step 2</td><td>Step 2</td><td class="st ok-t">PASS</td></tr>
+        <tr><td><span class="mono">alternative-valid-approach-01</span></td><td><b>Right answer by an unusual route</b></td><td>No divergence</td><td>No divergence</td><td class="st ok-t">PASS</td></tr>
+        <tr><td><span class="mono">word-problem-01</span></td><td>Prose framing, valid working</td><td>No divergence</td><td>No divergence</td><td class="st ok-t">PASS</td></tr>
+        <tr><td><span class="mono">ambiguous-handwriting-01</span></td><td>Needs an image fixture</td><td class="dim">&mdash;</td><td class="dim">Not scored</td><td class="st warn-t">SKIP</td></tr>
+        <tr><td><span class="mono">messy-handwriting-01</span></td><td>Needs an image fixture</td><td class="dim">&mdash;</td><td class="dim">Not scored</td><td class="st warn-t">SKIP</td></tr>
+      </tbody>
+    </table>
+
+    <div class="row" style="gap:5mm">
+      <div class="col card ok">
+        <div class="num" style="color:#1B7F49">THE CASE THAT MATTERS MOST</div>
+        <p><span class="mono">alternative-valid-approach-01</span> reaches the right answer by a different route and must <b>not</b> be flagged.
+          A tool that marks an unusual but valid method as wrong is worse than useless — it teaches a student to stop thinking for themselves.
+          This is the case a naive &ldquo;compare to the model solution&rdquo; implementation fails.</p>
+      </div>
+      <div class="col card warn">
+        <div class="num" style="color:#8A5C0C">WHY TWO CASES SKIP RATHER THAN PASS</div>
+        <p>Both need an image fixture, and none exists. The handwriting stage is verified by live manual use only. The harness reports them as
+          <span class="mono">SKIP</span> and excludes them from the accuracy figure rather than quietly counting them — the 100% is over
+          <b>13 scored cases</b>, not 15.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="pfoot"><b>GapFinder</b><span>05 — Evidence</span><span>Page 5</span></div>
+</div>
+
+<!-- ============ P5 — edge cases, errors, deployment ============ -->
+<div class="page">
+  <div class="phead">
+    <div><div class="eyebrow">Edge cases &amp; live verification</div><h2>The behaviours that separate a careful system from a confident one</h2><div class="rule"></div></div>
+    <div class="side"><p>Each of these is a case where the correct behaviour is to do <em>less</em> &mdash; decline, stay silent, or say so. They are the hardest behaviours to build and the easiest to fake, and every one is enforced in code.</p></div>
+  </div>
+
+  <div class="pbody stack">
+    <table class="tight">
+      <thead><tr><th style="width:24%">Edge case</th><th style="width:38%">Correct behaviour</th><th>Where it is enforced</th></tr></thead>
+      <tbody>
+        <tr><td><b>Three free variables</b><br><span class="dim mono">v = u + a*t</span></td><td>Return <b>&ldquo;could not verify&rdquo;</b>, never a verdict. An earlier version accused students who were entirely correct</td><td>Free-variable guard in the algebraic verifier; covered by <span class="mono">math-verifier</span></td></tr>
+        <tr><td><b>An unusual but valid method</b></td><td>No divergence reported</td><td>Eval case <span class="mono">alternative-valid-approach-01</span></td></tr>
+        <tr><td><b>Lines that cannot be checked</b></td><td>If <em>every</em> line is unverifiable, fail with an honest message &mdash; <b>never</b> report &ldquo;nothing wrong&rdquo;. If only some are, say exactly that: <em>&ldquo;2 lines couldn't be checked, but everything we could verify holds&rdquo;</em></td><td><span class="mono">orchestrator.ts</span>; analysis result assembly</td></tr>
+        <tr><td><b>Ambiguous handwriting</b></td><td>Pause at <span class="mono">needs_confirmation</span> and ask the student to check the reading before diagnosing</td><td>Confirm screen at <span class="mono">/analysis/[id]/confirm</span></td></tr>
+        <tr><td><b>Vision unavailable</b></td><td><span class="mono">TYPE_INSTEAD:</span> &mdash; the app offers typed working, which runs the identical pipeline with no AI</td><td>The one stage with no local substitute, stated as such</td></tr>
+        <tr><td><b>Both providers unavailable</b></td><td>Offline classifier, chunks surfaced directly, template practice &mdash; each reporting <b>low confidence out loud</b></td><td><span class="mono">lib/ai/fallback/</span></td></tr>
+        <tr><td><b>One correct exam answer</b></td><td>Verdict <span class="mono">uncertain</span> &mdash; equally consistent with understanding and a lucky guess</td><td><span class="mono">exam-verdict.test.ts</span></td></tr>
+      </tbody>
+    </table>
+
+  </div>
+
+  <div class="pfoot"><b>GapFinder</b><span>05 — Evidence</span><span>Page 6</span></div>
+</div>
+
+<!-- ============ P7 — live & manual verification ============ -->
+<div class="page">
+  <div class="phead">
+    <div><div class="eyebrow">Live &amp; manual verification</div><h2>What was checked by hand, and what came back</h2><div class="rule"></div></div>
+    <div class="side"><p>The automated gates cover the deterministic core. These are the checks that need a running
+      deployment or a human in a browser &mdash; recorded here rather than implied.</p></div>
+  </div>
+
+  <div class="pbody stack">
+    <div class="row" style="gap:5mm">
+      <div class="col card ok">
+        <div class="num" style="color:#1B7F49">DEPLOYMENT VERIFICATION &mdash; CHECKED LIVE</div>
+        <div class="kv"><span class="k">Application root</span><span class="v"><span class="mono">GET /</span> &rarr; <b class="ok-t">200</b>, served from Vercel</span></div>
+        <div class="kv"><span class="k">Public API</span><span class="v"><span class="mono">GET /api/auth/me</span> &rarr; <b class="ok-t">200</b> (allow-listed as public)</span></div>
+        <div class="kv"><span class="k">Auth gate, live</span><span class="v"><span class="mono">GET /home</span> with no session &rarr; <b class="ok-t">307</b> redirect &mdash; route protection is live in production, not only in development</span></div>
+      </div>
+      <div class="col card peach">
+        <div class="num" style="color:#B4581B">INTEGRATION VERIFICATION</div>
+        <div class="kv"><span class="k">Unit-tested</span><span class="v">Provider selection, vision opt-in, subject gating, the relevance gates, PKCE construction, and every <b>failure</b> path</span></div>
+        <div class="kv"><span class="k">Verified by hand</span><span class="v">The <b>success</b> paths of OpenAlex, Crossref, arXiv, YouTube, GitHub and Spotify &mdash; pinning them means CI flakiness or drifting fixtures</span></div>
+        <div class="kv"><span class="k">The guarantee</span><span class="v">Remove any external service &mdash; or all of them &mdash; and the diagnosis still runs, the gap is still found, and practice still grades</span></div>
+      </div>
+    </div>
+
+    <div class="card muted">
+      <div class="num">THE MANUAL MATRIX &mdash; WALKED BY HAND BEFORE A RELEASE</div>
+      <div class="row" style="gap:5mm;margin-top:2mm">
+        <div class="col">
+          <div class="kv"><span class="k">Core path</span><span class="v">New user &middot; existing user &middot; photo upload &middot; typed working &middot; diagnosis &middot; first gap &middot; reasoning replay &middot; visual &middot; voice &middot; practice &middot; transfer &middot; teach-back &middot; mastery update</span></div>
+          <div class="kv"><span class="k">Degradation</span><span class="v">No API keys &middot; invalid keys &middot; Gemini quota exceeded (Groq takes over) &middot; both providers down (deterministic path) &middot; slow API &middot; retry &middot; empty research &middot; cached-only state</span></div>
+          <div class="kv"><span class="k">Session</span><span class="v">Login &middot; logout &middot; refresh &middot; expired session &middot; direct navigation to a protected route while signed out</span></div>
+        </div>
+        <div class="col">
+          <div class="kv"><span class="k">Spotify</span><span class="v">Not configured &middot; configured but not connected &middot; free tier &middot; Premium &middot; expired refresh token &middot; no active device &middot; consent denied &middot; <span class="mono">state</span> mismatch</span></div>
+          <div class="kv"><span class="k">Layout</span><span class="v">Mobile portrait &middot; browser resize &middot; tab bar present on every tab &middot; scroll past the fold</span></div>
+          <div class="kv"><span class="k">Standards</span><span class="v">No console errors &middot; no dead buttons &middot; no infinite spinners &middot; no broken links &middot; no fabricated success</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="pfoot"><b>GapFinder</b><span>05 — Evidence</span><span>Page 7</span></div>
+</div>
+
+<!-- ============ P8 — scope & roadmap ============ -->
+<div class="page">
+  <div class="phead">
+    <div><div class="eyebrow">Scope &amp; roadmap</div><h2>What it covers today, and where it goes next</h2><div class="rule"></div></div>
+    <div class="side"><p>Everything described in this dossier is implemented and running. This page draws the line
+      between what the system <strong>proves</strong> and what it extends into next.</p></div>
+  </div>
+
+  <div class="pbody stack">
+    <div class="row" style="gap:5mm">
+      <div class="col card ok">
+        <div class="num" style="color:#1B7F49">PROVED TODAY &mdash; DECIDED BY CODE, MEASURED BY THE HARNESS</div>
+        <div class="kv"><span class="k">Step validity</span><span class="v">Every transition checked by <span class="mono">mathjs</span>, routed per step-pair to the algebraic, quantitative or chemical verifier</span></div>
+        <div class="kv"><span class="k">First divergence</span><span class="v">Located and classified across five states, with downstream consequences separated from independent errors</span></div>
+        <div class="kv"><span class="k">Corrected line</span><span class="v">Derived from the student's own opening line, and asserted to preserve the solution</span></div>
+        <div class="kv"><span class="k">Misconception</span><span class="v">17 catalogue codes, <b>proved</b> outright where the algebraic signature is unambiguous</span></div>
+        <div class="kv"><span class="k">Mastery &amp; verdicts</span><span class="v">EMA scoring and exam rules decided in code, covered by <span class="mono">prediction</span> and <span class="mono">exam-verdict</span> tests</span></div>
+      </div>
+
+      <div class="col card lav">
+        <div class="num" style="color:var(--lav-600)">RUNNING TODAY &mdash; VERIFIED IN LIVE USE</div>
+        <div class="kv"><span class="k">Handwriting reading</span><span class="v">Gemini vision reads photographed working across all four subjects, pausing to ask when a line is genuinely ambiguous</span></div>
+        <div class="kv"><span class="k">Concept routing</span><span class="v">Questions routed to the seeded concept graph, with the model selecting from fixed slugs rather than inventing them</span></div>
+        <div class="kv"><span class="k">Grounded teaching</span><span class="v">Explanations grounded in 58 curated chunks, with the chunk ids recorded per call and visible in the trace view</span></div>
+        <div class="kv"><span class="k">Live sources</span><span class="v">OpenAlex, Crossref, arXiv, YouTube and GitHub returning real metadata behind two relevance gates</span></div>
+        <div class="kv"><span class="k">Full journey</span><span class="v">Walked end to end before every release against the matrix on the previous page</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="num">WHERE IT EXTENDS &mdash; AND WHY THE EXTENSION IS CHEAP</div>
+      <div class="row" style="gap:5mm;margin-top:2mm">
+        <div class="col"><h4 style="font-size:10.4pt">Wider algebra</h4><p>Quadratics and multi-variable rearrangement follow the same verifier contract &mdash; a domain module, not a redesign.</p></div>
+        <div class="col"><h4 style="font-size:10.4pt">More subjects</h4><p>A verifier, a routing rule, catalogue entries and seeded chunks. Diagnosis, teaching, practice and mastery come for free.</p></div>
+        <div class="col"><h4 style="font-size:10.4pt">More providers</h4><p>One interface inherits the cascade, caching, logging and fallback. No component holds provider-specific code.</p></div>
+        <div class="col"><h4 style="font-size:10.4pt">Deeper corpus</h4><p>Concepts, chunks and codes are data, not logic &mdash; growing the curriculum never touches the engine.</p></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="pfoot"><b>GapFinder</b><span>05 — Evidence</span><span>Page 8</span></div>
+</div>

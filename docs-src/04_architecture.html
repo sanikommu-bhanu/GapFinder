@@ -1,0 +1,311 @@
+<meta charset="utf-8"><title>GapFinder — Architecture</title>
+<link rel="stylesheet" href="doc.css"><link rel="stylesheet" href="chapter.css">
+<style>
+.lane{display:flex;gap:0;align-items:stretch}
+.lane .who{width:30mm;flex:none;padding:3mm 3.5mm 3mm 0;border-right:1.4px solid var(--navy-50)}
+.lane .who .k{font-family:'Sora';font-size:7.4pt;font-weight:700;letter-spacing:.12em;color:var(--ink-faint)}
+.lane .who h5{font-size:10pt;font-weight:700;margin-top:1.4mm;line-height:1.2}
+.lane .what{flex:1;padding:3mm 0 3mm 4.5mm}
+.lane .what p{font-size:8.8pt;line-height:1.48}
+.lane .what .t{font-size:9.6pt;font-weight:600;color:var(--navy-900);margin-bottom:1.4mm}
+.lane + .lane{border-top:1px solid var(--navy-50)}
+.lane.hot .what .t{color:#8A5C0C}
+.lane.hot{background:var(--warning-50);border-radius:3mm}
+.ent{border:1.2px solid var(--navy-50);border-radius:4mm;padding:2.9mm 3.6mm}
+.ent .h{font-family:'SFMono-Regular',Consolas,monospace;font-size:8.7pt;font-weight:600;color:var(--navy-900);margin-bottom:1.6mm}
+.grid.g4{gap:3.4mm}
+.ent .f{font-size:7.9pt;line-height:1.42;color:var(--ink-soft)}
+.ent.lav{background:var(--lav-50);border-color:var(--lav-200)}
+.ent.lav .h{color:var(--lav-600)}
+.ent.peach{background:var(--peach-50);border-color:var(--peach-200)}
+.ent.peach .h{color:#B4581B}
+.dec h4{font-size:10.6pt;font-weight:700;margin-bottom:1.8mm}
+.dec p{font-size:8.7pt;line-height:1.48}
+.dec .q{font-family:'Sora';font-size:7.4pt;font-weight:700;letter-spacing:.11em;color:var(--lav-600);margin-bottom:2mm}
+</style>
+
+<!-- ============ P1 — chapter cover ============ -->
+<div class="page chcover">
+  <div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div class="no">DOCUMENT 04 OF 06 &middot; THE ENGINEERING</div>
+      <div class="chips"><span class="chip">Next.js 14 App Router</span><span class="chip">TypeScript, strict</span><span class="chip peach">Prisma 5 &middot; Neon Postgres</span><span class="chip gray">Vercel</span></div>
+    </div>
+    <div class="rule" style="width:78px;margin-top:8mm"></div>
+    <h1>One application,<br>eight honest layers</h1>
+    <div class="thesis">A single Next.js codebase — 31 pages, 40 API routes, 30 data models. The boundary that matters
+      most is the one between the AI layer and the verification layer, and it is placed deliberately: verification runs
+      <em>after</em> the model and <em>before</em> anything is persisted or shown.</div>
+  </div>
+
+  <div class="toc">
+    <div class="t"><div class="p">PAGES 2&ndash;3</div><h5>System &amp; request</h5><p>Every layer that exists in the repository, and the path one request takes through them.</p></div>
+    <div class="t"><div class="p">PAGES 4&ndash;5</div><h5>Data</h5><p>What one attempt leaves behind, and the entities that hold it.</p></div>
+    <div class="t"><div class="p">PAGES 6&ndash;7</div><h5>Stack &amp; decisions</h5><p>Every technology, its role, and the tradeoff it was chosen against.</p></div>
+    <div class="t"><div class="p">PAGE 8</div><h5>Security &amp; delivery</h5><p>Auth, isolation, secrets, deployment, observability.</p></div>
+  </div>
+</div>
+
+<!-- ============ P2 — architecture, full bleed ============ -->
+<div class="page">
+  <div class="phead slim">
+    <div class="eyebrow">System architecture</div>
+    <div class="side"><p>Every box exists in the repository. Arrows show request direction; the verification layer is deliberately placed <strong>after</strong> the model and before persistence.</p></div>
+  </div>
+  <div class="pbody"><div class="fig fit">
+    <img src="file:///C:/Users/bhanu/Downloads/gapfinder/GapFinder_Final_Documentation/diagrams/01_system_architecture.png" alt="System architecture">
+  </div></div>
+  <div class="pfoot"><b>GapFinder</b><span>04 — Architecture</span><span>Page 2</span></div>
+</div>
+
+<!-- ============ P3 — application flow ============ -->
+<div class="page">
+  <div class="phead">
+    <div><div class="eyebrow">Application flow</div><h2>One request, traced end to end</h2><div class="rule"></div></div>
+    <div class="side"><p><span class="mono">POST /api/analyses</span> returns in roughly a quarter of a second with an
+      analysis id, long before the pipeline finishes. The screen the student then watches is polling real pipeline
+      position — a status the orchestrator writes as it enters each stage.</p></div>
+  </div>
+
+  <div class="pbody stack" style="gap:0">
+    <div class="lane">
+      <div class="who"><div class="k">STEP 01</div><h5>Client</h5></div>
+      <div class="what"><div class="t">Capture and compress</div>
+        <p>The photograph is downscaled and compressed <em>in the browser</em>, so a large phone image crosses the network as a fraction of its bytes. Alternatively the student types their lines, which skips the vision stage entirely.</p></div>
+    </div>
+    <div class="lane">
+      <div class="who"><div class="k">STEP 02</div><h5>Edge middleware</h5></div>
+      <div class="what"><div class="t">Verify the session before the route runs</div>
+        <p><span class="mono">src/middleware.ts</span> verifies the JWT signature at the edge with <span class="mono">jose</span> — not a
+          &ldquo;does a cookie exist&rdquo; check. Public pages and public APIs are allow-listed; everything else redirects to <span class="mono">/splash</span>.</p></div>
+    </div>
+    <div class="lane">
+      <div class="who"><div class="k">STEP 03</div><h5>API route</h5></div>
+      <div class="what"><div class="t">Re-check, create, return immediately</div>
+        <p>The handler calls <span class="mono">getSessionUserId()</span> itself — middleware is the outer gate, not the only one. It creates the
+          <span class="mono">Analysis</span> row with <span class="mono">status: processing</span> and returns the id. The pipeline continues after the response.</p></div>
+    </div>
+    <div class="lane">
+      <div class="who"><div class="k">STEP 04</div><h5>AI orchestration</h5></div>
+      <div class="what"><div class="t">One multimodal call, through the cascade</div>
+        <p><span class="mono">cache &rarr; Gemini &rarr; Groq &rarr; deterministic</span>. Reading, narrating and classifying are collapsed into a single
+          request whose output is carried forward. Low confidence pauses at <span class="mono">needs_confirmation</span> and asks the student instead of guessing.</p></div>
+    </div>
+    <div class="lane hot">
+      <div class="who"><div class="k">STEP 05</div><h5>Verification</h5></div>
+      <div class="what"><div class="t">The gate — zero AI beyond this point in the decision</div>
+        <p>Each adjacent pair of lines is routed <em>by shape, not by subject</em> — a chemistry paper is full of algebra, and that algebra is still checkable. <span class="mono">mathjs</span> tests whether the transformation preserves the solution set; the audit then locates the first divergence, classifies every later line, and derives the corrected line.</p></div>
+    </div>
+    <div class="lane">
+      <div class="who"><div class="k">STEP 06</div><h5>Diagnosis</h5></div>
+      <div class="what"><div class="t">Prove the code where the signature allows it</div>
+        <p>Signature detection runs first: where an algebraic fingerprint identifies the error outright the catalogue code is <b>proved</b>. Otherwise the model's
+          pick is validated against the catalogue and labelled <b>matched</b>. An unrecognised code becomes <span class="mono">UNCLASSIFIED</span> rather than being invented.</p></div>
+    </div>
+    <div class="lane">
+      <div class="who"><div class="k">STEP 07 &middot; 08</div><h5>Persistence &amp;<br>observability</h5></div>
+      <div class="what"><div class="t">Write once at the moment of computation &mdash; and log the call, not just the result</div>
+        <p>Every artefact &mdash; extracted steps, reasoning steps, the gap, the corrected solution, the explanation &mdash; is persisted as it is computed, so reopening a page never regenerates anything and never changes what the student already read. Every provider attempt also writes an <span class="mono">AiUsageLog</span> row, which is what makes the trace view possible.</p></div>
+    </div>
+  </div>
+
+  <div class="pfoot"><b>GapFinder</b><span>04 — Architecture</span><span>Page 3</span></div>
+</div>
+
+<!-- ============ P4 — data flow, full bleed ============ -->
+<div class="page">
+  <div class="phead slim">
+    <div class="eyebrow">Data flow</div>
+    <div class="side"><p>Each stage persists its own structured artefact, so the system can always answer <em>&ldquo;what did it actually do here?&rdquo;</em> — and so the next attempt starts informed.</p></div>
+  </div>
+  <div class="pbody"><div class="fig fit">
+    <img src="file:///C:/Users/bhanu/Downloads/gapfinder/GapFinder_Final_Documentation/diagrams/05_data_flow.png" alt="Data flow">
+  </div></div>
+  <div class="pfoot"><b>GapFinder</b><span>04 — Architecture</span><span>Page 4</span></div>
+</div>
+
+<!-- ============ P5 — data model ============ -->
+<div class="page">
+  <div class="phead">
+    <div><div class="eyebrow">Data model</div><h2>30 models, and the one join that matters</h2><div class="rule"></div></div>
+    <div class="side"><p><span class="mono">Gap.misconceptionCode</span> is what makes longitudinal tracking possible: the same code
+      appearing in a homework diagnosis and in an exam answer is recognised as the same event, because both came from the same catalogue.</p></div>
+  </div>
+
+  <div class="pbody stack">
+    <div class="grid g4" id="dmgrid">
+      <div class="ent"><div class="h">User</div><div class="f">Owns everything. Every query in the application is scoped by <span class="mono">userId</span>. Profile, StudyPreference, UserSettings and SpotifyAccount hang off it.</div></div>
+      <div class="ent"><div class="h">Analysis</div><div class="f">One submitted attempt. Carries subject, source type and the <span class="mono">status</span> the Analyzing screen polls.</div></div>
+      <div class="ent lav"><div class="h">ExtractedStep</div><div class="f"><span class="tag">AI</span> Each line as read, with per-line confidence and a <span class="mono">needsConfirm</span> flag.</div></div>
+      <div class="ent"><div class="h">ReasoningStep</div><div class="f"><span class="tag code">CODE</span> Per line: the claim, the expression, <span class="mono">isValid</span>, <span class="mono">verdict</span>, and <span class="mono">isFirstGap</span>.</div></div>
+    </div>
+
+    <div class="grid g4" id="dmgrid">
+      <div class="ent peach"><div class="h">Gap</div><div class="f">The diagnosis. Concept, surface error, underlying gap, evidence, confidence, explanation, <span class="mono">misconceptionCode</span>, the <span class="mono">basis</span> it was established on, and <span class="mono">status: open&nbsp;|&nbsp;repaired&nbsp;|&nbsp;closed</span>.</div></div>
+      <div class="ent"><div class="h">Concept</div><div class="f">22 seeded, across four subjects. Joined to KnowledgeChunk, ExamQuestion and ConceptRelationship (29 prerequisite edges).</div></div>
+      <div class="ent"><div class="h">KnowledgeChunk</div><div class="f">58 curated entries, typed by kind — explanation, worked example, misconception, teaching strategy, practice pattern.</div></div>
+      <div class="ent"><div class="h">MasteryRecord</div><div class="f"><span class="tag code">CODE</span> One 0&ndash;100 EMA per user per concept, with trend and a trimmed 30-point history.</div></div>
+    </div>
+
+    <div class="grid g4" id="dmgrid">
+      <div class="ent"><div class="h">PracticeAttempt</div><div class="f">Targeted repair attempts and their outcomes, joined to the Gap they belong to.</div></div>
+      <div class="ent"><div class="h">TransferAttempt</div><div class="f">The same concept in an unfamiliar problem. The only event that moves a gap to <span class="mono">closed</span>.</div></div>
+      <div class="ent"><div class="h">TeachBackAttempt</div><div class="f">The student's own explanation, scored against a rubric which then sets the mastery target directly.</div></div>
+      <div class="ent"><div class="h">ExamSession<br>ExamQuestion</div><div class="f">No hints, no feedback. Per-concept verdicts requiring at least two answered questions.</div></div>
+    </div>
+
+    <div class="grid g4" id="dmgrid">
+      <div class="ent"><div class="h">LearningEvent</div><div class="f">Append-only. <span class="mono">gap_found</span>, <span class="mono">transfer_success</span>, <span class="mono">teach_back</span>, <span class="mono">mastery_change</span> — written alongside the record they describe.</div></div>
+      <div class="ent"><div class="h">LearningMemory</div><div class="f">One row per user: recurring gaps with counts, successful and failed repairs, transfer results. Each list trimmed to the last 50.</div></div>
+      <div class="ent"><div class="h">Roadmap<br>Recommendation</div><div class="f">The next-action ordering, built from the concept graph against current mastery.</div></div>
+      <div class="ent lav"><div class="h">AiCallCache<br>AiUsageLog</div><div class="f">Content-hashed responses with a 7-day TTL, and one log row per model call — the observability substrate.</div></div>
+    </div>
+
+    <div class="callout" style="padding:3.2mm 5mm">
+      <p><strong>Two deliberate asymmetries.</strong> <span class="mono">ExtractedStep</span> and <span class="mono">ReasoningStep</span> are separate tables because the first is what a model
+        <em>read</em> and the second is what code <em>verified</em>. And <span class="mono">Gap.misconceptionBasis</span> exists so that &ldquo;proved&rdquo; and &ldquo;probably&rdquo; are stored &mdash; and shown &mdash; differently.</p>
+    </div>
+  </div>
+
+  <div class="pfoot"><b>GapFinder</b><span>04 — Architecture</span><span>Page 5</span></div>
+</div>
+
+<!-- ============ P6 — tech stack ============ -->
+<div class="page">
+  <div class="phead">
+    <div><div class="eyebrow">Tech stack</div><h2>Every technology, and the job it does</h2><div class="rule"></div></div>
+    <div class="side"><p>Only technologies actually present in <span class="mono">package.json</span> and used in the running application.</p></div>
+  </div>
+
+  <div class="pbody row" style="gap:7mm">
+    <div class="col">
+      <table class="tight">
+        <thead><tr><th style="width:30%">Technology</th><th style="width:24%">Role</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td><b>Next.js 14</b> <span class="dim">App Router</span></td><td>Framework</td><td>One deployment for UI and API; server components keep the learner record off the client</td></tr>
+          <tr><td><b>TypeScript</b> <span class="dim">strict</span></td><td>Language</td><td><span class="mono">noUncheckedIndexedAccess</span> &mdash; a step array indexed past its end is a compile error, not a runtime accusation</td></tr>
+          <tr><td><b>mathjs</b></td><td>Verification</td><td>The layer that decides truth. Symbolic evaluation, not string comparison</td></tr>
+          <tr><td><b>Prisma 5</b></td><td>ORM</td><td>Typed access across 30 models; the schema is the single source of truth</td></tr>
+          <tr><td><b>Neon Postgres</b></td><td>Database</td><td>Serverless Postgres reached over its WebSocket driver on 443</td></tr>
+          <tr><td><b>Google Gemini</b></td><td>Vision + reasoning</td><td>The strongest multimodal reading available at this tier, with structured output</td></tr>
+          <tr><td><b>Groq</b></td><td>Text fallback</td><td>A <em>separate</em> free tier, fast enough that failing over costs the student almost nothing</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="col">
+      <table class="tight">
+        <thead><tr><th style="width:30%">Technology</th><th style="width:24%">Role</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td><b>Zod</b> + <span class="mono">zod-to-json-schema</span></td><td>Schema</td><td>One definition drives both validation and the providers' structured-output contracts</td></tr>
+          <tr><td><b>jose</b></td><td>Auth</td><td>Edge-compatible, so the JWT signature is verified in middleware rather than trusted</td></tr>
+          <tr><td><b>Tailwind</b> + CSS variables</td><td>Styling</td><td>Themeable accent and text scale without a second styling system</td></tr>
+          <tr><td><b>Framer Motion</b><br><b>Recharts</b></td><td>UI</td><td>The reasoning replay, and mastery trends over time</td></tr>
+          <tr><td><b>sharp</b> &middot; <b>bcryptjs</b></td><td>Media &middot; auth</td><td>Server-side image preparation; password hashing that never leaves the server</td></tr>
+          <tr><td><b>Vitest</b></td><td>Tests</td><td>228 tests across 14 files, all runnable with no API keys</td></tr>
+          <tr><td><b>Vercel</b></td><td>Hosting</td><td>Framework preset; AI-bearing routes declare their own <span class="mono">maxDuration</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="pfoot"><b>GapFinder</b><span>04 — Architecture</span><span>Page 6</span></div>
+</div>
+
+<!-- ============ P7 — engineering decisions ============ -->
+<div class="page">
+  <div class="phead">
+    <div><div class="eyebrow">Engineering decisions</div><h2>Five choices, and one bug that shaped the rest</h2><div class="rule"></div></div>
+    <div class="side"><p>Each of these is a place where the easy implementation would have been to ask a language model,
+      and the system deliberately does something else.</p></div>
+  </div>
+
+  <div class="pbody">
+    <div class="grid g3 featgrid">
+      <div class="card dec">
+        <div class="q">WHY SEPARATE AI FROM VERIFICATION AT ALL?</div>
+        <h4>Because a false accusation is unrecoverable</h4>
+        <p>A student wrongly told their correct line is wrong stops trusting every correct thing the product says afterwards. An LLM asked
+          &ldquo;is this step right?&rdquo; is confidently wrong often enough to make that a certainty at scale. So correctness is proved, and the model
+          is confined to reading and phrasing.</p>
+      </div>
+      <div class="card dec">
+        <div class="q">WHY TWO AI PROVIDERS?</div>
+        <h4>Because one free tier is a single point of failure</h4>
+        <p>Groq's quota is independent of Google's, so exhausting Gemini does not stop the product. A <span class="mono">quota</span> error is never
+          retried &mdash; it is not transient &mdash; and a malformed request is never failed over, because the second provider would reject it too.</p>
+      </div>
+      <div class="card dec">
+        <div class="q">WHY NEON OVER WEBSOCKETS?</div>
+        <h4>Because campus wifi blocks 5432</h4>
+        <p>Direct Postgres sockets are blocked on many of the networks students actually study on, which made every database-backed page fail with an
+          unhelpful error. Port 443 is never blocked, and it is the same transport the serverless runtime uses in production.</p>
+      </div>
+      <div class="card dec">
+        <div class="q">WHY NO VECTOR DATABASE?</div>
+        <h4>Because 58 hand-written chunks do not need one</h4>
+        <p>Local keyword scoring over a curated corpus is free, has no network hop, and is auditable &mdash; a human can read the whole corpus.
+          An embedding service would add cost and latency to buy relevance the corpus size does not require.</p>
+      </div>
+      <div class="card dec">
+        <div class="q">WHY PERSIST EVERY ARTEFACT?</div>
+        <h4>Because teaching must not change underneath a learner</h4>
+        <p>Every artefact is written at the moment it is computed and read back thereafter, so reopening an analysis never re-runs it. That protects
+          both trust &mdash; last week's diagnosis is still the one shown &mdash; and a free-tier quota.</p>
+      </div>
+      <div class="card dec warn">
+        <div class="q">THE BUG THAT SHAPED THE STRUCTURE</div>
+        <h4>Middleware at the repo root is silently ignored</h4>
+        <p>With a <span class="mono">src/</span> directory, Next.js does not look for <span class="mono">middleware.ts</span> at the root &mdash; and gives
+          no warning. Every protected page was publicly reachable. It now lives at <span class="mono">src/middleware.ts</span>, and cross-user isolation is
+          verified explicitly rather than assumed.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="pfoot"><b>GapFinder</b><span>04 — Architecture</span><span>Page 7</span></div>
+</div>
+
+<!-- ============ P8 — security / deployment / observability ============ -->
+<div class="page">
+  <div class="phead">
+    <div><div class="eyebrow">Security, delivery, observability</div><h2>The boundaries that are not about learning</h2><div class="rule"></div></div>
+    <div class="side"><p>Kept short deliberately. These are the parts that must simply be correct.</p></div>
+  </div>
+
+  <div class="pbody stack">
+    <div class="row" style="gap:5mm">
+      <div class="col card">
+        <div class="num">SECURITY</div>
+        <div class="kv"><span class="k">Route protection</span><span class="v"><span class="mono">src/middleware.ts</span> verifies the JWT with <span class="mono">jose</span> on every protected path; each API route re-checks the session itself</span></div>
+        <div class="kv"><span class="k">Session secret</span><span class="v">Rejected if absent or under 16 characters, with <b>no fallback secret</b> — a deploy that forgot it rejects every session rather than verifying against a published value</span></div>
+        <div class="kv"><span class="k">Cross-user access</span><span class="v">Every query scoped by <span class="mono">userId</span>; another user's analysis returns <b>404, not 403</b> — a 403 would confirm the record exists</span></div>
+        <div class="kv"><span class="k">Login timing</span><span class="v">Constant-time comparison; an unknown user and a wrong password produce the identical response</span></div>
+        <div class="kv"><span class="k">Passwords</span><span class="v"><span class="mono">bcryptjs</span> hashes; the hash never leaves the server</span></div>
+        <div class="kv"><span class="k">Uploads</span><span class="v">Strict MIME allowlist, size ceiling, client-side downscale before transmission</span></div>
+        <div class="kv"><span class="k">Secrets</span><span class="v">Environment variables only — never logged, returned to a client, or committed. <span class="mono">.env.example</span> documents each one</span></div>
+        <div class="kv"><span class="k">OAuth</span><span class="v">Spotify runs server-side with PKCE and single-use cookies; the callback is exempt from the redirect gate <em>only</em> so the handler can check the session itself</span></div>
+      </div>
+
+      <div class="col stack" style="gap:4mm">
+        <div class="card peach">
+          <div class="num" style="color:#B4581B">DEPLOYMENT</div>
+          <div class="kv"><span class="k">Platform</span><span class="v">Vercel, Next.js framework preset (<span class="mono">vercel.json</span>)</span></div>
+          <div class="kv"><span class="k">Functions</span><span class="v">AI-bearing routes declare <span class="mono">maxDuration</span> of 30&ndash;60s; the rest use the default</span></div>
+          <div class="kv"><span class="k">Post-response work</span><span class="v"><span class="mono">waitUntil</span> lets the response return before background persistence finishes</span></div>
+          <div class="kv"><span class="k">Schema changes</span><span class="v">Applied over HTTPS where 5432 is blocked (<span class="mono">npm run db:apply</span>)</span></div>
+          <div class="kv"><span class="k">Verification gate</span><span class="v"><span class="mono">npm run verify</span> — lint, typecheck, tests, eval. Passes with <b>no API keys at all</b></span></div>
+        </div>
+
+        <div class="card ok">
+          <div class="num" style="color:#1B7F49">OBSERVABILITY</div>
+          <div class="kv"><span class="k">Per call</span><span class="v">Stage, <span class="mono">provider:model</span>, cached, succeeded, latency, error text, retrieved chunk ids</span></div>
+          <div class="kv"><span class="k">Per analysis</span><span class="v">A trace view replaying which stage ran, who answered it, and why the first choice did not</span></div>
+          <div class="kv"><span class="k">What it makes visible</span><span class="v">Failover (Gemini declined, Groq answered) and fallback (deterministic logic produced the result) — normally invisible events</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="pfoot"><b>GapFinder</b><span>04 — Architecture</span><span>Page 8</span></div>
+</div>
