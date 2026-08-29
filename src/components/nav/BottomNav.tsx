@@ -31,7 +31,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Main"
-      className="sticky bottom-0 z-30 flex items-stretch justify-between border-t border-navy-50 bg-white/95 px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1.5 backdrop-blur-md"
+      className="fixed bottom-0 left-0 right-0 z-50 mx-auto flex w-full max-w-[430px] items-stretch justify-between border-t border-navy-50 bg-white/95 px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1.5 backdrop-blur-md"
     >
       {items.map((item) => {
         const active = pathname === item.href || pathname?.startsWith(`${item.href}/`);

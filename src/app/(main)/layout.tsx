@@ -2,6 +2,7 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { BottomNav } from "@/components/nav/BottomNav";
+import { cn } from "@/lib/cn";
 
 /**
  * The tab bar belongs to the app's top level. Task flows — analyzing, the gap
@@ -37,7 +38,9 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <div className="flex min-h-screen flex-col [min-height:100dvh]">
-      <div className="flex-1">{children}</div>
+      <div className={cn("flex-1", withTabs && "pb-20 pb-[calc(5rem+env(safe-area-inset-bottom))]")}>
+        {children}
+      </div>
       {withTabs && <BottomNav />}
     </div>
   );
