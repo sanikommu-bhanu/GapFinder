@@ -127,13 +127,6 @@ export default function HomePage() {
         </Link>
       </div>
 
-      {/* Focus, with the student's own music when Spotify is linked.
-          Renders nothing at all when the server has no Spotify credentials, so
-          the homepage never advertises a service this deployment can't reach. */}
-      <NextActionCard className="mt-3" />
-
-      <FocusMusicCard className="mt-3" />
-
       <div className="mt-3 grid grid-cols-2 gap-3">
         {/* Two tiles both offering to "ask anything" taught nobody where to
             go. This is the one with the diagram, the voice and the check;
@@ -187,6 +180,13 @@ export default function HomePage() {
           </div>
         </Card>
       )}
+
+      {/* Focus, with the student's own music when Spotify is linked.
+          Renders nothing at all when the server has no Spotify credentials, so
+          the homepage never advertises a service this deployment can't reach. */}
+      <NextActionCard className="mt-3" />
+
+      <FocusMusicCard className="mt-3" />
 
       <div className="mt-6 flex items-center justify-between">
         <p className="text-sm font-semibold text-navy-900">Topics</p>
