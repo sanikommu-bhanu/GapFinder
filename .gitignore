@@ -25,3 +25,6 @@ npm-debug.log*
 # Documentation build output (regenerate with docs-src/build.sh)
 GapFinder_Final_Documentation/
 GapFinder_Final_Documentation.zip
+
+# Chrome profile created by docs-src/build.sh qa
+docs-src/.chromeqa/

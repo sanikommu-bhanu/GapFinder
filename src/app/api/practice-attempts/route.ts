@@ -5,6 +5,7 @@ import { getSessionUserId } from "@/lib/auth/session";
 import { validateAnswer } from "@/lib/ai/pipeline/validate-answer";
 import { applyMasteryEvent } from "@/lib/services/mastery-service";
 import { evaluatePrediction } from "@/lib/services/misconception-history";
+import { deriveIndependence } from "@/lib/learner/evidence";
 
 /** This route calls Gemini; the default serverless ceiling is too low. */
 export const maxDuration = 60;
@@ -30,6 +31,14 @@ export async function POST(req: NextRequest) {
   ]);
   if (!gap || !problem) return NextResponse.json({ error: "Not found." }, { status: 404 });
 
+  // How many times they have already tried THIS problem. A right answer on the
+  // fourth go is a real success but it is not the same evidence as a right
+  // answer cold, and the mastery engine is told which one this is.
+  const priorAttempts = await prisma.practiceAttempt.count({
+    where: { gapId: gap.id, problemId: problem.id },
+  });
+  const independence = deriveIndependence({ attemptIndex: priorAttempts + 1 });
+
   const validation = await validateAnswer({
     studentAnswer: parsed.data.studentSteps,
     canonicalAnswer: problem.correctAnswer,
@@ -53,6 +62,8 @@ export async function POST(req: NextRequest) {
     conceptId: gap.conceptId,
     event: validation.isCorrect ? "practice_correct" : "practice_incorrect",
     analysisId: gap.analysisId,
+    independence,
+    difficulty: problem.difficulty as "warmup" | "repair" | "challenge" | "transfer" | "mastery",
   });
 
   if (validation.isCorrect && gap.status === "open") {

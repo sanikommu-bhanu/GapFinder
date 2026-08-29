@@ -11,6 +11,7 @@ two documents describing one system. There is now one.
 | --- | --- |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | System design, boundaries, the verification rule |
 | [`docs/AI_PIPELINE.md`](docs/AI_PIPELINE.md) | Provider cascade, caching, quota handling, fallbacks |
+| [`docs/LEARNER_MODEL.md`](docs/LEARNER_MODEL.md) | Evidence, mastery, misconceptions, intervention, next-best-action |
 | [`docs/RESEARCH_PIPELINE.md`](docs/RESEARCH_PIPELINE.md) | How papers are found, filtered and ranked |
 | [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md) | Every external service, its limits and its fallback |
 | [`docs/API.md`](docs/API.md) | Every route, its shape and its failure modes |

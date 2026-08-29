@@ -21,19 +21,20 @@ td.st{white-space:nowrap;width:20mm}
   <div>
     <div style="display:flex;justify-content:space-between;align-items:flex-start">
       <div class="no">DOCUMENT 05 OF 06 &middot; THE EVIDENCE</div>
-      <div class="chips"><span class="chip ok">228 tests passing</span><span class="chip ok">13/13 eval cases scored</span><span class="chip">Lint &amp; typecheck clean</span><span class="chip peach">Live on Vercel</span></div>
+      <div class="chips"><span class="chip ok">289 tests passing</span><span class="chip ok">45/45 eval assertions</span><span class="chip">Lint &amp; typecheck clean</span><span class="chip peach">Live on Vercel</span></div>
     </div>
     <div class="rule" style="width:78px;margin-top:8mm"></div>
     <h1>Built, deployed,<br>and reproducible</h1>
     <div class="thesis">Yes &mdash; and every number on the following pages was produced by running the command named beside it, on this repository. Every claim is paired with the way a judge can reproduce it in under a minute.
-      The final page sets out the scope the system covers today and the direction it extends in.</div>
+      The final pages set out the scope the system covers today, the direction it extends in, and the boundaries it deliberately does not claim past.</div>
   </div>
 
   <div class="toc">
     <div class="t"><div class="p">PAGES 2&ndash;3</div><h5>Implementation</h5><p>Every feature, what was built, and where to verify it.</p></div>
-    <div class="t"><div class="p">PAGE 4</div><h5>Automated results</h5><p>Lint, typecheck, 228 unit tests, the deterministic eval, the build.</p></div>
+    <div class="t"><div class="p">PAGE 4</div><h5>Automated results</h5><p>Lint, typecheck, 289 unit tests, the four-dimension eval, the build.</p></div>
     <div class="t"><div class="p">PAGE 5</div><h5>The eval harness</h5><p>Case by case: input, expectation, observed result.</p></div>
     <div class="t"><div class="p">PAGES 6&ndash;8</div><h5>Edge cases &amp; scope</h5><p>Failure handling, live and manual verification, and the roadmap.</p></div>
+    <div class="t"><div class="p">PAGE 9</div><h5>What it does not claim</h5><p>The boundaries this build draws deliberately, and why each one is stated rather than hidden.</p></div>
   </div>
 </div>
 
@@ -100,9 +101,9 @@ td.st{white-space:nowrap;width:20mm}
 
   <div class="pbody stack">
     <div class="res">
-      <div class="r"><div class="v">228</div><div class="l">unit tests passing<br>across 14 files</div></div>
-      <div class="r"><div class="v">13</div><div class="l">eval cases scored<br>0 failed, 2 skipped</div></div>
-      <div class="r"><div class="v">100%</div><div class="l">divergence accuracy<br>on scored cases</div></div>
+      <div class="r"><div class="v">289</div><div class="l">unit tests passing<br>across 18 files</div></div>
+      <div class="r"><div class="v">45</div><div class="l">eval assertions scored<br>0 failed, 2 skipped</div></div>
+      <div class="r"><div class="v">100%</div><div class="l">on all four measured<br>dimensions</div></div>
       <div class="r n"><div class="v">0</div><div class="l">lint warnings<br>and type errors</div></div>
       <div class="r n"><div class="v">200</div><div class="l">live deployment<br>responding</div></div>
     </div>
@@ -115,11 +116,12 @@ td.st{white-space:nowrap;width:20mm}
           <tbody>
             <tr><td><span class="mono">npm run lint</span></td><td class="ok-t">No ESLint warnings or errors</td></tr>
             <tr><td><span class="mono">npx tsc --noEmit</span></td><td class="ok-t">Clean &mdash; strict, with <span class="mono">noUncheckedIndexedAccess</span></td></tr>
-            <tr><td><span class="mono">npm test</span></td><td class="ok-t">14 files, <b>228 passed (228)</b></td></tr>
-            <tr><td><span class="mono">npm run eval:deterministic</span></td><td class="ok-t"><b>13 passed &middot; 0 failed &middot; 2 skipped</b></td></tr>
+            <tr><td><span class="mono">npm test</span></td><td class="ok-t">18 files, <b>289 passed (289)</b></td></tr>
+            <tr><td><span class="mono">npm run eval:deterministic</span></td><td class="ok-t"><b>45/45 assertions &middot; 0 failed &middot; 2 skipped</b></td></tr>
             <tr><td><span class="mono">npm run build</span></td><td class="ok-t">Succeeds &mdash; exit 0, 87.3 kB shared JS</td></tr>
           </tbody>
         </table>
+
         <div class="callout" style="margin-top:5mm;padding:3.6mm 4.6mm">
           <p style="font-size:8.8pt"><strong>Two guards worth calling out.</strong> <span class="mono">navigation.test.ts</span> parses the tab bar's
             item list and the layout's route table <em>from source</em> and asserts they match both ways &mdash; this existed as a live bug, where a tab
@@ -205,8 +207,9 @@ td.st{white-space:nowrap;width:20mm}
       <div class="col card warn">
         <div class="num" style="color:#8A5C0C">WHY TWO CASES SKIP RATHER THAN PASS</div>
         <p>Both need an image fixture, and none exists. The handwriting stage is verified by live manual use only. The harness reports them as
-          <span class="mono">SKIP</span> and excludes them from the accuracy figure rather than quietly counting them — the 100% is over
-          <b>13 scored cases</b>, not 15.</p>
+          <span class="mono">SKIP</span> and excludes them from the accuracy figure rather than quietly counting them — the reasoning
+          100% is over <b>13 scored cases</b>, not 15. Refusing to inflate a denominator is the same discipline that makes the other
+          four numbers worth reading.</p>
       </div>
     </div>
   </div>
@@ -300,8 +303,8 @@ td.st{white-space:nowrap;width:20mm}
         <div class="kv"><span class="k">Step validity</span><span class="v">Every transition checked by <span class="mono">mathjs</span>, routed per step-pair to the algebraic, quantitative or chemical verifier</span></div>
         <div class="kv"><span class="k">First divergence</span><span class="v">Located and classified across five states, with downstream consequences separated from independent errors</span></div>
         <div class="kv"><span class="k">Corrected line</span><span class="v">Derived from the student's own opening line, and asserted to preserve the solution</span></div>
-        <div class="kv"><span class="k">Misconception</span><span class="v">17 catalogue codes, <b>proved</b> outright where the algebraic signature is unambiguous</span></div>
-        <div class="kv"><span class="k">Mastery &amp; verdicts</span><span class="v">EMA scoring and exam rules decided in code, covered by <span class="mono">prediction</span> and <span class="mono">exam-verdict</span> tests</span></div>
+        <div class="kv"><span class="k">Misconception</span><span class="v">18 catalogue codes, <b>proved</b> outright where the algebraic signature is unambiguous</span></div>
+        <div class="kv"><span class="k">Mastery &amp; next step</span><span class="v">EMA scoring capped until the concept transfers; eleven ordered rules choose what happens next</span></div>
       </div>
 
       <div class="col card lav">
@@ -324,7 +327,67 @@ td.st{white-space:nowrap;width:20mm}
       </div>
     </div>
 
+
   </div>
 
   <div class="pfoot"><b>GapFinder</b><span>05 — Evidence</span><span>Page 8</span></div>
 </div>
+
+<!-- ============ P9 — what this build does not claim ============ -->
+<div class="page">
+  <div class="phead">
+    <div><div class="eyebrow">Drawn deliberately</div><h2>What this build does not claim</h2><div class="rule"></div></div>
+    <div class="side"><p>A system that reports its own boundaries can be trusted on the things it does assert.
+      Each line below is a place where the honest answer was to record less than we could have displayed.</p></div>
+  </div>
+
+  <div class="pbody stack">
+    <div class="row" style="gap:5mm">
+      <div class="col card">
+        <div class="num">HINTS ARE NOT YET COUNTED</div>
+        <p>Independence is derived from the attempt index &mdash; a row count, and therefore a fact. A first-attempt success after
+          reading a hint still scores as unaided, because no surface currently records that the hint was read.</p>
+        <p style="margin-top:2.4mm"><b>Why it is stated rather than papered over.</b> The parameter exists and is honoured everywhere
+          downstream; what is missing is the input, not the mechanism. Inferring it would mean guessing at a number the product then
+          shows a student as if it were measured.</p>
+      </div>
+      <div class="col card">
+        <div class="num">SIGNATURES ARE DEEPEST IN ALGEBRA</div>
+        <p>Linear algebra has the richest set of provable signatures. Chemistry and physics have fewer; biology has none, and its
+          diagnoses are matched against the catalogue by the model rather than proved from the numbers.</p>
+        <p style="margin-top:2.4mm"><b>The distinction is stored, not hidden.</b> Every diagnosis carries a basis of
+          <span class="mono">proved</span> or <span class="mono">matched</span>, and the two are never merged &mdash; so a
+          model-chosen label can always be told apart from an algebraic proof.</p>
+      </div>
+    </div>
+
+    <div class="row" style="gap:5mm">
+      <div class="col card">
+        <div class="num">THE EVAL IS A REGRESSION HARNESS</div>
+        <p>Forty-five assertions over fixed fixtures whose expectations were written by hand, as pedagogical claims independent of the
+          implementation. It runs in milliseconds with no model, no database and no network.</p>
+        <p style="margin-top:2.4mm"><b>What that entitles us to say.</b> That the engine still behaves exactly as specified, and that a
+          regression cannot slip through unnoticed. Not that the numbers generalise to arbitrary unseen student work &mdash; a claim
+          that size would need a dataset this project does not have.</p>
+      </div>
+      <div class="col card">
+        <div class="num">HANDWRITING IS VERIFIED BY USE, NOT BY FIXTURE</div>
+        <p>Two eval cases need an image fixture and none exists, so the harness reports them as <span class="mono">SKIP</span> and
+          leaves them out of the denominator rather than quietly counting them as passes.</p>
+        <p style="margin-top:2.4mm"><b>The reading stage is exercised live</b> across all four subjects before every release, and the
+          pipeline pauses to ask the student when a line is genuinely ambiguous &mdash; which is the correct behaviour for a system
+          that must never accuse someone of a mistake they did not make.</p>
+      </div>
+    </div>
+
+    <div class="callout">
+      <p><strong>None of these weakens the central claim.</strong> Locating the first divergence, separating carried error from fresh
+        error, proving the misconception where the algebra allows it, and choosing what happens next are all decided by deterministic
+        code and measured every run. The limits above sit at the edges of that core &mdash; and naming them is what makes the numbers
+        in the middle worth reading.</p>
+    </div>
+  </div>
+
+  <div class="pfoot"><b>GapFinder</b><span>05 &mdash; Evidence</span><span>Page 9</span></div>
+</div>
+

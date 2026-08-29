@@ -94,6 +94,17 @@ export const MISCONCEPTIONS: Misconception[] = [
       "Substitute your answer back into the original equation. Do the two sides come out to the same number?",
   },
   {
+    code: "M-FRACTION-ADD-DENOMINATORS",
+    subject: "Math",
+    name: "Adding denominators as well as numerators",
+    studentRule: "To add two fractions, add the tops together and the bottoms together.",
+    whyItFails:
+      "The denominator names what size the pieces are, not how many there are. Adding the denominators changes the size of the pieces mid-sum, so the result no longer counts the same thing either fraction was counting.",
+    conceptSlug: "fractions",
+    socraticPrompt:
+      "You added the bottoms together. Try it with 1/2 + 1/2 — that rule gives 2/4, which is a half. Does adding a half to a half really leave you with a half?",
+  },
+  {
     code: "M-ARITHMETIC-SLIP",
     subject: "Math",
     name: "Arithmetic slip in an otherwise valid step",

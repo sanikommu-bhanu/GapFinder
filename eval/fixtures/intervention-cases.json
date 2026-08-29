@@ -1,0 +1,218 @@
+{
+  "description": "Learner scenarios and the instructional action each should produce. Every expectation is a pedagogical claim stated independently of the implementation: the scenario describes a student, and the expected action is what a competent tutor would do next. Scored by eval/run-deterministic.ts.",
+  "cases": [
+    {
+      "id": "prerequisite-hole-01",
+      "note": "Struggling with equations while fractions underneath is weak. Teaching equations harder cannot land until fractions is repaired.",
+      "learner": {
+        "masteryScore": 40,
+        "recurrenceCount": 1,
+        "weakestPrerequisiteScore": 25,
+        "weakestPrerequisiteName": "Fractions",
+        "isArithmeticSlip": false,
+        "lastAttemptWasCorrect": false,
+        "interventionHistory": [],
+        "evidence": [{ "isPositive": false, "independence": "independent", "difficulty": "repair" }]
+      },
+      "expectAction": "prerequisite_review",
+      "expectRule": "prerequisite_not_met"
+    },
+    {
+      "id": "prerequisite-outranks-recurrence-01",
+      "note": "Both a weak prerequisite and a repeating slip. The prerequisite wins: re-teaching on top of a hole is what wastes a student's time.",
+      "learner": {
+        "masteryScore": 35,
+        "recurrenceCount": 4,
+        "weakestPrerequisiteScore": 20,
+        "weakestPrerequisiteName": "Fractions",
+        "isArithmeticSlip": false,
+        "lastAttemptWasCorrect": false,
+        "interventionHistory": [],
+        "evidence": [{ "isPositive": false, "independence": "independent", "difficulty": "repair" }]
+      },
+      "expectAction": "prerequisite_review",
+      "expectRule": "prerequisite_not_met"
+    },
+    {
+      "id": "persistent-misconception-01",
+      "note": "The same named slip three times. Explaining it again has already failed twice, so the strategy has to change rather than repeat.",
+      "learner": {
+        "masteryScore": 45,
+        "recurrenceCount": 3,
+        "weakestPrerequisiteScore": null,
+        "isArithmeticSlip": false,
+        "lastAttemptWasCorrect": false,
+        "interventionHistory": ["concise_explanation", "worked_example"],
+        "evidence": [{ "isPositive": false, "independence": "independent", "difficulty": "repair" }]
+      },
+      "expectAction": "prerequisite_review",
+      "expectRule": "persistent_misconception"
+    },
+    {
+      "id": "second-occurrence-01",
+      "note": "Second time for this misconception. Describing it again is what already did not work; show it done instead.",
+      "learner": {
+        "masteryScore": 50,
+        "recurrenceCount": 2,
+        "weakestPrerequisiteScore": null,
+        "isArithmeticSlip": false,
+        "lastAttemptWasCorrect": false,
+        "interventionHistory": ["concise_explanation"],
+        "evidence": [{ "isPositive": false, "independence": "independent", "difficulty": "repair" }]
+      },
+      "expectAction": "worked_example",
+      "expectRule": "recurring_misconception"
+    },
+    {
+      "id": "first-conceptual-error-01",
+      "note": "First time this idea has caused trouble. Naming the missing piece is the right and cheapest move.",
+      "learner": {
+        "masteryScore": 50,
+        "recurrenceCount": 1,
+        "weakestPrerequisiteScore": null,
+        "isArithmeticSlip": false,
+        "lastAttemptWasCorrect": false,
+        "interventionHistory": [],
+        "evidence": []
+      },
+      "expectAction": "concise_explanation",
+      "expectRule": "first_conceptual_error"
+    },
+    {
+      "id": "arithmetic-slip-01",
+      "note": "Method right, number wrong. Treating this as a conceptual failure would be both wrong and insulting.",
+      "learner": {
+        "masteryScore": 60,
+        "recurrenceCount": 1,
+        "weakestPrerequisiteScore": null,
+        "isArithmeticSlip": true,
+        "lastAttemptWasCorrect": false,
+        "interventionHistory": [],
+        "evidence": [{ "isPositive": true, "independence": "independent", "difficulty": "challenge" }]
+      },
+      "expectAction": "targeted_hint",
+      "expectRule": "arithmetic_slip"
+    },
+    {
+      "id": "repeated-failure-01",
+      "note": "Fragile concept, mostly negative recent evidence. Asking again at this level teaches nobody anything; drop down and find the floor.",
+      "learner": {
+        "masteryScore": 18,
+        "recurrenceCount": 1,
+        "weakestPrerequisiteScore": null,
+        "isArithmeticSlip": false,
+        "lastAttemptWasCorrect": false,
+        "interventionHistory": [],
+        "evidence": [
+          { "isPositive": false, "independence": "guided", "difficulty": "repair" },
+          { "isPositive": false, "independence": "guided", "difficulty": "repair" },
+          { "isPositive": false, "independence": "assisted", "difficulty": "warmup" }
+        ]
+      },
+      "expectAction": "easier_diagnostic",
+      "expectRule": "repeated_failure"
+    },
+    {
+      "id": "explanation-already-tried-01",
+      "note": "We already explained this concept once and it did not take. Repeating the same move at a louder volume is not adaptation.",
+      "learner": {
+        "masteryScore": 55,
+        "recurrenceCount": 1,
+        "weakestPrerequisiteScore": null,
+        "isArithmeticSlip": false,
+        "lastAttemptWasCorrect": false,
+        "interventionHistory": ["concise_explanation"],
+        "evidence": [{ "isPositive": false, "independence": "independent", "difficulty": "challenge" }]
+      },
+      "expectAction": "worked_example",
+      "expectRule": "explanation_already_tried"
+    },
+    {
+      "id": "needs-transfer-evidence-01",
+      "note": "A run of right answers on the same shape. Repeating a pattern is not mastery, so the next thing must look different.",
+      "learner": {
+        "masteryScore": 75,
+        "recurrenceCount": 0,
+        "weakestPrerequisiteScore": null,
+        "isArithmeticSlip": false,
+        "lastAttemptWasCorrect": true,
+        "interventionHistory": ["concise_explanation"],
+        "evidence": [
+          { "isPositive": true, "independence": "independent", "difficulty": "challenge" },
+          { "isPositive": true, "independence": "independent", "difficulty": "challenge" }
+        ]
+      },
+      "expectAction": "transfer_problem",
+      "expectRule": "needs_transfer_evidence"
+    },
+    {
+      "id": "mastery-candidate-01",
+      "note": "High mastery AND an unaided transfer success. This is the only state in which confirming and moving on is justified.",
+      "learner": {
+        "masteryScore": 94,
+        "recurrenceCount": 0,
+        "weakestPrerequisiteScore": null,
+        "isArithmeticSlip": false,
+        "lastAttemptWasCorrect": true,
+        "interventionHistory": [],
+        "evidence": [
+          { "isPositive": true, "independence": "independent", "difficulty": "challenge" },
+          { "kind": "transfer", "isPositive": true, "independence": "independent", "difficulty": "transfer" }
+        ]
+      },
+      "expectAction": "mastery_check",
+      "expectRule": "mastery_candidate"
+    },
+    {
+      "id": "assisted-success-only-01",
+      "note": "Getting them right, but never without help. What is missing is independence, not explanation.",
+      "learner": {
+        "masteryScore": 45,
+        "recurrenceCount": 0,
+        "weakestPrerequisiteScore": null,
+        "isArithmeticSlip": false,
+        "lastAttemptWasCorrect": true,
+        "interventionHistory": [],
+        "evidence": [
+          { "isPositive": true, "independence": "assisted", "difficulty": "repair" },
+          { "isPositive": true, "independence": "guided", "difficulty": "repair" }
+        ]
+      },
+      "expectAction": "targeted_practice",
+      "expectRule": "assisted_success_only"
+    },
+    {
+      "id": "consolidating-01",
+      "note": "Correct, unaided, but not yet near the transfer band. Reps at this level are the right next step.",
+      "learner": {
+        "masteryScore": 50,
+        "recurrenceCount": 0,
+        "weakestPrerequisiteScore": null,
+        "isArithmeticSlip": false,
+        "lastAttemptWasCorrect": true,
+        "interventionHistory": [],
+        "evidence": [{ "isPositive": true, "independence": "independent", "difficulty": "repair" }]
+      },
+      "expectAction": "targeted_practice",
+      "expectRule": "consolidating"
+    },
+    {
+      "id": "mastered-not-sent-backwards-01",
+      "note": "A weak prerequisite on record, but the student has already demonstrated the dependent concept. Sending them backwards here would be pedantic and demoralising.",
+      "learner": {
+        "masteryScore": 95,
+        "recurrenceCount": 0,
+        "weakestPrerequisiteScore": 30,
+        "weakestPrerequisiteName": "Fractions",
+        "isArithmeticSlip": false,
+        "lastAttemptWasCorrect": true,
+        "interventionHistory": [],
+        "evidence": [
+          { "kind": "transfer", "isPositive": true, "independence": "independent", "difficulty": "transfer" }
+        ]
+      },
+      "expectAction": "mastery_check",
+      "expectRule": "mastery_candidate"
+    }
+  ]
+}

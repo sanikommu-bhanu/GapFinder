@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db/prisma";
 import { getSessionUserId } from "@/lib/auth/session";
 import { validateAnswer } from "@/lib/ai/pipeline/validate-answer";
 import { applyMasteryEvent } from "@/lib/services/mastery-service";
+import { deriveIndependence } from "@/lib/learner/evidence";
 
 /** This route calls Gemini; the default serverless ceiling is too low. */
 export const maxDuration = 60;
@@ -32,6 +33,13 @@ export async function POST(req: NextRequest) {
     where: { userId_conceptId: { userId, conceptId: gap.conceptId } },
   });
 
+  // First go at this transfer problem, or a retry? Only the former is evidence
+  // that the concept survives an unfamiliar shape cold.
+  const priorAttempts = await prisma.transferAttempt.count({
+    where: { gapId: gap.id, problemId: problem.id },
+  });
+  const independence = deriveIndependence({ attemptIndex: priorAttempts + 1 });
+
   const validation = await validateAnswer({
     studentAnswer: parsed.data.studentSteps,
     canonicalAnswer: problem.correctAnswer,
@@ -55,6 +63,8 @@ export async function POST(req: NextRequest) {
     conceptId: gap.conceptId,
     event: validation.isCorrect ? "transfer_correct" : "transfer_incorrect",
     analysisId: gap.analysisId,
+    independence,
+    difficulty: "transfer",
   });
 
   if (validation.isCorrect) {

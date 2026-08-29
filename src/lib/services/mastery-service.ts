@@ -1,5 +1,31 @@
 import { prisma } from "@/lib/db/prisma";
 import { computeMasteryUpdate, type MasteryEventType } from "@/lib/ai/pipeline/update-mastery";
+import type { EvidenceDifficulty, Independence } from "@/lib/learner/evidence";
+
+/**
+ * Has this learner ever solved a transfer problem on this concept unaided?
+ *
+ * "Unaided" is read from rows rather than asked: an attempt is independent when
+ * it is the FIRST attempt recorded against that problem. A correct answer on
+ * the third go at the same question is a real success, but it is not evidence
+ * that the concept transfers cold, and the mastery ceiling depends on that
+ * distinction.
+ */
+async function hasIndependentTransfer(userId: string, conceptId: string): Promise<boolean> {
+  const attempts = await prisma.transferAttempt.findMany({
+    where: { gap: { conceptId, analysis: { userId } } },
+    select: { problemId: true, isCorrect: true, createdAt: true },
+    orderBy: { createdAt: "asc" },
+  });
+
+  const seen = new Set<string>();
+  for (const a of attempts) {
+    const isFirstOnThisProblem = !seen.has(a.problemId);
+    seen.add(a.problemId);
+    if (a.isCorrect && isFirstOnThisProblem) return true;
+  }
+  return false;
+}
 
 export async function applyMasteryEvent(params: {
   userId: string;
@@ -8,16 +34,26 @@ export async function applyMasteryEvent(params: {
   teachBackRubricScore?: number;
   analysisId?: string;
   extraPayload?: Record<string, unknown>;
+  /** How much help the student had. Omitted callers keep the unscaled behaviour. */
+  independence?: Independence;
+  /** Difficulty of the task that produced the event. */
+  difficulty?: EvidenceDifficulty;
 }) {
-  const existing = await prisma.masteryRecord.findUnique({
-    where: { userId_conceptId: { userId: params.userId, conceptId: params.conceptId } },
-  });
+  const [existing, transferred] = await Promise.all([
+    prisma.masteryRecord.findUnique({
+      where: { userId_conceptId: { userId: params.userId, conceptId: params.conceptId } },
+    }),
+    hasIndependentTransfer(params.userId, params.conceptId),
+  ]);
   const currentScore = existing?.masteryScore ?? 0;
 
-  const { newScore, trend } = computeMasteryUpdate({
+  const { newScore, trend, cappedPendingTransfer } = computeMasteryUpdate({
     currentScore,
     event: params.event,
     teachBackRubricScore: params.teachBackRubricScore,
+    independence: params.independence,
+    difficulty: params.difficulty,
+    hasIndependentTransfer: transferred,
   });
 
   const history = existing ? (JSON.parse(existing.history) as { date: string; score: number }[]) : [];
@@ -51,7 +87,16 @@ export async function applyMasteryEvent(params: {
             : params.event === "teach_back"
               ? "teach_back"
               : "mastery_change",
-      payload: JSON.stringify({ conceptId: params.conceptId, newScore, trend, ...params.extraPayload }),
+      payload: JSON.stringify({
+        conceptId: params.conceptId,
+        newScore,
+        trend,
+        // Recorded so the score is auditable after the fact: a stalled number
+        // should be explainable, not mysterious.
+        cappedPendingTransfer,
+        independence: params.independence ?? null,
+        ...params.extraPayload,
+      }),
     },
   });
 

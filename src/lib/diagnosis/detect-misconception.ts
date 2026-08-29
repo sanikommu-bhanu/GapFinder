@@ -35,6 +35,24 @@ export function detectMisconception(params: {
   const { divergence, previousExpression, subject } = params;
   const note = divergence.verificationNote;
 
+  // Checked before the domain dispatch below, because this signature is a proof
+  // about the numbers themselves rather than a judgement any one verifier makes.
+  // A fraction sum can be routed to the quantitative verifier, whose branch
+  // would return a generic arithmetic slip and never reach the algebra
+  // signatures — so the specific, provable diagnosis has to come first.
+  //
+  // The distinction it preserves matters: a slip is a one-off to be pointed at,
+  // whereas this is a rule the student is applying consistently and will keep
+  // applying until it is named.
+  const fractionSum = detectFractionDenominatorAddition(previousExpression, divergence.expression);
+  if (fractionSum) {
+    return {
+      misconception: getMisconception("M-FRACTION-ADD-DENOMINATORS"),
+      evidence: fractionSum,
+      basis: "proved",
+    };
+  }
+
   // ------------------------------------------------------------- Chemistry
   if (divergence.domain === "chemical") {
     if (/never the formula itself/.test(note)) {
@@ -128,7 +146,8 @@ export function detectMisconception(params: {
     };
   }
 
-  // Structure preserved, value wrong: the method was right, the arithmetic was not.
+  // Structure preserved from the previous line, value wrong: the method was
+  // right, the arithmetic was not.
   if (previous && Math.abs(previous.m - written.m) < 1e-9) {
     return {
       misconception: getMisconception("M-ARITHMETIC-SLIP"),
@@ -137,6 +156,63 @@ export function detectMisconception(params: {
     };
   }
 
+  // Signature: the line has the same SHAPE as the correct next line — the same
+  // coefficient on x — but a different value.
+  //
+  // This is the case where the student picked the right operation and then
+  // mis-computed it: dividing 3x = 15 and writing x = 6 rather than x = 5. The
+  // check above cannot see it, because that one compares against the PREVIOUS
+  // line, whose coefficient the division has legitimately changed. Comparing
+  // against the correct next line instead is what makes it visible.
+  //
+  // Safe to run only here, at the end: every more specific signature above
+  // returns first, so a transpose error is never mislabelled as arithmetic even
+  // though it too preserves the coefficient.
+  if (Math.abs(written.m - corrected.m) < 1e-9 && Math.abs(written.k - corrected.k) > 1e-9) {
+    return {
+      misconception: getMisconception("M-ARITHMETIC-SLIP"),
+      evidence: `The operation chosen was the right one and produced the right form; the value it landed on was not the one that operation gives.`,
+      basis: "proved",
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Proves the add-the-denominators error, or returns null.
+ *
+ * The test is exact rather than approximate: the written result has to be
+ * precisely (a+c)/(b+d), the number that rule produces and that no correct
+ * method produces. A fraction that is merely wrong fails this check and falls
+ * through to the arithmetic-slip signature, which is the honest outcome — we
+ * only name the rule when the numbers show the rule.
+ */
+function detectFractionDenominatorAddition(
+  previousExpression: string,
+  writtenExpression: string
+): string | null {
+  const sum = /(-?\d+)\s*\/\s*(\d+)\s*\+\s*(-?\d+)\s*\/\s*(\d+)/.exec(previousExpression);
+  if (!sum) return null;
+
+  const [, aRaw, bRaw, cRaw, dRaw] = sum;
+  const a = Number(aRaw);
+  const b = Number(bRaw);
+  const c = Number(cRaw);
+  const d = Number(dRaw);
+  if (!b || !d) return null;
+
+  // The result the student actually wrote — the last fraction on the line.
+  const results = [...writtenExpression.matchAll(/(-?\d+)\s*\/\s*(\d+)/g)];
+  const last = results[results.length - 1];
+  if (!last) return null;
+
+  const writtenNumerator = Number(last[1]);
+  const writtenDenominator = Number(last[2]);
+
+  if (writtenNumerator === a + c && writtenDenominator === b + d) {
+    return `${a}/${b} + ${c}/${d} was written as ${writtenNumerator}/${writtenDenominator}, which is exactly (${a}+${c})/(${b}+${d}) — the tops and the bottoms each added. The correct sum is ${a * d + c * b}/${b * d}.`;
+  }
   return null;
 }
 

@@ -5,106 +5,172 @@
       "id": "correct-work-01",
       "category": "correct_work",
       "subject": "math",
-      "steps": ["2x + 7 = 15", "2x = 8", "x = 4"],
+      "steps": [
+        "2x + 7 = 15",
+        "2x = 8",
+        "x = 4"
+      ],
       "expectFirstDivergence": null,
-      "expectAnalysisStatus": "complete_no_gap"
+      "expectAnalysisStatus": "complete_no_gap",
+      "expectMisconceptionCode": null
     },
     {
       "id": "sign-error-01",
       "category": "incorrect_intermediate_step",
       "subject": "math",
-      "steps": ["2x + 7 = 15", "2x = 15 + 7", "2x = 22", "x = 11"],
+      "steps": [
+        "2x + 7 = 15",
+        "2x = 15 + 7",
+        "2x = 22",
+        "x = 11"
+      ],
       "expectFirstDivergenceStep": 2,
       "expectClassification": "inverse-operation-misapplied",
-      "expectConceptSlug": "inverse-operations"
+      "expectConceptSlug": "inverse-operations",
+      "expectMisconceptionCode": "M-TRANSPOSE-SIGN"
     },
     {
       "id": "wrong-final-answer-01",
       "category": "incorrect_final_answer",
       "subject": "math",
-      "steps": ["3x - 4 = 11", "3x = 15", "x = 6"],
+      "steps": [
+        "3x - 4 = 11",
+        "3x = 15",
+        "x = 6"
+      ],
       "expectFirstDivergenceStep": 3,
-      "expectConceptSlug": "equations"
+      "expectConceptSlug": "equations",
+      "expectMisconceptionCode": "M-ARITHMETIC-SLIP"
     },
     {
       "id": "multiple-errors-01",
       "category": "multiple_errors",
       "subject": "math",
-      "steps": ["2x + 7 = 15", "2x = 22", "x = 44"],
+      "steps": [
+        "2x + 7 = 15",
+        "2x = 22",
+        "x = 44"
+      ],
       "expectFirstDivergenceStep": 2,
-      "note": "Step 3 compounds step 2's error and must be recorded as a consequence, not a second independent gap."
+      "note": "Step 3 compounds step 2's error and must be recorded as a consequence, not a second independent gap.",
+      "expectMisconceptionCode": "M-TRANSPOSE-SIGN"
     },
     {
       "id": "negative-numbers-01",
       "category": "negative_numbers",
       "subject": "math",
-      "steps": ["x - 5 = -12", "x = -12 + 5", "x = -7"],
-      "expectFirstDivergence": null
+      "steps": [
+        "x - 5 = -12",
+        "x = -12 + 5",
+        "x = -7"
+      ],
+      "expectFirstDivergence": null,
+      "expectMisconceptionCode": null
     },
     {
       "id": "negative-numbers-sign-flip-01",
       "category": "negative_numbers",
       "subject": "math",
-      "steps": ["x - 5 = -12", "x = -12 - 5", "x = -17"],
+      "steps": [
+        "x - 5 = -12",
+        "x = -12 - 5",
+        "x = -17"
+      ],
       "expectFirstDivergenceStep": 2,
-      "expectConceptSlug": "sign-handling"
+      "expectConceptSlug": "sign-handling",
+      "expectMisconceptionCode": "M-TRANSPOSE-SIGN"
     },
     {
       "id": "distribution-correct-01",
       "category": "distribution",
       "subject": "math",
-      "steps": ["3(x + 4) = 21", "3x + 12 = 21", "3x = 9", "x = 3"],
-      "expectFirstDivergence": null
+      "steps": [
+        "3(x + 4) = 21",
+        "3x + 12 = 21",
+        "3x = 9",
+        "x = 3"
+      ],
+      "expectFirstDivergence": null,
+      "expectMisconceptionCode": null
     },
     {
       "id": "distribution-partial-01",
       "category": "distribution",
       "subject": "math",
-      "steps": ["3(x + 4) = 21", "3x + 4 = 21", "3x = 17"],
+      "steps": [
+        "3(x + 4) = 21",
+        "3x + 4 = 21",
+        "3x = 17"
+      ],
       "expectFirstDivergenceStep": 2,
       "expectConceptSlug": "distribution",
-      "note": "Multiplier applied to only one term inside the parentheses."
+      "note": "Multiplier applied to only one term inside the parentheses.",
+      "expectMisconceptionCode": "M-DISTRIBUTE-FIRST-ONLY"
     },
     {
       "id": "factoring-correct-01",
       "category": "factoring",
       "subject": "math",
-      "steps": ["x^2 + 5x + 6 = 0", "(x + 2)(x + 3) = 0"],
+      "steps": [
+        "x^2 + 5x + 6 = 0",
+        "(x + 2)(x + 3) = 0"
+      ],
       "expectFirstDivergence": null,
       "expectConceptSlug": "factoring",
-      "note": "KNOWN LIMITATION: verifyEquationStep only checks single-equation-to-single-equation transforms. A disjunctive final answer step ('x = -2 or x = -3') is out of scope for this deterministic check and must be handled by verifyFinalAnswer or a dedicated multi-root comparator instead — not yet implemented. Truncated to the algebra step this verifier can actually judge, rather than asserting a pass it can't back up."
+      "note": "KNOWN LIMITATION: verifyEquationStep only checks single-equation-to-single-equation transforms. A disjunctive final answer step ('x = -2 or x = -3') is out of scope for this deterministic check and must be handled by verifyFinalAnswer or a dedicated multi-root comparator instead — not yet implemented. Truncated to the algebra step this verifier can actually judge, rather than asserting a pass it can't back up.",
+      "expectMisconceptionCode": null
     },
     {
       "id": "fractions-01",
       "category": "fractions",
       "subject": "math",
-      "steps": ["x/3 + 2 = 5", "x/3 = 3", "x = 9"],
-      "expectFirstDivergence": null
+      "steps": [
+        "x/3 + 2 = 5",
+        "x/3 = 3",
+        "x = 9"
+      ],
+      "expectFirstDivergence": null,
+      "expectMisconceptionCode": null
     },
     {
       "id": "fractions-common-denominator-error-01",
       "category": "fractions",
       "subject": "math",
-      "steps": ["x = 1/2 + 1/3", "x = 2/5"],
+      "steps": [
+        "x = 1/2 + 1/3",
+        "x = 2/5"
+      ],
       "expectFirstDivergenceStep": 2,
       "expectConceptSlug": "fractions",
-      "note": "2/5 is the classic add-numerators-and-denominators wrong answer (correct value is 5/6). 'fractions' is not currently a seeded Concept slug — this fixture flags a real knowledge-graph gap, not just a pipeline one."
+      "note": "2/5 is the classic add-numerators-and-denominators wrong answer (correct value is 5/6). 'fractions' is not currently a seeded Concept slug — this fixture flags a real knowledge-graph gap, not just a pipeline one.",
+      "expectMisconceptionCode": "M-FRACTION-ADD-DENOMINATORS"
     },
     {
       "id": "alternative-valid-approach-01",
       "category": "alternative_valid_approaches",
       "subject": "math",
-      "steps": ["2x + 7 = 15", "2x + 7 - 7 = 15 - 7", "2x = 8", "x = 4"],
+      "steps": [
+        "2x + 7 = 15",
+        "2x + 7 - 7 = 15 - 7",
+        "2x = 8",
+        "x = 4"
+      ],
       "expectFirstDivergence": null,
-      "note": "Verifier must not penalize showing the subtraction explicitly on both sides rather than skipping straight to '2x = 8'."
+      "note": "Verifier must not penalize showing the subtraction explicitly on both sides rather than skipping straight to '2x = 8'.",
+      "expectMisconceptionCode": null
     },
     {
       "id": "word-problem-01",
       "category": "word_problems",
       "subject": "math",
-      "steps": ["3x + 2 = 17", "3x = 15", "x = 5"],
+      "steps": [
+        "3x + 2 = 17",
+        "3x = 15",
+        "x = 5"
+      ],
       "expectFirstDivergence": null,
-      "note": "Narrative setup lines ('Let x = number of apples') are not equations and are out of scope for this equation-diff verifier by design — reconstruct-reasoning.ts (the Gemini stage) is responsible for normalizing word-problem setup into the equation chain before verification ever runs. This fixture tests only the post-setup equation chain."
+      "note": "Narrative setup lines ('Let x = number of apples') are not equations and are out of scope for this equation-diff verifier by design — reconstruct-reasoning.ts (the Gemini stage) is responsible for normalizing word-problem setup into the equation chain before verification ever runs. This fixture tests only the post-setup equation chain.",
+      "expectMisconceptionCode": null
     },
     {
       "id": "ambiguous-handwriting-01",

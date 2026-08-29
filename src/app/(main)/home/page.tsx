@@ -7,6 +7,7 @@ import { Chip } from "@/components/ui/Chip";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 import { AppMenu } from "@/components/nav/AppMenu";
 import { FocusMusicCard } from "@/components/focus/FocusMusicCard";
+import { NextActionCard } from "@/components/learner/NextActionCard";
 import { useAppStore } from "@/store/useAppStore";
 import { SUBJECTS } from "@/lib/subjects";
 
@@ -129,6 +130,8 @@ export default function HomePage() {
       {/* Focus, with the student's own music when Spotify is linked.
           Renders nothing at all when the server has no Spotify credentials, so
           the homepage never advertises a service this deployment can't reach. */}
+      <NextActionCard className="mt-3" />
+
       <FocusMusicCard className="mt-3" />
 
       <div className="mt-3 grid grid-cols-2 gap-3">

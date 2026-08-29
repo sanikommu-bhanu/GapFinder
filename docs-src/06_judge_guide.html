@@ -117,7 +117,7 @@
           stable codes, derived from an algebraic signature where one exists. A four-stage provider cascade has deterministic substitutes for every
           stage after vision, and retrieval runs locally with no vector database.</p>
         <p style="margin-top:2.6mm;padding-top:2.4mm;border-top:1px solid rgba(21,24,51,.10)"><b>Where to verify.</b> <span class="mono">npm run verify</span> &mdash; lint, typecheck,
-          <b>228 tests across 14 files</b>, and a <b>15-case eval</b> that runs with no network and no API keys. Live provider behaviour at <span class="mono">/dev/observability</span></p>
+          <b>289 tests across 18 files</b>, and a <b>four-dimension eval</b> that runs with no network and no API keys. Live provider behaviour at <span class="mono">/dev/observability</span></p>
       </div>
 
       <div class="card">
@@ -142,7 +142,7 @@
         <div class="num" style="color:#1B7F49">04 &middot; QUALITY OF THE IDEA</div>
         <h4>Locating the divergence is a different problem from grading the answer</h4>
         <p style="margin-top:2mm"><b>Evidence.</b> In a six-line attempt with one conceptual error at line two, five lines are wrong and <em>four are not mistakes</em> &mdash; they are consequences of one broken idea. Separating AI interpretation from deterministic verification architecturally is what makes the specific accusation (&ldquo;line 2&rdquo;) safe to make.</p>
-        <p style="margin-top:2.6mm;padding-top:2.4mm;border-top:1px solid rgba(21,24,51,.10)"><b>Where to verify.</b> The eval harness measures exactly this: <b>13 scored cases, 0 failed, 100% divergence accuracy</b> &mdash; including a case of valid work by an unusual route that must <em>not</em> be flagged.</p>
+        <p style="margin-top:2.6mm;padding-top:2.4mm;border-top:1px solid rgba(21,24,51,.10)"><b>Where to verify.</b> The eval harness measures exactly this: <b>45 assertions, 0 failed, 100% on divergence, misconception, correction and intervention</b> &mdash; including a case of valid work by an unusual route that must <em>not</em> be flagged.</p>
       </div>
     </div>
   </div>
@@ -236,7 +236,7 @@
       <div class="card">
         <div class="num">THE TECHNICAL EXECUTION</div>
         <h4>Complete, deployed, and verifiable offline</h4>
-        <p>Not a prototype of one screen: 31 pages, 40 API routes, 30 data models, live on Vercel. 228 tests and the eval harness pass with
+        <p>Not a prototype of one screen: 31 pages, 41 API routes, 30 data models, live on Vercel. 289 tests and the eval harness pass with
           <b>no API keys configured</b> — the load-bearing claims do not depend on a model being reachable.</p>
       </div>
       <div class="card">
@@ -270,8 +270,8 @@
     <div class="q">A wrong answer is a symptom.<br>GapFinder finds the <em>line where the reasoning diverged</em>,<br>proves it, names the habit behind it,<br>and refuses to call it fixed<br>until it holds without help.</div>
 
     <div style="display:flex;gap:9mm;margin-top:14mm;align-items:flex-start">
-      <div style="text-align:center"><div class="big-stat lav">13/13</div><div class="stat-l">scored eval cases &mdash; 100%<br>divergence accuracy</div></div>
-      <div style="text-align:center"><div class="big-stat lav">228</div><div class="stat-l">tests passing with<br>no API keys</div></div>
+      <div style="text-align:center"><div class="big-stat lav">45/45</div><div class="stat-l">eval assertions &mdash; 100% across<br>four measured dimensions</div></div>
+      <div style="text-align:center"><div class="big-stat lav">289</div><div class="stat-l">tests passing with<br>no API keys</div></div>
       <div style="text-align:center"><div class="big-stat lav">17</div><div class="stat-l">stable misconception codes<br>across four subjects</div></div>
       <div style="text-align:center"><div class="big-stat lav">1</div><div class="stat-l">rule the whole system obeys:<br>the AI interprets, the code verifies</div></div>
     </div>
